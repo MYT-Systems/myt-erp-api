@@ -1,0 +1,297 @@
+<?php
+
+namespace App\Controllers;
+
+use CodeIgniter\API\ResponseTrait;
+use CodeIgniter\RESTful\ResourceController;
+
+// Model Declaration
+use App\Models\User;
+use App\Models\Branch;
+use App\Models\Webapp_log;
+use App\Models\Webapp_response;
+
+class MYTController extends ResourceController
+{
+    use ResponseTrait;
+    protected $helpers = ['form', 'url', 'text'];
+
+    protected $api_key;
+
+    protected $user_key;
+
+    protected $validation;
+
+    protected $webapp_log_id;
+
+    protected $requested_by;
+
+    protected $user;
+
+    protected $status;
+
+    protected $method;
+
+    protected $errorMessage;
+
+    protected $db;
+    
+    protected function _validation_check($rule_group, $custom_rules = null)
+    {
+        $this->validation = \Config\Services::validation();
+        $rules = [];
+        foreach($rule_group as $rule) {
+            $current_rule = $this->validation->getRuleGroup($rule);
+            $rules = array_merge($rules, $current_rule);
+        }
+
+        if (isset($custom_rules)) {
+            $rules = array_merge($rules, $custom_rules);
+        }
+
+        if (!$this->validate($rules)) {
+            $errors = $this->validator->getErrors();
+            return $this->fail($errors, 400);
+        }
+        return true;
+    }
+
+    protected function _verify_client()
+    {
+        if (defined($this->api_key)) {
+            return constant($this->api_key);
+        } else {
+            return false;
+        }
+    }
+
+    protected function _api_verification($controller, $method)
+    {
+        $this->requested_by = $this->request->getVar('requester') ?? 'webapp';
+
+        $webappLogModel = new Webapp_log();
+        $webappResponseModel = new Webapp_response();
+        $values = [
+            'controller' => $controller,
+            'method' => $method,
+            'ip_address' => $this->request->getServer('REMOTE_ADDR'),
+            'data_received' => json_encode($this->request->getVar()),
+            'requested_by' => $this->requested_by,
+            'requested_on' => date('Y-m-d H:i:s'),
+        ];
+
+        if (!$insertID = $webappLogModel->insert($values)) {
+            $response = $this->failServerError('Server Error.');
+            $webappResponseModel->record_response($insertID, $response);
+            return $response;
+        }
+
+        $this->webapp_log_id = $insertID;
+        
+        if (!$this->_user_is_authorized() AND $controller != "login") {
+            $response = $this->failUnauthorized('API key or token not authorized.');
+            $webappResponseModel->record_response($insertID, $response);
+            return $response;
+        }
+
+        if (!$this->_verify_client()) {
+            $response = $this->failUnauthorized('Invalid API key.');
+            $webappResponseModel->record_response($insertID, $response);
+            return $response;
+        }
+        return true;
+    }
+
+    protected function _user_is_authorized()
+    {
+        $token = $this->request->getVar('token');
+       
+        $userModel = new User();
+        $where = [
+            'id' => $this->requested_by,
+            'api_key' => $this->user_key ? : "",
+            'token' => $token ? : "",
+            'is_deleted' => 0
+        ];
+
+        if (!$this->user = $userModel->select('', $where, 1))
+            return false;
+
+        return true;
+    }
+
+    protected function _verify_requester($applicant_id, $token)
+    {
+        $applicantModel = new Applicant();
+
+        if (empty($token) || empty($applicant_id)) {
+            $response = 'Invalid Auth token';
+            return $this->failUnauthorized($response);
+        } else {
+            //Check requester token and token expiry validity
+            $where = [
+                'firebase_id' => $applicant_id,
+                // 'access_token' => $token
+            ];
+            $applicant = $applicantModel->select('', $where, 1);
+
+            if (empty($applicant)) {
+                $response = 'Applicant not found.';
+                return $this->failUnauthorized($response);
+            }
+
+            return true;
+        }
+    }
+
+    protected function _store_request($data, $method, $user_id)
+    {
+        $requestModel = new Request();
+
+        $values = [
+            'data_sent' => json_encode($data),
+            'method' => $method,
+            'user_id' => $user_id,
+            'requested_on' => date('Y-m-d H:i:s')
+        ];
+
+        return $requestModel->insert($values);
+    }
+
+    /**
+     * Used for token randomizer
+     */
+    protected function _generate_token($length)
+    {
+        $chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
+        $size = strlen($chars);
+        $token = '';
+        for($i = 0; $i < $length; $i++) {
+            $str = $chars[rand(0, $size - 1)];
+            $token .= $str;
+        }
+        return $token;
+    }
+
+    /**
+     * Used for uploading an attachment
+     */
+    protected function _attempt_upload_file($model = null, $path = 'uploads/', $extra_data = [])
+    {
+        $upload_path = FCPATH . $path;
+        // create upload directory if not exists
+        if (!is_dir($upload_path)) {
+            mkdir($upload_path, 0777, true);
+        }
+
+        $file = $this->request->getFile('file');
+
+        // file upload error
+        if (!$file || $file->getError() == 4) {
+            return false;
+        }
+
+        $file_name = $file->getName();
+        $temp = explode('.', $file_name);
+        $new_file_name = $temp[0] . '_' . time() . '.' . $temp[1];
+
+        // move file to upload directory
+        if ($file->move($upload_path, $new_file_name)) {
+            $name = $this->request->getVar('name');
+            $data = [
+                'added_by'  => $this->requested_by,
+                'added_on'  => date('Y-m-d H:i:s'),
+                'name'      => $new_file_name,
+                'file_url'  => base_url($path . $new_file_name),
+            ];
+
+            $data = array_merge($data, $extra_data);
+
+            if ($model->insert($data)) {
+                $response = $this->respond([
+                    'status'  => 200,
+                    'error'   => false,
+                    'message' => 'File uploaded successfully',
+                    'data'    => [
+                        'file_name' => $new_file_name,
+                        'file_url'  => base_url($path . $new_file_name),
+                        ]
+                ]);
+            } else {
+                $response = $this->respond([
+                    'status' => 500,
+                    'error'  => true,
+                    'message' => 'Failed to upload file',
+                    'data' => []
+                ]);
+            }
+        }
+
+        return $response;
+    }
+
+    /**
+     * Used for uploading an attachment as base64
+     */
+    protected function _attempt_upload_file_base64($model = null, $extra_data = [])
+    {
+        $file = $this->request->getFile('file');
+
+        // file upload error
+        if (!$file || $file->getError() == 4) {
+            return false;
+        }
+        
+        // convert the uploaded file into base64
+        $base64 = base64_encode(file_get_contents($file->getTempName()));
+        $base64_file = 'data:' . $file->getMimeType() . ';base64,' . $base64;
+
+        $data = [
+            'name'     => $file->getName(),
+            'base_64'  => $base64_file,
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
+        ];
+
+        $data = array_merge($data, $extra_data);
+
+        if ($model->insert($data)) {
+            $response = $this->respond([
+                'status'  => 200,
+                'error'   => false,
+                'message' => 'File uploaded successfully'
+            ]);
+        } else {
+            $response = $this->respond([
+                'status' => 500,
+                'error'  => true,
+                'message' => 'Failed to upload file',
+                'data' => []
+            ]);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Check if something is existing in a table
+     */
+    protected function _is_existing($model, $where)
+    {
+        $webappResponseModel = new Webapp_response();
+        $where = array_merge($where, ['is_deleted' => 0]);
+        if ($is_existing = $model->select('', $where, 1)) {
+            $response = $this->respond([
+                'status' => 200,
+                'error'  => false,
+                'message' => 'Data already exists',
+                'existing_data' => $is_existing
+            ]);
+
+            $webappResponseModel->record_response($this->webapp_log_id, $response);
+            return $response;
+        }
+
+        return false;
+    }
+}
