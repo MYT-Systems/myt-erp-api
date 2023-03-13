@@ -138,9 +138,12 @@ EOT;
         }
 
         if ($branch_id) {
+            if (!is_array($branch_id))
+                $branch_id = explode(",", $branch_id);
+                
             $sql .= <<<EOT
 
-AND adjustment.branch_id = ?
+AND adjustment.branch_id IN ?
 EOT;
             $binds[] = $branch_id;
         }

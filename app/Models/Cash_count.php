@@ -80,11 +80,13 @@ EOT;
     /**
      * Get cash_countess based on transaction_type_id, branch_id, commission
      */
-    public function search($branch_id, $branch_name, $sales_report_id, $is_reviewed, $prepared_by, $approved_by, $count_date_from, $count_date_to, $type)
+    public function search($branch_id, $branch_name, $sales_report_id, $is_reviewed, $prepared_by, $approved_by, $count_date_from, $count_date_to, $type, $group_cash_counts)
     {
         $database = \Config\Database::connect();
+        $total_count = $group_cash_counts ? "SUM(cash_count.total_count) AS total" : "cash_count.total_count AS total";
         $sql = <<<EOT
 SELECT cash_count.*,
+    $total_count,
     branch.name AS branch_name,
     CONCAT(preparer.first_name, ' ', preparer.last_name) AS prepared_by_name,
     CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name
@@ -131,6 +133,9 @@ EOT;
         if ($branch_name) {
             $sql .= " AND branch.name LIKE ?";
             $binds[] = "%$branch_name%";
+        }
+        if ($group_cash_counts) {
+            $sql .= " GROUP BY branch_id, count_date";
         }
 
         $query = $database->query($sql, $binds);

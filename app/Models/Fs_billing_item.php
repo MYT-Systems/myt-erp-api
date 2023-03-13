@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-class FS_billing_item extends MYTModel
+class Fs_billing_item extends MYTModel
 {
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;

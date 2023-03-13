@@ -96,7 +96,7 @@ EOT;
 SELECT *,
     (SELECT name FROM branch WHERE id = branch_from) AS branch_from_name,
     (SELECT name FROM branch WHERE id = branch_to) AS branch_to_name,
-    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE id = completed_by) AS completed_by_name,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE id = completed_by) AS completed_by_name,
     (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE id = added_by) AS added_by_name,
     (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE id = dispatcher) AS dispatcher_name
 FROM transfer
@@ -117,7 +117,7 @@ EOT;
     /**
      * Get transfer details by ID
      */
-    public function get_by_status($status = null)
+    public function get_by_status($status = null, $branches = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -129,11 +129,17 @@ SELECT *,
     (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE id = dispatcher) AS dispatcher_name
 FROM transfer
 WHERE transfer.id > 0
+    AND transfer.is_deleted = 0
 EOT;
         $binds = [];
         if ($status) {
             $sql .= " AND transfer.status = ?";
             $binds[] = $status;
+        }
+
+        if ($branches) {
+            $sql .= " AND transfer.branch_to IN ?";
+            $binds[] = $branches;
         }
 
         $sql .= " ORDER BY added_on DESC";
@@ -166,19 +172,136 @@ EOT;
     /**
      * Get transfers based on transfer name, contact_person, phone_no, tin_no, bir_no, email
      */
-   public function search($transfer_id, $branch_from, $branch_to, $transfer_number, $transfer_date_to, $transfer_date_from, $remarks, $grand_total, $status, $limit_by)
+   public function search_multiple_status($transfer_id, $branch_from, $branch_to, $transfer_number, $date_from, $date_to, $remarks, $grand_total, $statuses)
    {
        $database = \Config\Database::connect();
        $sql = <<<EOT
-SELECT *,
-    (SELECT name FROM branch WHERE id = branch_from) AS branch_from_name,
-    (SELECT name FROM branch WHERE id = branch_to) AS branch_to_name,
-    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE id = transfer.completed_by) AS completed_by_name,
-    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE id = transfer.added_by) AS added_by_name,
-    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE id = transfer.dispatcher) AS dispatcher_name,
-    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE id = transfer.approved_by) AS approved_by_name
+SELECT transfer.*,
+    source_branch.name AS branch_from_name,
+    target_branch.name AS branch_to_name,
+    IF(transfer.status = "processed" AND source_branch.is_franchise = 3 AND target_branch.is_franchise = 3, 1, 0) to_receive,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE employee.id = transfer.completed_by) AS completed_by_name,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE user.id = transfer.added_by) AS added_by_name,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE employee.id = transfer.dispatcher) AS dispatcher_name,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE user.id = transfer.approved_by) AS approved_by_name,
+    transfer.transfer_date AS used_date
 FROM transfer
-WHERE transfer.is_deleted = 0
+LEFT JOIN branch AS source_branch ON source_branch.id = transfer.branch_from
+LEFT JOIN branch AS target_branch ON target_branch.id = transfer.branch_to
+WHERE 1
+EOT;
+        $binds = [];
+
+        $has_completed = false;
+        if ($statuses) {
+            $statuses = explode(",", $statuses);
+
+            if ($index = array_search("completed", $statuses)) {
+                $has_completed = true;
+                unset($statuses[$index]);
+                $statuses = array_values($statuses);
+            }
+
+            $sql .= " AND (transfer.status IN ?";
+            $binds[] = $statuses;
+
+            if (in_array("deleted", $statuses))
+                $sql .= " OR transfer.is_deleted = 1)";
+            else
+                $sql .= ") AND transfer.is_deleted = 0";
+        }
+
+        $conditions = "";
+        $binds_for_additional_condition = [];
+        if ($date_from) {
+            $conditions .= " AND transfer.transfer_date >= ?";
+            $binds_for_additional_condition[] = $date_from;
+        }
+        if ($date_to) {
+            $conditions .= " AND transfer.transfer_date <= ?";
+            $binds_for_additional_condition[] = $date_to;
+        }
+        if ($transfer_id) {
+            $conditions .= " AND transfer.id LIKE ?";
+            $binds_for_additional_condition[] = $transfer_id . "%";
+        }
+        if ($branch_from) {
+            $branch_from = explode(',', $branch_from);
+            $conditions .= " AND transfer.branch_from IN ?";
+            $binds_for_additional_condition[] = $branch_from;
+        }
+        if ($branch_to) {
+            $branch_to = explode(',', $branch_to);
+            $conditions .= " AND transfer.branch_to IN ?";
+            $binds_for_additional_condition[] = $branch_to;
+        }
+        if ($transfer_number) {
+            $conditions .= " AND transfer.transfer_number LIKE ?";
+            $binds_for_additional_condition[] = "%{$transfer_number}%";
+        }
+        if ($remarks) {
+            $conditions .= " AND transfer.remarks = ?";
+            $binds_for_additional_condition[] = $remarks;
+        }
+        if ($grand_total) {
+            $conditions .= " AND transfer.grand_total = ?";
+            $binds_for_additional_condition[] = $grand_total;
+        }
+
+        $sql .= $conditions;
+        if ($binds_for_additional_condition)
+            $binds = array_merge($binds, $binds_for_additional_condition);
+
+        if ($has_completed) {
+            $sql = <<<EOT
+$sql
+
+UNION ALL
+
+SELECT transfer.*,
+    source_branch.name AS branch_from_name,
+    target_branch.name AS branch_to_name,
+    IF(transfer.status = "processed" AND source_branch.is_franchise = 3 AND target_branch.is_franchise = 3, 1, 0) to_receive,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE employee.id = transfer.completed_by) AS completed_by_name,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE user.id = transfer.added_by) AS added_by_name,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE employee.id = transfer.dispatcher) AS dispatcher_name,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE user.id = transfer.approved_by) AS approved_by_name,
+    transfer.completed_on AS used_date
+FROM transfer
+LEFT JOIN branch AS source_branch ON source_branch.id = transfer.branch_from
+LEFT JOIN branch AS target_branch ON target_branch.id = transfer.branch_to
+WHERE transfer.status = "completed" AND transfer.is_deleted = 0
+$conditions
+EOT;
+            if ($binds_for_additional_condition)
+                $binds = array_merge($binds, $binds_for_additional_condition);
+
+            $sql = "SELECT * FROM ($sql) AS transfers ORDER BY transfers.used_date DESC";
+        }
+        
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Get transfers based on transfer name, contact_person, phone_no, tin_no, bir_no, email
+     */
+   public function search($transfer_id, $branch_from, $branch_to, $transfer_number, $transfer_date_to, $transfer_date_from, $date_completed_from, $date_completed_to, $remarks, $grand_total, $status, $limit_by)
+   {
+       $database = \Config\Database::connect();
+       $sql = <<<EOT
+SELECT transfer.*,
+    source_branch.name AS branch_from_name,
+    target_branch.name AS branch_to_name,
+    IF(transfer.status = "processed" AND source_branch.is_franchise = 3 AND target_branch.is_franchise = 3, 1, 0) to_receive,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE employee.id = transfer.completed_by) AS completed_by_name,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE user.id = transfer.added_by) AS added_by_name,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE employee.id = transfer.dispatcher) AS dispatcher_name,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM user WHERE user.id = transfer.approved_by) AS approved_by_name
+FROM transfer
+LEFT JOIN branch AS source_branch ON source_branch.id = transfer.branch_from
+LEFT JOIN branch AS target_branch ON target_branch.id = transfer.branch_to
+WHERE 1
 EOT;
         $binds = [];
         if ($transfer_id) {
@@ -221,6 +344,14 @@ EOT;
             $sql .= " AND transfer.transfer_date >= ?";
             $binds[] = $transfer_date_from;
         }
+        if ($date_completed_from) {
+            $sql .= " AND transfer.completed_on <= ?";
+            $binds[] = $date_completed_from;
+        }
+        if ($date_completed_to) {
+            $sql .= " AND transfer.completed_on >= ?";
+            $binds[] = $date_completed_to;
+        }
         if ($remarks) {
             $sql .= " AND transfer.remarks = ?";
             $binds[] = $remarks;
@@ -231,14 +362,29 @@ EOT;
         }
         
         if ($status) {
-            $statuses = explode(',', $status);
-            $sql .= " AND transfer.status IN (";
-            foreach ($statuses as $key => $value) {
-                $sql .= "?,";
-                $binds[] = $value;
+            if ($status == "deleted") {
+                $sql .= " AND (transfer.is_deleted = 1 OR transfer.status = ?)";
+                $binds[] = $status;
+            } else {
+                $statuses = explode(',', $status);
+                $sql .= " AND (transfer.status IN (";
+
+                $ending_condition = ")) AND transfer.is_deleted = 0";
+                foreach ($statuses as $key => $value) {
+                    $sql .= "?,";
+                    $binds[] = $value;
+
+                    if ($status == "deleted") {
+                        $ending_condition = "OR transfer.is_deleted = 1)";
+                    }
+                }
+                $sql = rtrim($sql, ',');
+                
+                
+                $sql .= $ending_condition;
             }
-            $sql = rtrim($sql, ',');
-            $sql .= ")";
+        } else {
+            $sql .= " AND transfer.is_deleted = 0";
         }
 
         $sql .= " ORDER BY transfer.added_on DESC";

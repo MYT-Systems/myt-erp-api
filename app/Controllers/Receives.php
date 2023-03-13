@@ -429,6 +429,7 @@ class Receives extends MYTController
                     'current_qty'         => $quantities[$key],
                     'max'                 => $item_unit['max'],
                     'min'                 => $item_unit['min'],
+                    'unit'                => $item_unit['inventory_unit'],
                     'acceptable_variance' => $item_unit['acceptable_variance'],
                     'added_by'            => $this->requested_by,
                     'added_on'            => date('Y-m-d H:i:s'),

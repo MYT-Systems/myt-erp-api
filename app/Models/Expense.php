@@ -8,6 +8,7 @@ class Expense extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'branch_id',
+        'status',
         'expense_date',
         'store_name',
         'invoice_no',
@@ -161,13 +162,14 @@ EOT;
     /**
      * Get total expense based on transaction_type_id, branch_id
      */
-    public function get_total_expense($branch_id = null, $expense_date = null)
+    public function get_total_expense($branch_id = null, $expense_date = null, $expense_date_from = null, $expense_date_to = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT IFNULL(SUM(grand_total), 0) AS total
 FROM expense
 WHERE expense.is_deleted = 0
+    AND status = "approved"
 EOT;
         $binds = [];
         if ($branch_id) {
@@ -180,7 +182,43 @@ EOT;
             $binds[] = $expense_date;
         }
 
+        if ($expense_date_from) {
+            $sql .= " AND expense.expense_date >= ?";
+            $binds[] = $expense_date_from;
+        }
+
+        if ($expense_date_to) {
+            $sql .= " AND expense.expense_date <= ?";
+            $binds[] = $expense_date_to;
+        }
+
         $query = $database->query($sql, $binds);
         return $query ? (float)$query->getResultArray()[0]['total'] : false;
+    }
+
+    /**
+     * Get request details by ID
+     */
+    public function get_by_status($status = null, $branches = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT expense.*
+FROM expense
+WHERE expense.is_deleted = 0
+EOT;
+        $binds = [];
+        if ($status) {
+            $sql .= " AND expense.status = ?";
+            $binds[] = $status;
+        }
+
+        if ($branches) {
+            $sql .= " AND expense.branch_id IN ?";
+            $binds[] = $branches;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
     }
 }

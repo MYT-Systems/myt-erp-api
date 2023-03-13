@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-class FS_billing_payment extends MYTModel
+class Fs_billing_payment extends MYTModel
 {
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
@@ -202,19 +202,19 @@ EOT;
     /**
      * Get payments with billing details
      */
-    public function get_payment_with_billing_details($franchisee_id, $franchisee_name, $branch_id, $type, $date_from, $date_to)
+    public function get_payment_with_billing_details($franchisee_id, $franchisee_name, $branch_id, $type, $date_from, $date_to, $payment_status)
     {
         $database = \Config\Database::connect();
 
         switch ($type) {
             case "royalty_fee":
-                $fees = "franchisee_sale_billing.royalty_fee_net_of_vat AS royalty_fee, '0.00' AS marketing_fee";
+                $fees = "IFNULL(franchisee_sale_billing.royalty_fee_net_of_vat, 0.00) AS royalty_fee, '0.00' AS marketing_fee";
                 break;
             case "marketing_fee":
-                $fees = "'0.00' royalty_fee, franchisee_sale_billing.s_marketing_fee_net_of_vat AS marketing_fee";
+                $fees = "'0.00' AS royalty_fee, IFNULL(franchisee_sale_billing.s_marketing_fee_net_of_vat, 0.00) AS marketing_fee";
                 break;
             default:
-                $fees = "franchisee_sale_billing.royalty_fee_net_of_vat AS royalty_fee, franchisee_sale_billing.s_marketing_fee_net_of_vat AS marketing_fee";
+                $fees = "IFNULL(franchisee_sale_billing.royalty_fee_net_of_vat, 0.00) AS royalty_fee, IFNULL(franchisee_sale_billing.s_marketing_fee_net_of_vat, 0.00) AS marketing_fee";
                 break;
         }
 
@@ -228,8 +228,8 @@ SELECT franchisee_sale_billing.id, fs_billing_payment.payment_date, franchisee.n
     fs_billing_payment.cheque_date,
     fs_billing_payment.reference_number,
     fs_billing_payment.payment_type AS pay_mode
-FROM fs_billing_payment
-LEFT JOIN franchisee_sale_billing
+FROM franchisee_sale_billing
+LEFT JOIN fs_billing_payment
     ON fs_billing_payment.fs_billing_id = franchisee_sale_billing.id
 LEFT JOIN franchisee
     ON franchisee.id = franchisee_sale_billing.franchisee_id
@@ -265,6 +265,14 @@ EOT;
         if ($date_to) {
             $sql .= ' AND fs_billing_payment.payment_date <= ?';
             $binds[] = $date_to;
+        }
+
+        if ($payment_status) {
+            if ($payment_status == 'paid') {
+                $sql .= ' AND franchisee_sale_billing.payment_status = "closed_bill"';
+            } else {
+                $sql .= ' AND franchisee_sale_billing.payment_status = "open_bill"';
+            }
         }
 
         $query = $database->query($sql, $binds);

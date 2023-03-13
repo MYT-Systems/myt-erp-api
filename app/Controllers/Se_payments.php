@@ -31,8 +31,9 @@ class Se_payments extends MYTController
         $supplier_id  = $this->request->getVar('supplier_id') ? : null;
         $vendor_id    = $this->request->getVar('vendor_id') ? : null;
         $payment_mode = $this->request->getVar('payment_mode') ? : null;
+        $doc_no       = $this->request->getVar('doc_no') ? : null;
 
-        $se_payment = $this->suppliesPaymentModel->get_all_payment($start_date, $end_date, $status, $supplier_id, $vendor_id, $payment_mode);
+        $se_payment = $this->suppliesPaymentModel->get_all_payment($start_date, $end_date, $status, $supplier_id, $vendor_id, $payment_mode, $doc_no);
 
         if (!$se_payment) {
             $response = $this->failNotFound('No payments found');

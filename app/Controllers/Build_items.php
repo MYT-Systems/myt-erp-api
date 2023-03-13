@@ -75,8 +75,6 @@ class Build_items extends MYTController
                         'total_qty' => $build_item['qty'],
                         'raw_materials' => []
                     ];
-                } else {
-                    $final_data[$build_item['item_id']]['total_qty'] += $build_item['qty'];
                 }
 
                 $all_items_total_qty += $build_item['qty'];

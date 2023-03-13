@@ -36,13 +36,25 @@ class Transfer_receive extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *
+SELECT transfer_receive.*,
+    CONCAT(employee.first_name, " ", employee.last_name) AS completed_by_name,
+    CONCAT(dispatch_person.first_name, " ", dispatch_person.last_name) AS dispatcher_name,
+    transfer_receive.transfer_receive_number AS transfer_number,
+    source_branch.name AS branch_from_name,
+    target_branch.name AS branch_to_name
 FROM transfer_receive
-WHERE is_deleted = 0
+LEFT JOIN transfer ON transfer.id = transfer_receive.transfer_id
+LEFT JOIN branch AS source_branch ON source_branch.id = transfer_receive.branch_from
+LEFT JOIN branch AS target_branch ON target_branch.id = transfer_receive.branch_to
+LEFT JOIN employee AS dispatch_person
+    ON dispatch_person.id = transfer.dispatcher
+LEFT JOIN employee
+    ON employee.id = transfer_receive.completed_by
+WHERE transfer_receive.is_deleted = 0
 EOT;
         $binds = [];
         if ($transfer_receive_id) {
-            $sql .= " AND id = ?";
+            $sql .= " AND transfer_receive.id = ?";
             $binds[] = $transfer_receive_id;
         }
 
@@ -90,17 +102,20 @@ EOT;
     /**
      * Get transfer_receives based on transfer_receive name, contact_person, phone_no, tin_no, bir_no, email
      */
-   public function search($branch_from = null, $branch_to = null, $transfer_receive_number = null, $transfer_receive_date = null, $remarks = null, $grand_total = null, $status = null, $transfer_id)
+   public function search($branch_from = null, $branch_to = null, $date_from = null, $date_to = null, $date_completed_from = null, $date_completed_to = null, $transfer_receive_number = null, $transfer_receive_date = null, $remarks = null, $grand_total = null, $status = null, $transfer_id)
    {
        $database = \Config\Database::connect();
        $sql = <<<EOT
 SELECT transfer_receive.*, 
     transfer.transfer_number,
-    branch.name AS branch_from_name,
-    transfer.transfer_date
+    source_branch.name AS branch_from_name,
+    target_branch.name AS branch_to_name,
+    transfer.transfer_date,
+    (SELECT CONCAT(last_name, ', ', first_name, ' ', middle_name) FROM employee WHERE employee.id = transfer_receive.completed_by) AS completed_by_name
 FROM transfer_receive
 LEFT JOIN transfer ON transfer_receive.transfer_id = transfer.id
-LEFT JOIN branch ON branch.id = transfer_receive.branch_from
+LEFT JOIN branch AS source_branch ON source_branch.id = transfer_receive.branch_from
+LEFT JOIN branch AS target_branch ON target_branch.id = transfer_receive.branch_to
 WHERE transfer_receive.is_deleted = 0
 EOT;
         $binds = [];
@@ -111,6 +126,22 @@ EOT;
         if ($branch_to) {
             $sql .= " AND transfer_receive.branch_to = ?";
             $binds[] = $branch_to;
+        }
+        if ($date_from) {
+            $sql .= " AND transfer.transfer_date >= ?";
+            $binds[] = $date_from;
+        }
+        if ($date_to) {
+            $sql .= " AND transfer.transfer_date <= ?";
+            $binds[] = $date_to;
+        }
+        if ($date_completed_from) {
+            $sql .= " AND transfer_receive.completed_on >= ?";
+            $binds[] = $date_completed_from;
+        }
+        if ($date_completed_to) {
+            $sql .= " AND transfer_receive.completed_on <= ?";
+            $binds[] = $date_completed_to;
         }
         if ($transfer_receive_number) {
             $sql .= " AND transfer_receive.transfer_receive_number = ?";

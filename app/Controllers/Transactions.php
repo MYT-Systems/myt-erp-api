@@ -128,9 +128,10 @@ class Transactions extends MYTController
         $payment_status  = $this->request->getVar('payment_status') ? : null;
         $payment_mode    = $this->request->getVar('payment_mode') ? : null;
         $type            = $this->request->getVar('type') ? : null;
+        $deposited_to    = $this->request->getVar('deposited_to') ? : null;
         $is_done         = $this->request->getVar('is_done');
 
-        if (!$payments = $this->franchiseTransactionModel->get_all_filtered_payments($branch_id, $date_from, $date_to, $franchisee_id, $franchisee_name, $payment_status, $payment_mode, $type, $is_done)) {
+        if (!$payments = $this->franchiseTransactionModel->get_all_filtered_payments($branch_id, $deposited_to, $date_from, $date_to, $franchisee_id, $franchisee_name, $payment_status, $payment_mode, $type, $is_done)) {
             $response = $this->failNotFound('No transaction Found');
         } else {
             $summary = [

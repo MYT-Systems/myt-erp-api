@@ -25,10 +25,12 @@ class Branch_operation_logs extends MYTController
         $branch_type = $this->request->getVar('branch_type') ? : null;
         $user_id = $this->request->getVar('user_id') ? : null;
         $branch_id = $this->request->getVar('branch_id') ? : null;
+        $branch_name = $this->request->getVar('branch_name') ? : null;
         $date = $this->request->getVar('date') ? : null;
+        $status = $this->request->getVar('status') ? : null;
         $date = $date ? date('Y-m-d', strtotime($date)) : null;
 
-        if (!$operation_logs = $this->operationLogModel->get_all($branch_type, $user_id, $branch_id, $date)) {
+        if (!$operation_logs = $this->branchModel->get_branch_operations($branch_type, $user_id, $branch_id, $branch_name, $status, $date)) {
             $response = $this->failNotFound('No branch operation logs found');
         } else {
             $response = $this->respond([
@@ -47,6 +49,7 @@ class Branch_operation_logs extends MYTController
     protected function _load_essentials()
     {
         $this->operationLogModel   = model('App\Models\Branch_operation_log');
+        $this->branchModel         = model('App\Models\Branch');
         $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

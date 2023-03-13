@@ -36,7 +36,7 @@ class Transfer_receive_item extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT transfer_receive_item.*, item.name AS item_name, transfer_item.qty AS transfer_qty, transfer_item.received_qty
+SELECT transfer_receive_item.*, item.name AS item_name, transfer_item.qty AS transfer_qty, IFNULL(transfer_item.received_qty, transfer_receive_item.qty) AS received_qty
 FROM transfer_receive_item
 LEFT JOIN transfer_item ON transfer_item.id = transfer_receive_item.transfer_item_id
 LEFT JOIN item ON item.id = transfer_receive_item.item_id
@@ -47,6 +47,34 @@ EOT;
             $sql .= " AND transfer_receive_item.transfer_receive_id = ?";
             $binds[] = $transfer_receive_id;
         }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Get transfer_receive_item details by transfer_receive ID
+     */
+    public function get_details_by_transfer_id($transfer_id = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT transfer_receive_item.id, ? AS transfer_id, transfer_receive_item.item_id,
+    transfer_receive_item.unit, transfer_receive_item.qty, transfer_receive_item.price,
+    transfer_receive_item.total, transfer_receive_item.qty AS received_qty, "completed" AS status,
+    transfer_receive_item.added_by, transfer_receive_item.added_on,
+    transfer_receive_item.updated_by, transfer_receive_item.updated_on,
+    transfer_receive_item.is_deleted,
+    (SELECT name FROM item WHERE id = transfer_receive_item.item_id) AS item_name
+FROM transfer_receive
+LEFT JOIN transfer_receive_item
+    ON transfer_receive.id = transfer_receive_item.transfer_receive_id
+WHERE transfer_receive.is_deleted = 0
+    AND transfer_receive_item.is_deleted = 0
+    AND transfer_receive_item.transfer_item_id = 0
+    AND transfer_receive.transfer_id = ?
+EOT;
+        $binds = [$transfer_id, $transfer_id];
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;

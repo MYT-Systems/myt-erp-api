@@ -93,41 +93,61 @@ EOT;
     /**
      * Search
      */
-    public function search($group_by_employees, $branch_id = null, $employee_id  = null, $date = null, $date_from  = null, $date_to = null)
+    public function search($group_by_employees, $group_datetime, $branch_id = null, $branch_name = null, $employee_id  = null, $employee_name = null, $date = null, $date_from  = null, $date_to = null, $branches = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT id, branch_id, employee_id, datetime, SUM(total_minutes) AS total_minutes,
-    (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE id = attendance.employee_id) AS employee_name,
-    (SELECT name FROM branch WHERE id = attendance.branch_id) AS branch_name
+SELECT attendance.id, branch_id, employee_id, datetime, SUM(total_minutes) AS total_minutes,
+    CONCAT(first_name, ' ', last_name) AS employee_name,
+    branch.name AS branch_name
 FROM attendance
-WHERE is_deleted = 0
+LEFT JOIN branch ON branch.id = attendance.branch_id
+LEFT JOIN employee ON employee.id = attendance.employee_id
+WHERE attendance.is_deleted = 0
 EOT;
         $binds = [];
         if (isset($branch_id)) {
             $sql .= " AND attendance.branch_id = ?";
             $binds[] = $branch_id;
+        } elseif ($branches) {
+            $sql .= " AND attendance.branch_id IN ?";
+            $binds[] = $branches;
+        }
+
+        if (isset($branch_name)) {
+            $sql .= " AND branch.name LIKE ?";
+            $binds[] = "%" . $branch_name . "%";
         }
         if (isset($employee_id)) {
             $sql .= " AND attendance.employee_id = ?";
             $binds[] = $employee_id;
         }
+        if (isset($employee_name)) {
+            $sql .= " AND CONCAT(first_name, ' ', last_name) LIKE ?";
+            $binds[] = "%$employee_name%";
+        }
         if (isset($date)) {
-            $sql .= " AND DATE(datetime) = ?";
+            $sql .= " AND DATE(attendance.datetime) = ?";
             $binds[] = $date;
         }
         if (isset($date_from)) {
-            $sql .= " AND DATE(datetime) >= ?";
+            $sql .= " AND DATE(attendance.datetime) >= ?";
             $binds[] = $date_from;
         }
         if (isset($date_to)) {
-            $sql .= " AND DATE(datetime) <= ?";
+            $sql .= " AND DATE(attendance.datetime) <= ?";
             $binds[] = $date_to;
         }
 
-        $sql .= (($group_by_employees) ? 
-                " GROUP BY branch_id, DATE(datetime), employee_id" :
-                " GROUP BY branch_id, DATE(datetime)" );
+        if ($group_datetime) {
+            $sql .= (($group_by_employees) ? 
+            " GROUP BY attendance.branch_id, DATE(attendance.datetime), attendance.employee_id" :
+            " GROUP BY attendance.branch_id, DATE(attendance.datetime)" );
+        } else {
+            $sql .= (($group_by_employees) ? 
+            " GROUP BY attendance.branch_id, attendance.employee_id" :
+            " GROUP BY attendance.branch_id" );
+        }
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;

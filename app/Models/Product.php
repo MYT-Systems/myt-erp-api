@@ -48,7 +48,7 @@ EOT;
     /**
      * Get all products
      */
-    public function get_all_product($product_name = null)
+    public function get_all_product($product_name = null, $is_addon = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -61,6 +61,11 @@ EOT;
         if (isset($product_name)) {
             $sql .= " AND product.name LIKE ?";
             $binds[] = "%$product_name%";
+        }
+
+        if ($is_addon !== null) {
+            $sql .= " AND product.is_addon = ?";
+            $binds[] = $is_addon;
         }
 
         $query = $database->query($sql, $binds);
@@ -120,4 +125,19 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
+    public function get_price_level_by_product($product_id)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT price_level.id, price_level.name
+FROM price_level_type_detail
+LEFT JOIN price_level ON price_level.id = price_level_type_detail.price_level_id
+WHERE product_id = ?
+    AND price_level_type_detail.is_deleted = 0
+GROUP BY price_level.id
+EOT;
+        $binds = [$product_id];
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
 }

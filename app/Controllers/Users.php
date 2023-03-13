@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\Branch;
 use App\Models\User;
+use App\Models\User_assignment;
 use App\Models\User_branch;
 use App\Models\Webapp_response;
 
@@ -15,6 +16,8 @@ class Users extends MYTController
         // Headers for API
         $this->api_key = $_SERVER['HTTP_API_KEY'];
         $this->user_key = $_SERVER['HTTP_USER_KEY'];
+
+        $this->pin = null;
        
         $this->_load_essentials();
     }
@@ -27,13 +30,12 @@ class Users extends MYTController
         if (($response = $this->_api_verification('users', 'get_user')) !== true)
             return $response;
 
-        $user_id = $this->request->getVar('user_id') ? : null;
-        $user = $user_id ? $this->userModel->get_details_by_id($user_id) : null;
+        $pin = $this->request->getVar('pin') ? : null;
+        $user = $pin ? $this->userModel->get_details_by_pin($pin) : null;
 
         if (!$user) {
             $response = $this->failNotFound('No user found');
         } else {
-            $user[0]['branches'] = $this->userBranchModel->get_branches_by_user($user_id);
             $response = $this->respond([
                 'data'   => $user,
                 'status' => 'success'
@@ -57,7 +59,6 @@ class Users extends MYTController
         if (!$users) {
             $response = $this->failNotFound('No user found');
         } else {
-            $users   = $this->_get_all_branches($users);
             $response = $this->respond([
                 'data'   => $users,
                 'status' => 'success'
@@ -86,15 +87,13 @@ class Users extends MYTController
         if (!$user_id = $this->_attempt_create()) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
-        } elseif (!$this->_register_user_branches($user_id, true)) {
-            $this->db->transRollback();
-            $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
             $response = $this->respond([
                 'response' => 'User created successfully', 
                 'status' => 'success', 
-                'user_id' => $user_id
+                'user_id' => $user_id,
+                'user_pin' => $this->pin
             ]);
         }
 
@@ -111,12 +110,12 @@ class Users extends MYTController
         if (($response = $this->_api_verification('users', 'update')) !== true)
             return $response;
 
-        $user_id = $this->request->getVar('user_id');
-        $where = ['id' => $user_id, 'is_deleted' => 0];
+        $pin = $this->request->getVar('pin');
+        $where = ['pin' => $pin, 'is_deleted' => 0];
         
         if (!$user = $this->userModel->select('', $where, 1))
             $response = $this->failNotFound('User not found');
-        elseif ($this->userModel->select('', ['username' => $this->request->getVar('username'), 'id !=' => $user_id], 1))
+        elseif ($this->userModel->select('', ['username' => $this->request->getVar('username'), 'pin !=' => $pin], 1))
             $response = $this->fail('Username already exists');
         elseif (!$this->_attempt_update($user))
             $response = $this->fail($this->errorMessage);
@@ -165,9 +164,9 @@ class Users extends MYTController
         if (($response = $this->_api_verification('users', 'delete')) !== true)
             return $response;
 
-        $user_id = $this->request->getVar('user_id');
+        $pin = $this->request->getVar('pin');
 
-        $where = ['id' => $user_id, 'is_deleted' => 0];
+        $where = ['pin' => $pin, 'is_deleted' => 0];
 
         if (!$user = $this->userModel->select('', $where, 1)) {
             $response = $this->failNotFound('User not found');
@@ -196,7 +195,6 @@ class Users extends MYTController
         if (!$users = $this->userModel->search($name, $status, $branch_id)) {
             $response = $this->failNotFound('No user found');
         } else {
-            $users  = $this->_get_all_branches($users);
             $response = $this->respond([
                 'data'   => $users,
                 'status' => 'success'
@@ -216,8 +214,14 @@ class Users extends MYTController
      */
     private function _attempt_create()
     {
+        $bytes = random_bytes(5);
+        $random_pin = bin2hex($bytes);
+        $this->pin = $this->request->getVar('pin') ? : $random_pin;
+        $type = $this->request->getVar('type');
+
         $values = [
             'employee_id' => $this->request->getVar('employee_id'),
+            'pin'         => $this->pin,
             'username'    => $this->request->getVar('username'),
             'password'    => password_hash($this->request->getVar('password'), PASSWORD_BCRYPT),
             'last_name'   => $this->request->getVar('last_name'),
@@ -233,12 +237,28 @@ class Users extends MYTController
         ];
 
   
-        if (!$user_id = $this->userModel->insert($values)) {
+        if (!$user_id = $this->userModel->insert($values) OR
+            ($type != 'branch' AND !$this->_insert_user_assignment($user_id))
+        ) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
 
         return $user_id;
+    }
+
+    /**
+     * User assignment history
+     */
+    public function _insert_user_assignment($user_id)
+    {
+        $values = [
+            'employee_id' => $this->request->getVar('employee_id'),
+            'user_id' => $user_id,
+            'assigned_on' => date("Y-m-d H:i:s")
+        ];
+
+        return (!$this->userAssignmentModel->insert($values)) ? false : true;
     }
 
     /**
@@ -270,10 +290,8 @@ class Users extends MYTController
             $values['password_reset'] = date('Y-m-d H:i:s');
         }
 
-        $delete_branches = $this->request->getVar('branch_ids') ? : false;
         if (!$this->userModel->update($where, $values) OR
-            !$this->_delete_user_branches($user) OR
-            !$this->_register_user_branches($user['id'], $delete_branches)
+            !$this->_update_user_assignment($user['id'])
         ) {
             $this->errorMessage = $this->db->error()['message'];
             $this->db->transRollback();
@@ -286,51 +304,23 @@ class Users extends MYTController
     }
 
     /**
-     * Register user to assigned branches
+     * User assignment history
      */
-    protected function _register_user_branches($user_id, $delete_branches)
+    public function _update_user_assignment($user_id)
     {
-        if (!$delete_branches)
-            return true;
-        
-        $branch_ids = $this->request->getVar('branch_ids');
+        $current_datetime = date("Y-m-d H:i:s");
+        $previous_user_assignment = $this->userAssignmentModel->select('', ['user_id' => $user_id], 1, 'id DESC');
+        $end_values = ['ended_on' => $current_datetime];
 
-        if ($branch_ids == 'all') {
-            $branches = $this->branchModel->select('', ['is_deleted' => 0]);
-            $branch_ids = array_map(function($branch) {
-                return $branch['id'];
-            }, $branches);
-        } else {
-            $branch_ids = explode(',', $branch_ids);
-        }
+        if (!$this->userAssignmentModel->update($previous_user_assignment['id'], $end_values)) return false;
 
-        foreach($branch_ids as $branch_id) {
-            $values = [
-                'user_id'    => $user_id,
-                'branch_id'  => $branch_id,
-                'added_by'   => $this->requested_by,
-                'added_on'   => date('Y-m-d H:i:s')
-            ];
+        $values = [
+            'employee_id' => $this->request->getVar('employee_id'),
+            'user_id' => $user_id,
+            'assigned_on' => $current_datetime
+        ];
 
-            if (!$this->userBranchModel->insert_on_duplicate($values, $this->requested_by, $this->db)) {
-                $this->errorMessage = $this->db->error()['message'];
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Delete user branches
-     */
-    protected function _delete_user_branches($user)
-    {
-        if (!$this->userBranchModel->_attempt_delete_by_user_id($user['id'], $this->requested_by, $this->db)) {
-            $this->errorMessage = $this->db->error()['message'];
-            return false;
-        }
-
-        return true;
+        return (!$this->userAssignmentModel->insert($values)) ? false : true;
     }
 
     /**
@@ -349,7 +339,7 @@ class Users extends MYTController
         ];
 
         if (!$this->userModel->update($where, $values) OR
-            !$this->_delete_user_branches($user)
+            !$this->userAssignmentModel->custome_update(['user_id' => $user['id'], 'is_deleted' => 0], ['is_deleted' => 1])
         ) {
             $this->db->transRollback();
             return false;
@@ -362,26 +352,13 @@ class Users extends MYTController
     }
 
     /**
-     * Get all allowed branches per user
-     */
-    protected function _get_all_branches($users)
-    {
-        $new_users = [];
-        foreach($users as $user) {
-            $user['branches'] = $this->userBranchModel->get_branches_by_user($user['id']);
-            $new_users[]      = $user;
-        }
-        return $new_users;
-    }
-
-    /**
      * Load all essential models and helpers
      */
     protected function _load_essentials()
     {
         $this->branchModel         = new Branch();
         $this->userModel           = new User();
-        $this->userBranchModel     = new User_branch();
+        $this->userAssignmentModel = new User_assignment();
         $this->webappResponseModel = new Webapp_response();
     }
 }

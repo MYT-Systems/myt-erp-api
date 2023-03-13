@@ -194,7 +194,8 @@ class Items extends MYTController
                 $items[$key]['item_units'] = $this->itemUnitModel->get_details_by_item_id($item['id'], 1);
             }
             $response = $this->respond([
-                'classifications' => $classifications,
+                // 'classifications' => $classifications,
+                'classifications' => ['ingredient','supplies','cleaning_supplies','office_supplies','equipment','uniform','beverage','raw_material','store_supplies','commissary_supplies','commissary_equipment','store_equipment','carpentry','electrical','painting','smallwares'],
                 'data'   => $items,
                 'status' => 'success'
             ]);
@@ -316,27 +317,27 @@ class Items extends MYTController
             return false;
         }
 
-        if ($this->request->getVar('prices')) {
-            if (!$this->itemUnitModel->delete_by_item_id($item['id'], $this->requested_by, $this->db)) {
-                $this->errorMessage = $this->db->error()['message'];
-                return false;
-            }
+        // if ($this->request->getVar('prices')) {
+        //     if (!$this->itemUnitModel->delete_by_item_id($item['id'], $this->requested_by, $this->db)) {
+        //         $this->errorMessage = $this->db->error()['message'];
+        //         return false;
+        //     }
 
-            if (!$this->franchiseSaleItemPrice->delete_by_item_id($item['id'], $this->requested_by, $this->db)) {
-                $this->errorMessage = $this->db->error()['message'];
-                return false;
-            }
-            if (!$this->_attempt_generate_units($item['id']))
-                return false;      
-        } 
+        //     if (!$this->franchiseSaleItemPrice->delete_by_item_id($item['id'], $this->requested_by, $this->db)) {
+        //         $this->errorMessage = $this->db->error()['message'];
+        //         return false;
+        //     }
+        //     if (!$this->_attempt_generate_units($item['id']))
+        //         return false;      
+        // }
         
-        // If item is for sale, add them to franchisee sale item price
-        if ($this->request->getVar('is_for_sale') == '0') {
-            if (!$this->franchiseSaleItemPrice->delete_by_item_id($item['id'], $this->requested_by, $this->db)) {
-                $this->errorMessage = $this->db->error()['message'];
-                return false;
-            }
-        } 
+        // // If item is for sale, add them to franchisee sale item price
+        // if ($this->request->getVar('is_for_sale') == '0') {
+        //     if (!$this->franchiseSaleItemPrice->delete_by_item_id($item['id'], $this->requested_by, $this->db)) {
+        //         $this->errorMessage = $this->db->error()['message'];
+        //         return false;
+        //     }
+        // } 
 
         return true;
     }

@@ -35,14 +35,17 @@ class Request_item extends MYTModel
         $sql = <<<EOT
 SELECT 
     item.name AS item_name,
-    request_item.*
+    request_item.*,
+    inventory.current_qty
 FROM request_item
 LEFT JOIN item ON item.id = request_item.item_id
+LEFT JOIN request ON request.id = request_item.request_id
+LEFT JOIN inventory ON inventory.item_id = item.id AND inventory.branch_id = request.branch_to
 WHERE request_item.is_deleted = 0
 EOT;
         $binds = [];
         if (isset($request_id)) {
-            $sql .= " AND request_id = ?";
+            $sql .= " AND request_item.request_id = ?";
             $binds[] = $request_id;
         }
 

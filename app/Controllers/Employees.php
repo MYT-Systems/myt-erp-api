@@ -234,17 +234,44 @@ class Employees extends MYTController
     */
     protected function _attempt_create()
     {
+        $base64 = $this->_jpeg_to_base64("profile_picture");
+        $base64 = $base64 ? : null;
+        
         $values = [
-            'username'    => $this->request->getVar('username'),
-            'password'    => password_hash($this->request->getVar('password'), PASSWORD_BCRYPT),
-            'last_name'   => $this->request->getVar('last_name'),
-            'first_name'  => $this->request->getVar('first_name'),
-            'middle_name' => $this->request->getVar('middle_name') ? : null,
-            'email'       => $this->request->getVar('email') ? : null,
-            'status'      => 'active',
-            'type'        => $this->request->getVar('type'),
-            'added_by'    => $this->requested_by,
-            'added_on'    => date('Y-m-d H:i:s')
+            "username" => $this->request->getVar("username"),
+            "password" => password_hash($this->request->getVar('password'), PASSWORD_BCRYPT),
+            "last_name" => $this->request->getVar("last_name"),
+            "first_name" => $this->request->getVar("first_name"),
+            "middle_name" => $this->request->getVar("middle_name") ? : null,
+            "suffix" => $this->request->getVar("suffix") ? : null,
+            'type' => $this->request->getVar("type"),
+            "contact_no" => $this->request->getVar("contact_no"),
+            "address" => $this->request->getVar("address"),
+            "email" => $this->request->getVar("email"),
+            "gender" => $this->request->getVar("gender"),
+            "birthdate" => $this->request->getVar("birthdate"),
+            "civil_status" => $this->request->getVar("civil_status"),
+            "nationality" => $this->request->getVar("nationality"),
+            "religion" => $this->request->getVar("religion"),
+            "remarks" => $this->request->getVar("remarks") ? : null,
+            "profile_picture" => $base64,
+            "sss" => $this->request->getVar("sss") ? : 0.00,
+            "hdmf" => $this->request->getVar("hdmf") ? : 0.00,
+            "philhealth" => $this->request->getVar("philhealth") ? : 0.00,
+            "employment_status" => $this->request->getVar("employment_status"),
+            "salary_type" => $this->request->getVar("salary_type"),
+            "salary" => $this->request->getVar("salary"),
+            "daily_allowance" => $this->request->getVar("daily_allowance") ? : 0.00,
+            "communication_allowance" => $this->request->getVar("communication_allowance") ? : 0.00,
+            "transportation_allowance" => $this->request->getVar("transportation_allowance") ? : 0.00,
+            "food_allowance" => $this->request->getVar("food_allowance") ? : 0.00,
+            "hmo_allowance" => $this->request->getVar("hmo_allowance") ? : 0.00,
+            "tech_allowance" => $this->request->getVar("tech_allowance") ? : 0.00,
+            "ops_allowance" => $this->request->getVar("ops_allowance") ? : 0.00,
+            "special_allowance" => $this->request->getVar("special_allowance") ? : 0.00,
+            "status" => "active",
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$employee_id = $this->employeeModel->insert($values))
@@ -258,18 +285,44 @@ class Employees extends MYTController
      */
     protected function _attempt_update($employee_id)
     {
+        $base64 = $this->_jpeg_to_base64("profile_picture");
+        $base64 = $base64 ? : null;
+
         $values = [
-            'username'    => $this->request->getVar('username'),
-            'password'    => password_hash($this->request->getVar('password'), PASSWORD_BCRYPT),
-            'last_name'   => $this->request->getVar('last_name'),
-            'first_name'  => $this->request->getVar('first_name'),
-            'middle_name' => $this->request->getVar('middle_name') ? : null,
-            'email'       => $this->request->getVar('email') ? : null,
-            'type'        => $this->request->getVar('type'),
-            'status'      => $this->request->getVar('status'),
-            'type'        => $this->request->getVar('type'),
-            'updated_by'  => $this->requested_by,
-            'updated_on'  => date('Y-m-d H:i:s')
+            "username" => $this->request->getVar("username"),
+            "password" => password_hash($this->request->getVar('password'), PASSWORD_BCRYPT),
+            "last_name" => $this->request->getVar("last_name"),
+            "first_name" => $this->request->getVar("first_name"),
+            "middle_name" => $this->request->getVar("middle_name") ? : null,
+            "suffix" => $this->request->getVar("suffix") ? : null,
+            'type' => $this->request->getVar("type"),
+            "contact_no" => $this->request->getVar("contact_no"),
+            "address" => $this->request->getVar("address"),
+            "email" => $this->request->getVar("email"),
+            "gender" => $this->request->getVar("gender"),
+            "birthdate" => $this->request->getVar("birthdate"),
+            "civil_status" => $this->request->getVar("civil_status"),
+            "nationality" => $this->request->getVar("nationality"),
+            "religion" => $this->request->getVar("religion"),
+            "remarks" => $this->request->getVar("remarks") ? : null,
+            "profile_picture" => $base64,
+            "sss" => $this->request->getVar("sss") ? : 0.00,
+            "hdmf" => $this->request->getVar("hdmf") ? : 0.00,
+            "philhealth" => $this->request->getVar("philhealth") ? : 0.00,
+            "employment_status" => $this->request->getVar("employment_status"),
+            "salary_type" => $this->request->getVar("salary_type"),
+            "salary" => $this->request->getVar("salary"),
+            "daily_allowance" => $this->request->getVar("daily_allowance") ? : 0.00,
+            "communication_allowance" => $this->request->getVar("communication_allowance") ? : 0.00,
+            "transportation_allowance" => $this->request->getVar("transportation_allowance") ? : 0.00,
+            "food_allowance" => $this->request->getVar("food_allowance") ? : 0.00,
+            "hmo_allowance" => $this->request->getVar("hmo_allowance") ? : 0.00,
+            "tech_allowance" => $this->request->getVar("tech_allowance") ? : 0.00,
+            "ops_allowance" => $this->request->getVar("ops_allowance") ? : 0.00,
+            "special_allowance" => $this->request->getVar("special_allowance") ? : 0.00,
+            "status" => $this->request->getVar("status"),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->employeeModel->update($employee_id, $values))

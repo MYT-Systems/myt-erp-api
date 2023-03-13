@@ -310,28 +310,29 @@ SELECT *
 FROM receive
 WHERE is_deleted = 0
 EOT;
+
         $binds = [];
-        if ($waybill_no OR $invoice_no OR $dr_no) {
-            $sql .= " AND (";
-        }
+        $conditions = [];
 
         if ($waybill_no) {
-            $sql .= " OR waybill_no = ?";
+            $conditions[] = "waybill_no = ?";
             $binds[] = $waybill_no;
         }
 
         if ($invoice_no) {
-            $sql .= " OR invoice_no = ?";
+            $conditions[] = "invoice_no = ?";
             $binds[] = $invoice_no;
         }
 
         if ($dr_no) {
-            $sql .= " OR dr_no = ?";
+            $conditions[] = "dr_no = ?";
             $binds[] = $dr_no;
         }
 
-        if ($waybill_no OR $invoice_no OR $dr_no) {
-            $sql .= ")";
+        if ($conditions) {
+            $conditions = implode(" OR ", $conditions);
+            $conditions = trim($conditions);
+            $sql .= (" AND (" . $conditions . ")");
         }
 
         $query = $database->query($sql, $binds);

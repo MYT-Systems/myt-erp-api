@@ -156,6 +156,26 @@ class Inventories extends MYTController
         return $response;
     }
 
+    public function get_items_by_branch()
+    {
+        if (($response = $this->_api_verification('inventories', 'get_items_by_branch')) !== true)
+            return $response;
+
+        $branch_id = $this->request->getVar('branch_id');
+
+        if (!$inventories = $this->inventoryModel->get_inventory_by_branch($branch_id)) {
+            $response = $this->fail('No items used');
+        } else {
+            $response = $this->respond([
+                'data'    => $inventories,
+                'status'  => 'success'
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
     /**
      * Search inventories based on parameters passed
      */
@@ -177,8 +197,10 @@ class Inventories extends MYTController
         $high_stock    = $this->request->getVar('high_stock');
         $normal_stock  = $this->request->getVar('normal_stock');
         $with_po       = $this->request->getVar('with_po');
+        $save_initial_inventories = $this->request->getVar('save_initial_inventories') ? : 0;
+        $for_end_inventory = $this->request->getVar('for_end_inventory') ? : 0;
         
-        if (!$inventories = $this->inventoryModel->search($branch_id, $item_id, $beginning_qty, $current_qty, $unit, $status, $name, $item_type, $limit_by, $low_stock, $high_stock, $normal_stock)) {
+        if (!$inventories = $this->inventoryModel->search($branch_id, $item_id, $beginning_qty, $current_qty, $unit, $status, $name, $item_type, $limit_by, $low_stock, $high_stock, $normal_stock, $for_end_inventory)) {
             $response = $this->failNotFound('No inventory found');
         } else {
             $filtered_inventories = [];
@@ -196,17 +218,58 @@ class Inventories extends MYTController
                 }
             }
 
+            $initial_inventories_is_saved = null;
+            if ($save_initial_inventories) {
+                $initial_inventories_is_saved = $this->_save_initial_inventories($branch_id);
+            }
+
             $item_classifications = $this->itemModel->get_item_classification_by_branch($branch_id);
             $item_classifications = array_column($item_classifications, 'type');
             $response = $this->respond([
-                'item_classifications' => $item_classifications,
-                'data'                 => $filtered_inventories,
-                'status'               => 'success',
+                'item_classifications'         => $item_classifications,
+                'data'                         => $filtered_inventories,
+                'initial_inventories_is_saved' => $initial_inventories_is_saved,
+                'status'                       => 'success'
             ]);
         }
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
+    }
+
+    /**
+     * Save initial inventories
+     */
+    protected function _save_initial_inventories($branch_id)
+    {
+        $initial_inventories = $this->inventoryModel->get_initial_inventory($branch_id);
+
+        if (!$this->initialInventoryModel->select('', [
+            'branch_id' => $branch_id,
+            'date' => date("Y-m-d")
+        ])) {
+            $data = [];
+            foreach ($initial_inventories as $inventory) {
+                $data[] = [
+                    'branch_id' => $branch_id,
+                    'date' => date("Y-m-d"),
+                    'user_id' => $this->requested_by,
+                    'inventory_id' => $inventory['inventory_id'],
+                    'item_id' => $inventory['item_id'],
+                    'qty' => $inventory['current_qty'] - $inventory['delivered_qty'],
+                    'delivered_qty' => $inventory['delivered_qty'],
+                    'total_qty' => $inventory['current_qty'],
+                    'unit' => $inventory['inventory_unit'],
+                    'added_on' => date("Y-m-d H:i:s"),
+                    'added_by' => $this->requested_by
+                ];
+            }
+    
+            if (count($data) > 0 AND !$this->initialInventoryModel->insertBatch($data))
+                return false;
+        }
+
+        return true;
     }
 
     /**
@@ -391,10 +454,13 @@ class Inventories extends MYTController
 
         $warehouse_inventories = $this->inventoryModel->get_warehouse_inventory_details($item_id);
         $inventory_group_details = $this->inventoryModel->get_inventory_group_inventory_details($item_id);
+        $item_details = $this->itemModel->get_details_by_id($item_id);
 
         $data = [
             'warehouse_inventories' => $warehouse_inventories,
             'inventory_group_details' => $inventory_group_details,
+            'item_name' => $item_details[0]['name'],
+            'item_unit' => $item_details[0]['unit']
         ];
 
         $response = $this->respond([
@@ -574,16 +640,8 @@ class Inventories extends MYTController
      */
     private function _update_inventory_warehouses($warehouse_ids, $values)
     {
-        foreach ($warehouse_ids as $key2 => $warehouse_id) {
-            if (!$inventory = $this->inventoryModel->get_details_by_id($warehouse_id)) {
-                $this->errorMessage = $this->db->error()['message'];
-                return false;
-            }
- 
-            $inventory = $inventory[0];
-            $values['current_qty'] = ($inventory['current_qty'] + ($values['beginning_qty'] - $inventory['beginning_qty']));
-            
-            if (!$this->inventoryModel->update($inventory['id'], $values)) {
+        foreach ($warehouse_ids as $warehouse_id) {
+            if (!$this->inventoryModel->update($warehouse_id, $values)) {
                 $this->errorMessage = $this->db->error()['message'];
                 return false;
             }
@@ -598,11 +656,13 @@ class Inventories extends MYTController
     protected function _load_essentials()
     {
         $this->inventoryModel            = model('App\Models\Inventory');
+        $this->initialInventoryModel     = model('App\Models\Initial_inventory');
         $this->branchModel               = model('App\Models\Branch');
         $this->itemModel                 = model('App\Models\Item');
         $this->purchaseItemModel         = model('App\Models\Purchase_item');
         $this->inventoryGroupModel       = model('App\Models\Inventory_group');
         $this->inventoryGroupDetailModel = model('App\Models\Inventory_group_detail');
+        $this->orderDetailIngredModel    = model('App\Models\Order_detail_ingredient');
         $this->webappResponseModel       = model('App\Models\Webapp_response');
     }
 }

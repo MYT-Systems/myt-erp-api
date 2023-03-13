@@ -8,6 +8,7 @@ class Branch extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'name',
+        'type',
         'initial_drawer',
         'address',
         'phone_no',
@@ -21,8 +22,10 @@ class Branch extends MYTModel
         'contract_end',
         'opening_date',
         'is_franchise',
-        'operation_schedule',
-        'delivery_schedule',
+        'operation_days',
+        'operation_times',
+        'delivery_days',
+        'delivery_times',
         'price_level',
         'rental_monthly_fee',
         'is_open',
@@ -42,6 +45,66 @@ class Branch extends MYTModel
     {
         $this->table = 'branch';
     }
+
+    public function get_branch_operations($branch_type, $user_id, $branch_id, $branch_name, $status, $date)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT branch.id, branch.name AS branch_name,
+    IF(branch_operation_log.time_in IS NOT NULL AND branch_operation_log.time_out IS NULL, "open", "closed") AS status,
+    branch_operation_log.time_in AS time_open,
+    branch_operation_log.time_out AS time_close
+FROM branch
+LEFT JOIN branch_operation_log
+ON branch.id = branch_operation_log.branch_id
+JOIN_CONDITION
+WHERE branch.is_deleted = 0
+EOT;
+
+        $binds = [];
+        switch ($branch_type) {
+            case 'company-owned':
+                $sql .= " AND branch.is_franchise = 0";
+                break;
+            default:
+                break;
+        }
+
+        if ($user_id) {
+            $sql .= " AND branch_operation_log.user_id = ?";
+            $binds[] = $user_id;
+        }
+
+        if ($branch_id) {
+            $branch_id = explode(',', $branch_id);
+            $sql .= " AND branch.id IN ?";
+            $binds[] = $branch_id;
+        }
+
+        if ($branch_name) {
+            $sql .= " AND branch.name LIKE ?";
+            $binds[] = "%" . $branch_name . "%";
+        }
+
+        if ($status) {
+            $sql .= ' AND IF(branch_operation_log.time_in IS NOT NULL AND branch_operation_log.time_out IS NULL, "open", "closed") = ?';
+            $binds[] = $status;
+        }
+
+        if ($date) {
+            $sql = str_replace("JOIN_CONDITION", "AND DATE(branch_operation_log.time_in) = ?", $sql);
+            $sql .= " AND (branch_operation_log.time_in IS NULL OR DATE(branch_operation_log.time_in) = ?)";
+            $binds[] = $date;
+            $binds = array_merge([$date], $binds);
+        } else {
+            $sql = str_replace("JOIN_CONDITION", "", $sql);
+        }
+
+        $sql .= " GROUP BY branch.id";
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
     
     /**
      * Get branch details by ID
@@ -56,7 +119,7 @@ WHERE branch.is_deleted = 0
 EOT;
         $binds = [];
         if (isset($branch_id)) {
-            $sql .= ' AND branch.id = ?';
+            $sql .= (is_array($branch_id) ? ' AND branch.id IN ?' : ' AND branch.id = ?');
             $binds[] = $branch_id;
         }
 
@@ -112,8 +175,13 @@ EOT;
         $database = \Config\Database::connect();
         
         $sql = <<<EOT
-SELECT *
+SELECT branch.*, branch_group.name AS branch_group, inventory_group.name AS inventory_group, price_level.name AS price_level_name
 FROM branch
+LEFT JOIN branch_group_detail ON branch_group_detail.branch_id = branch.id AND branch_group_detail.is_deleted = 0
+LEFT JOIN branch_group ON branch_group.id = branch_group_detail.branch_group_id
+LEFT JOIN inventory_group_detail ON inventory_group_detail.branch_id = branch.id AND inventory_group_detail.is_deleted = 0
+LEFT JOIN inventory_group ON inventory_group.id = inventory_group_detail.inventory_group_id
+LEFT JOIN price_level ON price_level.id = branch.price_level
 WHERE branch.is_deleted = 0
 EOT;
         $binds = [];
@@ -215,6 +283,22 @@ EOT;
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
+    }
+    
+    public function close_branches($branches)
+    {
+        $db = db_connect();
+        $current_datetime = date("Y-m-d H:i:s");
+
+        $sql = <<<EOT
+UPDATE `branch`
+SET is_open = 0, closed_on = ?
+WHERE id IN ?
+EOT;
+        $binds = [$current_datetime, $branches];
+
+        $query = $db->query($sql, $binds);
+        return $query ? true : false;
     }
 
 }

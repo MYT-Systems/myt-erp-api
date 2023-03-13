@@ -24,7 +24,7 @@ class Branch_operation_log extends MYTModel
     {
         $db = db_connect();
         $sql = <<<EOT
-SELECT *
+SELECT branch_operation_log.*
 FROM branch_operation_log
 LEFT JOIN branch ON branch.id = branch_operation_log.branch_id
 WHERE branch.is_deleted = 0
@@ -53,7 +53,7 @@ EOT;
             $binds[] = $date;
         }
 
-        $query = $database->query($sql, $binds);
+        $query = $db->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
     
@@ -70,7 +70,7 @@ WHERE time_out IS NULL
 EOT;
         $binds = [$current_date];
 
-        $query = $database->query($sql, $binds);
+        $query = $db->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
 
@@ -80,8 +80,8 @@ EOT;
     public function log_out_all_users()
     {
         $db = db_connect();
-        $current_datetime = date("Y-m-d H:i:s");
         $current_date = date("Y-m-d");
+        $current_datetime = $current_date . " 21:30:00";
 
         $sql = <<<EOT
 UPDATE branch_operation_log
@@ -91,7 +91,7 @@ WHERE time_out IS NULL
 EOT;
         $binds = [$current_datetime, $current_date];
 
-        $query = $database->query($sql, $binds);
+        $query = $db->query($sql, $binds);
         return $query ? true : false;
     }
 }

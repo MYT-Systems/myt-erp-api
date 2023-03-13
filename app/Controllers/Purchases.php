@@ -386,9 +386,6 @@ class Purchases extends MYTController
      */
     protected function _attempt_update($purchase, $is_save)
     {
-        $db = \Config\Database::connect();
-        $db->transBegin();
-
         $values = [
             'branch_id'        => $this->request->getVar('branch_id'),
             'supplier_id'      => $this->request->getVar('supplier_id'),
@@ -475,7 +472,7 @@ class Purchases extends MYTController
                 'added_on'    => date('Y-m-d H:i:s')
             ];
 
-            if (!$this->purchaseItemModel->insert_on_duplicate($data, $this->requested_by, $db)) {
+            if (!$this->purchaseItemModel->insert($data, $this->requested_by, $db)) {
                 return false;
             }
         }
@@ -501,7 +498,7 @@ class Purchases extends MYTController
     */
     protected function _attempt_update_po_items($purchase, $is_save, $db)
     {
-        // delete all items first
+        // // delete all items first
         if (!$this->purchaseItemModel->delete_by_purchase_id($purchase['id'], $this->requested_by, $db)) {
             return false;
         }
@@ -530,7 +527,7 @@ class Purchases extends MYTController
                 'added_on'      => date('Y-m-d H:i:s')
             ];
 
-            if (!$this->purchaseItemModel->insert_on_duplicate($data, $this->requested_by, $db)) {
+            if (!$this->purchaseItemModel->insert($data)) {
                 return false;
             }
         }

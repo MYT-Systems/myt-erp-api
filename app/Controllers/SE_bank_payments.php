@@ -325,7 +325,7 @@ class Se_bank_payments extends MYTController
             'vendor_id'         => $this->request->getVar('vendor_id'),
             'payee'             => $this->request->getVar('payee'),
             'particulars'       => $this->request->getVar('particulars'),
-            'acknowleded_by'    => $this->request->getVar('acknowleded_by'),
+            'acknowledged_by'   => $this->request->getVar('acknowledged_by'),
             'added_by'          => $this->requested_by,
             'added_on'          => date('Y-m-d H:i:s')
         ];
@@ -408,7 +408,7 @@ class Se_bank_payments extends MYTController
             'vendor_id'         => $this->request->getVar('vendor_id'),
             'payee'             => $this->request->getVar('payee'),
             'particulars'       => $this->request->getVar('particulars'),
-            'acknowleded_by'    => $this->request->getVar('acknowleded_by'),
+            'acknowledged_by'   => $this->request->getVar('acknowledged_by'),
             'updated_by'        => $this->requested_by,
             'updated_on'        => date('Y-m-d H:i:s')
         ];

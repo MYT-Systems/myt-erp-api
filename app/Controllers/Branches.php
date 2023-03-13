@@ -214,6 +214,7 @@ class Branches extends MYTController
     {
         $values = [
             'name'                  => $this->request->getVar('name'),
+            'type'                  => $this->request->getVar('type'),
             'initial_drawer'        => $this->request->getVar('initial_drawer'),
             'address'               => $this->request->getVar('address'),
             'phone_no'              => $this->request->getVar('phone_no'),
@@ -227,8 +228,10 @@ class Branches extends MYTController
             'contract_end'          => $this->request->getVar('contract_end'),
             'opening_date'          => $this->request->getVar('opening_date'),
             'is_franchise'          => $this->request->getVar('is_franchise'),
-            'operation_schedule'    => $this->request->getVar('operation_schedule'),
-            'delivery_schedule'     => $this->request->getVar('delivery_schedule'),
+            'operation_days'        => $this->request->getVar('operation_days'),
+            'operation_times'       => $this->request->getVar('operation_times'),
+            'delivery_days'         => $this->request->getVar('delivery_days'),
+            'delivery_times'        => $this->request->getVar('delivery_times'),
             'price_level'           => $this->request->getVar('price_level'),
             'rental_monthly_fee'    => $this->request->getVar('rental_monthly_fee'),
             'inventory_group_id'    => $this->request->getVar('inventory_group_id'),
@@ -277,6 +280,7 @@ class Branches extends MYTController
     {
         $values = [
             'name'                  => $this->request->getVar('name'),
+            'type'                  => $this->request->getVar('type'),
             'initial_drawer'        => $this->request->getVar('initial_drawer'),
             'address'               => $this->request->getVar('address'),
             'phone_no'              => $this->request->getVar('phone_no'),
@@ -290,8 +294,10 @@ class Branches extends MYTController
             'contract_end'          => $this->request->getVar('contract_end'),
             'opening_date'          => $this->request->getVar('opening_date'),
             'is_franchise'          => $this->request->getVar('is_franchise'),
-            'operation_schedule'    => $this->request->getVar('operation_schedule'),
-            'delivery_schedule'     => $this->request->getVar('delivery_schedule'),
+            'operation_days'        => $this->request->getVar('operation_days'),
+            'operation_times'       => $this->request->getVar('operation_times'),
+            'delivery_days'         => $this->request->getVar('delivery_days'),
+            'delivery_times'        => $this->request->getVar('delivery_times'),
             'price_level'           => $this->request->getVar('price_level'),
             'rental_monthly_fee'    => $this->request->getVar('rental_monthly_fee'),
             'inventory_group_id'    => $this->request->getVar('inventory_group_id'),

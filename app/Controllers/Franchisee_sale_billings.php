@@ -569,8 +569,8 @@ class Franchisee_sale_billings extends MYTController
     protected function _load_essentials()
     {
         $this->franchiseeSaleBillingModel = model('App\Models\Franchisee_sale_billing');
-        $this->fsSaleBillingItemModel     = model('App\Models\FS_billing_item');
-        $this->fsBillingPaymentModel      = model('App\Models\FS_billing_payment');
+        $this->fsSaleBillingItemModel     = model('App\Models\Fs_billing_item');
+        $this->fsBillingPaymentModel      = model('App\Models\Fs_billing_payment');
         $this->franchiseeModel            = model('App\Models\Franchisee');
         $this->webappResponseModel        = model('App\Models\Webapp_response');
     }

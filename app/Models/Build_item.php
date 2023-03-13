@@ -50,9 +50,13 @@ WHERE build_item.is_deleted = 0
 EOT;
         $binds = [];
 
-        if (!$date_from OR !$date_to) {
+        if (!$date_from AND !$date_to) {
             $date_to = date("Y-m-d");
             $date_from = date("Y-m-d", strtotime($date_to . "-1 week"));
+        } elseif (!$date_from) {
+            $date_from = date("Y-m-d", strtotime($date_to . "-1 week"));
+        } elseif (!$date_to) {
+            $date_to = date("Y-m-d");
         }
 
         $binds[] = $date_from;
@@ -185,12 +189,12 @@ EOT;
         }
 
         if ($added_on_from) {
-            $sql .= ' AND DATE(added_on) >= ?';
+            $sql .= ' AND DATE(production_date) >= ?';
             $binds[] = $added_on_from;
         }
 
         if ($added_on_to) {
-            $sql .= ' AND DATE(added_on) <= ?';
+            $sql .= ' AND DATE(production_date) <= ?';
             $binds[] = $added_on_to;
         }
 

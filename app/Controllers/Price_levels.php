@@ -20,6 +20,31 @@ class Price_levels extends MYTController
     }
 
     /**
+     * Get price level type details
+     */
+    public function get_price_level_type_details()
+    {
+        if (($response = $this->_api_verification('price_level', 'get_price_level_type_details')) !== true)
+            return $response;
+
+        $price_level_id      = $this->request->getVar('price_level_id');
+        $price_level_type_id = $this->request->getVar('price_level_type_id');
+        $product_id          = $this->request->getVar('product_id');
+
+        if (!$price_leve_type_details = $this->priceLevelTypeDetailModel->search($price_level_id, $price_level_type_id, $product_id)) {
+            $response = $this->failNotFound('No price level type details found.');
+        } else {
+            $response = $this->respond([
+                'status' => 'success',
+                'data' => $price_leve_type_details
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Get price_level
      */
     public function get_price_level()

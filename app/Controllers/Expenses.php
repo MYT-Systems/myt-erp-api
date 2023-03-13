@@ -15,6 +15,37 @@ class Expenses extends MYTController
     }
 
     /**
+     * Change status wastage item
+     */
+    public function change_status()
+    {
+        if (($response = $this->_api_verification('expenses', 'change_status')) !== true)
+            return $response;
+
+        $where = [
+            'id' => $this->request->getVar('expense_id'),
+            'is_deleted' => 0
+        ];
+
+        $values = [
+            'status' => $this->request->getVar('status'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date("Y-m-d H:i:s")
+        ];
+
+        if (!$expense = $this->expenseModel->select('', $where, 1)) {
+            $response = $this->failNotFound('Expense not found');
+        } elseif (!$this->expenseModel->update($expense['id'], $values)) {
+            $response = $this->fail(['response' => 'Failed to update expense status.']);
+        } else {
+            $response = $this->respond(['response' => 'Expense status updated successfully.']);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Get expense
      */
     public function get_expense()
@@ -119,13 +150,20 @@ class Expenses extends MYTController
 
         if ($filename === false) {
             $response = $this->fail('File not created.');
-        } elseif (!$this->_attempt_bulk_create($filename)) {
-            $response = $this->fail($this->errorMessage);
-        } else {
-            $response = $this->respond([
-                'status' => 'success'
-            ]);
         }
+
+        $response = $this->respond([
+            'status' => 'success',
+            'sync_time' => date("Y-m-d H:i:s")
+        ]);
+        
+        // elseif (!$this->_attempt_bulk_create($filename)) {
+        //     $response = $this->fail($this->errorMessage);
+        // } else {
+        //     $response = $this->respond([
+        //         'status' => 'success'
+        //     ]);
+        // }
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
@@ -298,12 +336,15 @@ class Expenses extends MYTController
 
         if ($unsaved_expenses) {
             $write_response = $this->_write_json('expenses', $unsaved_expenses);
-            if ($write_response !== false) {
-                $old_file_path = FCPATH . 'public/expenses/' . $filename;
-                unlink($old_file_path);
-            }
+            
+            $old_file_path = FCPATH . 'public/expenses/' . $filename;
+            unlink($old_file_path);
+        
             return false;
         }
+        
+        $old_file_path = FCPATH . 'public/expenses/' . $filename;
+        unlink($old_file_path);
 
         return true;
     }
@@ -342,32 +383,31 @@ class Expenses extends MYTController
     {
 
         // DELETE THIS AFTER CLIENT MEETING: LINE BEGIN
+        // $values = [
+        //     'expense_id' => $expense_id,
+        //     'base_64' => $data['expense_attachments'],
+        //     'added_by' => $this->requested_by,
+        //     'added_on' => date('Y-m-d H:i:s')
+        // ];
+
+        // if (!$this->expenseAttachmentModel->insert($values))
+        //     return false;
+        // return true;
+        // DELETE THIS AFTER CLIENT MEETING: LINE END
+
         $values = [];
-        $values[] = [
-            'expense_id' => $expense_id,
-            'base_64' => $data['expense_attachments'],
-            'added_by' => $this->requested_by,
-            'added_on' => date('Y-m-d H:i:s')
-        ];
+        foreach ($data['expense_attachments'] as $attachment) {
+            $values[] = [
+                'expense_id' => $expense_id,
+                'base_64' => $attachment,
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s')
+            ];
+        }
 
         if (count($values) > 0 AND !$this->expenseAttachmentModel->insertBatch($values))
             return false;
         return true;
-        // DELETE THIS AFTER CLIENT MEETING: LINE END
-
-        // $values = [];
-        // foreach ($data['expense_attachments'] as $attachment) {
-        //     $values[] = [
-        //         'expense_id' => $expense_id,
-        //         'base_64' => $attachment,
-        //         'added_by' => $this->requested_by,
-        //         'added_on' => date('Y-m-d H:i:s')
-        //     ];
-        // }
-
-        // if (count($values) > 0 AND !$this->expenseAttachmentModel->insertBatch($values))
-        //     return false;
-        // return true;
     }
 
     /**

@@ -17,7 +17,7 @@ class Report extends MYTModel
     /**
      * Get all the payables of owner based on receives and supplies receive
      */
-    public function get_receive_payables($supplier_id, $vendor_id, $date_from, $date_to, $payable, $paid) {
+    public function get_receive_payables($invoice_no, $supplier_id, $vendor_id, $date_from, $date_to, $payable, $paid) {
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT *
@@ -76,7 +76,13 @@ FROM
 WHERE receivables.is_deleted = 0
 EOT;
 
-        $binds = []; 
+        $binds = [];
+
+        if ($invoice_no) {
+            $sql .= " AND (receivables.invoice_no LIKE ? OR receivables.dr_no LIKE ?)";
+            $binds[] = "%" . $invoice_no . "%";
+            $binds[] = "%" . $invoice_no . "%";
+        }
 
         if ($supplier_id) {
             $sql .= " AND receivables.supplier_id = ?";

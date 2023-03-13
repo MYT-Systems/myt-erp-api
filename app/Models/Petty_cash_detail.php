@@ -15,6 +15,7 @@ class Petty_cash_detail extends MYTModel
         'out_type',
         'type', //in our out
         'from',
+        'requested_by',
         'amount',
         'particulars',
         'invoice_no',
@@ -39,8 +40,12 @@ class Petty_cash_detail extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *
+SELECT petty_cash_detail.*, CONCAT(user.first_name, " ", user.last_name) AS approved_by_name,
+    CONCAT(employee.first_name, " ", employee.last_name) AS requested_by_name
 FROM petty_cash_detail
+LEFT JOIN user
+    ON user.id = petty_cash_detail.approved_by
+LEFT JOIN employee ON employee.id = petty_cash_detail.requested_by
 WHERE petty_cash_detail.is_deleted = 0
     AND petty_cash_detail.id = ?
 EOT;
@@ -116,6 +121,7 @@ SELECT *,
 FROM petty_cash_detail
 WHERE petty_cash_detail.is_deleted = 0
     AND petty_cash_detail.petty_cash_id = ?
+    AND petty_cash_detail.status = "approved"
 EOT;
         $binds = [$petty_cash_id];
 
@@ -130,9 +136,11 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *,
-    (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE id = petty_cash_detail.added_by) AS added_by_name
+SELECT petty_cash_detail.*,
+    (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE id = petty_cash_detail.added_by) AS added_by_name,
+    CONCAT(employee.first_name, ' ', employee.last_name) AS requested_by_name
 FROM petty_cash_detail
+LEFT JOIN employee ON employee.id = petty_cash_detail.requested_by
 WHERE petty_cash_detail.is_deleted = 0
 EOT;
         $binds = [];

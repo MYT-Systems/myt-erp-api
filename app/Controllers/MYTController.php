@@ -67,7 +67,17 @@ class MYTController extends ResourceController
 
     protected function _api_verification($controller, $method)
     {
-        $this->requested_by = $this->request->getVar('requester') ?? 'webapp';
+        $this->requested_by = $this->request->getVar('requester') ?? 0;
+        $userModel = new User();
+        $where = [
+            'pin' => $this->requested_by,
+            'api_key' => $this->user_key ? : "",
+            'token' => $this->request->getVar('token') ? : "",
+            'is_deleted' => 0
+        ];
+
+        $user = $userModel->select('', $where, 1);
+        $this->requested_by = $user ? $user['id'] : 0;
 
         $webappLogModel = new Webapp_log();
         $webappResponseModel = new Webapp_response();
@@ -293,5 +303,143 @@ class MYTController extends ResourceController
         }
 
         return false;
+    }
+
+    protected function _jpeg_to_base64($field_name)
+    {
+        $file = $this->request->getFile($field_name);
+
+        // file upload error
+        if (!$file || $file->getError() == 4) {
+            return false;
+        }
+        
+        // convert the uploaded file into base64
+        $base64 = base64_encode(file_get_contents($file->getTempName()));
+        $base64_file = 'data:' . $file->getMimeType() . ';base64,' . $base64;
+        return $base64_file;
+    }
+
+    /**
+     * Convert base 64 to image
+     */
+    protected function _base64_to_jpeg($base64_string, $output_file)
+    {
+        // open the output file for writing
+        $ifp = fopen( $output_file, 'wb' ); 
+    
+        // split the string on commas
+        // $data[ 0 ] == "data:image/png;base64"
+        // $data[ 1 ] == <actual base64 string>
+        $data = explode( ',', $base64_string );
+    
+        // we could add validation here with ensuring count( $data ) > 1
+        fwrite( $ifp, base64_decode( $data[ 1 ] ) );
+    
+        // clean up the file resource
+        fclose( $ifp ); 
+    
+        return $output_file; 
+    }
+
+    /**
+     * Save to json file
+     */
+    protected function _write_json($field_name, $data)
+    {
+        $bytes = random_bytes(5);
+        $unique_id = bin2hex($bytes);
+
+        $order_name = $field_name . "_" . $unique_id . ".json";
+        $upload_path = FCPATH . 'public/' . $field_name . '/' . $order_name;
+
+        $data = json_encode($data);
+        return file_put_contents($upload_path, $data) ? $order_name : false;
+    }
+
+    /**
+     * Save JSON file to server
+     */
+    protected function _upload_json($field_name)
+    {
+        $upload_path = FCPATH . 'public/' . $field_name . '/';
+
+        if (!file_exists($upload_path)) {
+            mkdir($upload_path, 0777, true);
+        }
+
+        $json_file = $this->request->getFile($field_name);
+        $extension = $json_file->getExtension();
+        $filename = $this->_create_json_filename() . '.' . $extension;
+
+        if (!$json_file->hasMoved()) {
+            $filepath = '../../public/' . $field_name . '/';
+            $json_file->store($filepath, $filename);
+        }
+
+        if ($this->_file_is_saved($field_name, $filename))
+            return $filename;
+        else
+            return false;
+    }
+
+    /**
+     * Save JSON file to server
+     */
+    protected function _upload_multiple($field_name)
+    {
+        $upload_path = FCPATH . 'public/' . $field_name . '/';
+
+        if (!file_exists($upload_path))
+            mkdir($upload_path, 0777, true);
+
+        $unsaved_files = [];
+        $saved_files = [];
+
+        $files = $this->request->getFiles();
+        foreach ($files[$field_name] as $file) {
+            $filename = $file->getClientName();
+    
+            if (!$file->hasMoved()) {
+                $filepath = '../../public/' . $field_name . '/';
+                $file->store($filepath, $filename);
+            }
+
+            if (!$this->_file_is_saved($field_name, $filename))
+                $unsaved_files[] = $filename;
+            else
+                $saved_files[] = $filename;
+        }
+
+        return [
+            'saved_files' => $saved_files,
+            'unsaved_files' => $unsaved_files,
+            'upload_path' => $upload_path
+        ];
+    }
+
+    /**
+     * Check if file is saved
+     */
+    protected function _file_is_saved($field_name, $filename)
+    {
+        $upload_path = FCPATH . 'public/' . $field_name . '/';
+        $files = array_diff(scandir($upload_path), array('.', '..'));
+        $files = array_values($files);
+
+        foreach ($files as $file) { 
+            if ($file == $filename)
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * Generate JSON filename
+     */
+    protected function _create_json_filename()
+    {
+        $order_name = "file_" . time();
+        return $order_name;
     }
 }

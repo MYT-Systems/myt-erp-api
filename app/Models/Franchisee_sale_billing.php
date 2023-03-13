@@ -166,8 +166,10 @@ EOT;
         $sql = <<<EOT
 SELECT franchisee_sale_billing.*,
     branch.name AS branch_name,
-    franchisee.name AS franchisee_name
+    franchisee.name AS franchisee_name,
+    (franchisee_sale_billing.total_sale/COUNT(fs_billing_item.id)) AS average_sales
 FROM franchisee_sale_billing
+LEFT JOIN fs_billing_item ON fs_billing_item.fs_billing_id = franchisee_sale_billing.id
 LEFT JOIN franchisee ON franchisee.id = franchisee_sale_billing.franchisee_id
 LEFT JOIN branch ON branch.id = franchisee_sale_billing.branch_id
 WHERE franchisee_sale_billing.is_deleted = 0

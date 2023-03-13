@@ -36,7 +36,7 @@ class Supplies_payment extends MYTModel
     /**
      * Get all cash payments details
      */
-    public function get_all_payment($start_date, $end_date, $status, $supplier_id, $vendor_id, $payment_mode)
+    public function get_all_payment($start_date, $end_date, $status, $supplier_id, $vendor_id, $payment_mode, $doc_no)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -138,6 +138,11 @@ EOT;
         if ($payment_mode) {
             $sql .= ' AND supplies_payments.payment_mode = ?';
             $binds[] = $payment_mode;
+        }
+
+        if ($doc_no) {
+            $sql .= ' AND supplies_payments.doc_no LIKE ?';
+            $binds[] = "%" . $doc_no . "%";
         }
 
         $sql .= ' ORDER BY date DESC';

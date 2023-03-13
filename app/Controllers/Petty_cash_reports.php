@@ -302,7 +302,7 @@ class Petty_cash_reports extends MYTController
         if (!$petty_cash = $this->pettyCashModel->get_details_by_id($petty_cash_id)) {
             $response = $this->failNotFound('petty cash not found');
         } else {
-            $petty_cash_details = $this->pettyCashDetailModel->search($petty_cash_id, $date_from, $date_to, $type, $status, $approved_by, $approved_on) ?? [];
+            $petty_cash_details = $this->pettyCashDetailModel->search($petty_cash_id, null, null, $type, $status, $approved_by, $approved_on) ?? [];
             $current = $petty_cash[0]['beginning_petty_cash'];
             foreach ($petty_cash_details as $key => $value) {
                 if ($value['type'] == 'in') {
@@ -312,10 +312,22 @@ class Petty_cash_reports extends MYTController
                 }
                 
                 $petty_cash_details[$key]['current'] = $current;
+                
+                if ($date_from AND $value['date'] < $date_from) {
+                    unset($petty_cash_details[$key]);
+                    continue;
+                }
+
+                if ($date_to AND $value['date'] > $date_to) {
+                    unset($petty_cash_details[$key]);
+                    continue;
+                }
+                
                 $petty_cash_details[$key]['petty_cash_items'] = $this->pettyCashItemModel->get_details_by_petty_cash_detail_id($value['id']);
             }
 
             // reverse the petty cash details
+            $petty_cash_details = array_values($petty_cash_details);
             $petty_cash_details = array_reverse($petty_cash_details);
 
             $response = $this->respond([
@@ -434,6 +446,7 @@ class Petty_cash_reports extends MYTController
             'out_type'      => $this->request->getVar('out_type'),
             'type'          => $this->request->getVar('type'),
             'from'          => $this->request->getVar('from'),
+            'requested_by'  => $this->request->getVar('requested_by'),
             'amount'        => $this->request->getVar('amount'),
             'particulars'   => $this->request->getVar('particulars'),
             'invoice_no'    => $this->request->getVar('invoice_no'),
@@ -551,21 +564,22 @@ class Petty_cash_reports extends MYTController
     private function _attempt_update_petty_cash_detail($petty_cash_detail)
     {
         // Revert the petty cash amount
-        if (!$this->_update_current_petty_cash($petty_cash_detail['petty_cash_id'], (float)$petty_cash_detail['amount'] * -1, $petty_cash_detail['type'])) {
+        if ($petty_cash_detail['status'] == 'approved' AND !$this->_update_current_petty_cash($petty_cash_detail['petty_cash_id'], (float)$petty_cash_detail['amount'] * -1, $petty_cash_detail['type'])) {
             return false;
         }
 
         $values = [
-            'out_type'    => $this->request->getVar('out_type'),
-            'type'        => $this->request->getVar('type'),
-            'from'        => $this->request->getVar('from'),
-            'amount'      => $this->request->getVar('amount'),
-            'particulars' => $this->request->getVar('particulars'),
-            'invoice_no'  => $this->request->getVar('invoice_no'),
-            'date'        => $this->request->getVar('date'),
-            'remarks'     => $this->request->getVar('remarks'),
-            'updated_by'  => $this->requested_by,
-            'updated_on'  => date('Y-m-d H:i:s')
+            'out_type'     => $this->request->getVar('out_type'),
+            'type'         => $this->request->getVar('type'),
+            'from'         => $this->request->getVar('from'),
+            'requested_by' => $this->request->getVar('requested_by'),
+            'amount'       => $this->request->getVar('amount'),
+            'particulars'  => $this->request->getVar('particulars'),
+            'invoice_no'   => $this->request->getVar('invoice_no'),
+            'date'         => $this->request->getVar('date'),
+            'remarks'      => $this->request->getVar('remarks'),
+            'updated_by'   => $this->requested_by,
+            'updated_on'   => date('Y-m-d H:i:s')
         ];
 
         if (!$this->pettyCashDetailModel->update($petty_cash_detail['id'], $values)) {
@@ -574,7 +588,7 @@ class Petty_cash_reports extends MYTController
         }
 
         // Update the current petty cash in the petty cash table
-        if (!$this->_update_current_petty_cash($petty_cash_detail['petty_cash_id'], $values['amount'], $values['type'])) {
+        if ($petty_cash_detail['status'] == 'approved' AND !$this->_update_current_petty_cash($petty_cash_detail['petty_cash_id'], $values['amount'], $values['type'])) {
             return false;
         }
 
@@ -648,7 +662,7 @@ class Petty_cash_reports extends MYTController
 
         // Update the current petty cash in the petty cash table 
         // Reversing the amount to restore the current petty cashitem_remarks[]
-        if (!$this->_update_current_petty_cash($petty_cash_detail['petty_cash_id'], (float)$petty_cash_detail['amount'] * -1, $petty_cash_detail['type'])) {
+        if ($petty_cash_detail['status'] == 'approved' AND !$this->_update_current_petty_cash($petty_cash_detail['petty_cash_id'], (float)$petty_cash_detail['amount'] * -1, $petty_cash_detail['type'])) {
             return false;
         }
         

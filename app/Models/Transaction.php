@@ -204,7 +204,7 @@ EOT;
     /**
      * Get all payments from franchisee_payment, franchisee_sale_payment, fs_billing_payment by branch id
      */
-    public function get_all_filtered_payments($branch_id, $date_from, $date_to, $franchisee_id, $franchisee_name, $payment_status, $payment_mode, $type, $is_done) {
+    public function get_all_filtered_payments($branch_id, $deposited_to, $date_from, $date_to, $franchisee_id, $franchisee_name, $payment_status, $payment_mode, $type, $is_done) {
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT *
@@ -221,6 +221,7 @@ FROM
         franchisee_payment.amount AS paid_amount,
         franchisee_payment.added_on,
         franchisee_payment.is_deleted,
+        franchisee_payment.to_bank_id,
         ( SELECT franchisee.name FROM franchisee WHERE franchisee.id = franchisee_payment.franchisee_id ) AS franchisee_name,
         ( SELECT name FROM branch WHERE branch.id = franchisee_payment.branch_id ) AS franchised_branch_name,
         franchisee_payment.invoice_no AS invoice_no,
@@ -236,7 +237,9 @@ FROM
         franchisee_payment.cheque_date AS check_date,
         franchisee_payment.reference_number AS ref_no,
         franchisee_payment.payment_date as payment_date,
-        franchisee_payment.deposit_date as deposit_date
+        franchisee_payment.deposit_date as deposit_date,
+        CONCAT('Franchisee - ', franchisee_payment.franchisee_id) AS payment_for,
+        franchisee_payment.remarks
     FROM franchisee_payment
     WHERE franchisee_payment.amount > 0
     GROUP BY id
@@ -255,8 +258,9 @@ FROM
         franchisee_sale_payment.paid_amount AS paid_amount,
         franchisee_sale_payment.added_on,
         franchisee_sale_payment.is_deleted,
+        franchisee_sale_payment.to_bank_id,
         ( SELECT franchisee.name FROM franchisee WHERE franchisee.id = franchisee_sale_payment.franchisee_id ) AS franchisee_name,
-        ( SELECT name FROM branch WHERE branch.id = (SELECT branch_id FROM franchisee WHERE franchisee.id = franchisee_sale_payment.franchisee_id) ) AS franchised_branch_name,
+        ( SELECT name FROM branch WHERE branch.id = (SELECT franchisee_sale.buyer_branch_id FROM franchisee_sale WHERE franchisee_sale.id = franchisee_sale_payment.franchisee_id) ) AS franchised_branch_name,
         franchisee_sale_payment.invoice_no AS invoice_no,
         NULL AS doc_no,
         ( SELECT franchisee_sale.grand_total FROM franchisee_sale WHERE franchisee_sale.id = franchisee_sale_payment.franchisee_id ) AS grand_total,
@@ -270,7 +274,9 @@ FROM
         franchisee_sale_payment.cheque_date AS check_date,
         franchisee_sale_payment.reference_number AS ref_no,
         franchisee_sale_payment.payment_date,
-        franchisee_sale_payment.deposit_date
+        franchisee_sale_payment.deposit_date,
+        CONCAT('FI No. ', franchisee_sale_payment.franchisee_sale_id) AS payment_for,
+        franchisee_sale_payment.remarks
     FROM franchisee_sale_payment
     WHERE franchisee_sale_payment.paid_amount > 0
     GROUP BY id
@@ -289,8 +295,9 @@ FROM
         fs_billing_payment.paid_amount AS paid_amount,
         fs_billing_payment.added_on,
         fs_billing_payment.is_deleted,
+        fs_billing_payment.to_bank_id,
         ( SELECT franchisee.name FROM franchisee WHERE franchisee.id = fs_billing_payment.franchisee_id ) AS franchisee_name,
-        ( SELECT name FROM branch WHERE branch.id = (SELECT branch_id FROM franchisee WHERE franchisee.id = fs_billing_payment.franchisee_id) ) AS franchised_branch_name,
+        ( SELECT name FROM branch WHERE branch.id = (SELECT franchisee.branch_id FROM franchisee WHERE franchisee.id = fs_billing_payment.franchisee_id) ) AS franchised_branch_name,
         NULL AS invoice_no,
         NULL AS doc_no,
         ( SELECT franchisee_sale_billing.total_sale FROM franchisee_sale_billing WHERE franchisee_sale_billing.id = fs_billing_payment.fs_billing_id ) AS grand_total,
@@ -304,10 +311,13 @@ FROM
         fs_billing_payment.cheque_date AS check_date,
         fs_billing_payment.reference_number AS ref_no,
         fs_billing_payment.payment_date as payment_date,
-        fs_billing_payment.deposit_date as deposit_date
+        fs_billing_payment.deposit_date as deposit_date,
+        CONCAT('FS Billing - ', MONTHNAME(franchisee_sale_billing.month)) AS payment_for,
+        fs_billing_payment.remarks
     FROM fs_billing_payment
+    LEFT JOIN franchisee_sale_billing ON franchisee_sale_billing.id = fs_billing_payment.fs_billing_id
     WHERE fs_billing_payment.paid_amount > 0
-    GROUP BY id
+    GROUP BY fs_billing_payment.id
     )
 ) AS payments
 WHERE payments.is_deleted = 0
@@ -318,6 +328,11 @@ EOT;
         if ($branch_id) {
             $sql .= ' AND payments.branch_id = ?';
             $binds[] = $branch_id;
+        }
+
+        if ($deposited_to) {
+            $sql .= ' AND payments.to_bank_id = ?';
+            $binds[] = $deposited_to;
         }
 
         if ($date_from) {

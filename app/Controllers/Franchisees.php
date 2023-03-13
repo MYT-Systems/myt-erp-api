@@ -254,13 +254,14 @@ class Franchisees extends MYTController
      */
     private function _create_franchisee()
     {
-        $franchisee_fee   = $this->request->getVar('franchisee_fee') ?? 0;
-        $royalty_fee      = $this->request->getVar('royalty_fee') ?? 0;
-        $marketing_fee    = $this->request->getVar('marketing_fee') ?? 0;
-        $other_fee        = $this->request->getVar('other_fee') ?? 0;
-        $securtiy_deposit = $this->request->getVar('security_deposit') ?? 0;
-        $taxes            = $this->request->getVar('taxes') ?? 0;
-        $grand_total      = $franchisee_fee + $other_fee + $securtiy_deposit + $taxes;
+        $franchisee_fee     = $this->request->getVar('franchisee_fee') ?? 0;
+        $franchisee_package = $this->request->getVar('franchisee_package') ?? 0;
+        $royalty_fee        = $this->request->getVar('royalty_fee') ?? 0;
+        $marketing_fee      = $this->request->getVar('marketing_fee') ?? 0;
+        $other_fee          = $this->request->getVar('other_fee') ?? 0;
+        $securtiy_deposit   = $this->request->getVar('security_deposit') ?? 0;
+        $taxes              = $this->request->getVar('taxes') ?? 0;
+        $grand_total        = $franchisee_fee + $other_fee + $securtiy_deposit + $taxes;
         
         $values = [
             'branch_id'              => $this->request->getVar('branch_id'),
@@ -270,6 +271,7 @@ class Franchisees extends MYTController
             'royalty_fee'            => $royalty_fee,
             'marketing_fee'          => $marketing_fee,
             'franchisee_fee'         => $franchisee_fee,
+            'franchisee_package'     => $franchisee_package,
             'paid_amount'            => $this->request->getVar('paid_amount') ?? 0,
             'balance'                => $grand_total,
             'payment_status'         => $this->request->getVar('payment_status') ?? 'open_bill',
@@ -305,13 +307,14 @@ class Franchisees extends MYTController
      */
     protected function _attempt_update($franchisee)
     {
-        $franchisee_fee   = $this->request->getVar('franchisee_fee') ?? 0;
-        $royalty_fee      = $this->request->getVar('royalty_fee') ?? 0;
-        $marketing_fee    = $this->request->getVar('marketing_fee') ?? 0;
-        $other_fee        = $this->request->getVar('other_fee') ?? 0;
-        $securtiy_deposit = $this->request->getVar('security_deposit') ?? 0;
-        $taxes            = $this->request->getVar('taxes') ?? 0;
-        $grand_total      = $franchisee_fee + $other_fee + $securtiy_deposit + $taxes;
+        $franchisee_fee     = $this->request->getVar('franchisee_fee') ?? 0;
+        $franchisee_package = $this->request->getVar('franchisee_package') ?? 0;
+        $royalty_fee        = $this->request->getVar('royalty_fee') ?? 0;
+        $marketing_fee      = $this->request->getVar('marketing_fee') ?? 0;
+        $other_fee          = $this->request->getVar('other_fee') ?? 0;
+        $securtiy_deposit   = $this->request->getVar('security_deposit') ?? 0;
+        $taxes              = $this->request->getVar('taxes') ?? 0;
+        $grand_total        = $franchisee_fee + $other_fee + $securtiy_deposit + $taxes;
 
         $credit_difference = $this->request->getVar('beginning_credit_limit') - $franchisee['beginning_credit_limit'];
         $new_current_credit_limit = (float)$franchisee['current_credit_limit'] + $credit_difference;
@@ -324,6 +327,7 @@ class Franchisees extends MYTController
             'royalty_fee'            => $royalty_fee,
             'marketing_fee'          => $marketing_fee,
             'franchisee_fee'         => $franchisee_fee,
+            'franchisee_package'     => $franchisee_package,
             'paid_amount'            => $franchisee['paid_amount'],
             'balance'                => $grand_total - $franchisee['paid_amount'],
             'payment_status'         => $grand_total - $franchisee['paid_amount'] > 0 ? 'open_bill' : 'closed_bill',

@@ -664,6 +664,7 @@ class Franchisee_sales extends MYTController
             'invoice_no'         => $this->request->getVar('invoice_no'),
             'term_day'           => $this->request->getVar('term_day'),
             'delivery_address'   => $this->request->getVar('delivery_address'),
+            'delivery_date'      => $this->request->getVar('delivery_date'),
             'paid_amount'        => $this->request->getVar('paid_amount'),
             'grand_total'        => $this->request->getVar('grand_total'),
             'subtotal'           => $this->request->getVar('subtotal'),

@@ -11,6 +11,7 @@ class Attendance_entry extends MYTModel
         'time_in',
         'time_out',
         'worked_minutes',
+        'is_automatic_timeout',
         'added_by',
         'added_on',
         'updated_by',
@@ -21,6 +22,52 @@ class Attendance_entry extends MYTModel
     public function __construct()
     {
         $this->table = 'attendance_entry';
+    }
+
+    /**
+     * Get total minutes including untimed out employee
+     */
+    public function get_total_work_minutes($attendance_id)
+    {
+        $database = \Config\Database::connect();
+        $current_datetime = date("Y-m-d H:i:s");
+
+        $sql = <<<EOT
+SELECT SUM(IF(time_out IS NULL, TIMESTAMPDIFF(MINUTE, time_in, ?), worked_minutes)) AS total_worked_minutes
+FROM attendance_entry
+WHERE is_deleted = 0
+    AND attendance_id = ?
+GROUP BY attendance_id
+EOT;
+        $binds = [$current_datetime, $attendance_id];
+
+        $query = $database->query($sql, $binds);
+        return ($query AND $query->getResultArray()) ? $query->getResultArray()[0] : false;
+    }
+
+    /**
+     * Get entries without time out
+     */
+    public function get_not_timed_out()
+    {
+        $database = \Config\Database::connect();
+        $current_date = date("Y-m-d");
+
+        $sql = <<<EOT
+SELECT attendance_entry.*, attendance.total_minutes,
+    branch.operation_days, branch.operation_times
+FROM attendance_entry
+LEFT JOIN attendance ON attendance.id = attendance_entry.attendance_id
+LEFT JOIN branch ON branch.id = attendance.branch_id
+WHERE attendance_entry.is_deleted = 0
+    AND attendance_entry.time_out IS NULL
+    AND DATE(attendance_entry.time_in) = ?
+EOT;
+
+        $binds = [$current_date];
+        
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
     }
 
     /**
@@ -96,4 +143,21 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
+    public function get_work_minutes_by_employee($employee_id, $date_from, $date_to)
+    {
+        $sql = <<<EOT
+SELECT employee_id, SUM(attendance_entry.worked_minutes) AS total_worked_minutes
+FROM attendance_entry
+LEFT JOIN attendance ON attendance.id = attendance_entry.attendance_id
+WHERE attendance_entry.is_deleted = 0
+    AND attendance.employee_id = ?
+    AND DATE(time_in) BETWEEN ? AND ?
+    AND attendance_entry.time_out IS NOT NULL
+    AND attendance_entry.worked_minutes <> 0
+GROUP BY attendance.employee_id
+EOT;
+        $binds = [$employee_id, $date_from, $date_to];
+        $query = $database->query($sql, $binds);
+        return ($query AND $query->getResultArray()) ? $query->getResultArray()[0] : false;
+    }
 }

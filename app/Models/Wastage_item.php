@@ -2,17 +2,23 @@
 
 namespace App\Models;
 
-class wastage_item extends MYTModel
+class Wastage_item extends MYTModel
 {
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'wastage_id',
         'name',
+        'item_id',
         'qty',
         'unit',
         'reason',
-        'type',
+        'remarks',
+        'wasted_by',
+        'wastage_cost',
+        'status',
+        'status_change_by',
+        'status_change_on',
         'added_by',
         'added_on',
         'updated_by',
@@ -63,16 +69,23 @@ EOT;
     /**
      * Get all wastage_items by wastage_id
      */
-    public function get_all_wastage_item_by_wastage_id($wastage_id = null)
+    public function get_all_wastage_item_by_wastage_id($wastage_id = null, $item_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *
+SELECT wastage_item.*, CONCAT(employee.first_name, " ", employee.last_name) AS wasted_by_name
 FROM wastage_item
+LEFT JOIN employee
+    ON employee.id = wastage_item.wasted_by
 WHERE wastage_item.is_deleted = 0
     AND wastage_item.wastage_id = ?
 EOT;
         $binds = [$wastage_id];
+
+        if ($item_id) {
+            $sql .= " AND wastage_item.item_id = ?";
+            $binds[] = $item_id;
+        }
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
@@ -94,5 +107,53 @@ WHERE wastage_item.is_deleted = 0
 EOT;
         $binds = [$requested_by, $date_now, $wastage_id];
         return $database->query($sql, $binds);
+    }
+
+    /**
+     * Get request details by ID
+     */
+    public function get_by_status($status = null, $branches = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT wastage_item.*
+FROM wastage_item
+LEFT JOIN wastage ON wastage_item.wastage_id = wastage.id
+WHERE wastage_item.is_deleted = 0
+EOT;
+        $binds = [];
+        if ($status) {
+            $sql .= " AND wastage_item.status = ?";
+            $binds[] = $status;
+        }
+
+        if ($branches) {
+            $sql .= " AND wastage.branch_id IN ?";
+            $binds[] = $branches;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Wastage cost total per employee
+     */
+    public function get_cost_per_employee($employee_id, $date_from, $date_to)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT SUM(wastage_item.cost * wastage_item.qty) AS total_cost
+FROM wastage_item
+WHERE wastage_item.is_deleted = 0
+    AND wastage_item.status = "approved"
+    AND wastage_item.wasted_by = ?
+    AND DATE(wastage_item.added_on) BETWEEN ? AND ?
+EOT;
+
+        $binds = [$employee_id, $date_from, $date_to];
+
+        $query = $database->query($sql, $binds);
+        return ($query AND $query->getResultArray()) ? $query->getResultArray()[0] : false;
     }
 }

@@ -7,6 +7,7 @@ class Order extends MYTModel
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $allowedFields = [
+        'offline_id',
         'branch_id',
         'paid_amount',
         'change',
@@ -71,6 +72,66 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
+    /**
+     * Get sales per branch orders
+     */
+    public function get_sales_per_branch($branch_id, $branch_name, $added_on_from, $added_on_to, $transaction_type)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT order_summary.id, order_summary.branch_id,
+    SUM(order_summary.paid_amount) AS paid_amount, SUM(order_summary.change) AS `change`, SUM(order_summary.grand_total) AS grand_total,
+    order_summary.remarks, order_summary.gift_cert_code,
+    IFNULL(SUM(CASE WHEN order_summary.transaction_type = "store" THEN IFNULL(order_summary.grand_total, 0) END), 0) AS store_sales,
+    IFNULL(SUM(CASE WHEN order_summary.transaction_type = "foodpanda" THEN IFNULL(order_summary.grand_total, 0) END), 0) AS foodpanda_sales,
+    IFNULL(SUM(CASE WHEN order_summary.transaction_type = "grabfood" THEN IFNULL(order_summary.grand_total, 0) END), 0) AS grabfood_sales,
+    order_summary.added_on, order_summary.added_by,
+    order_summary.branch_name
+FROM (SELECT `order`.id, `order`.branch_id,
+        SUM(order.paid_amount) AS paid_amount, SUM(order.change) AS `change`, SUM(order.grand_total) AS grand_total,
+        remarks, gift_cert_code, transaction_type, `order`.added_on, `order`.added_by,
+        branch.name AS branch_name
+    FROM `order`
+    LEFT JOIN branch ON `order`.branch_id = branch.id
+    WHERE `order`.is_deleted = 0
+EOT;
+        $binds = [];
+
+        if ($branch_id) {
+            $branches = explode(",", $branch_id);
+            $sql .= " AND order.branch_id IN ?";
+            $binds[] = $branches;
+        }
+
+        if ($branch_name) {
+            $sql .= " AND branch.name LIKE ?";
+            $binds[] = "%$branch_name%";
+        }
+
+        if ($added_on_from) {
+            $sql .= " AND DATE(order.added_on) >= ?";
+            $binds[] = $added_on_from;
+        }
+
+        if ($added_on_to) {
+            $sql .= " AND DATE(order.added_on) <= ?";
+            $binds[] = $added_on_to;
+        }
+
+        if ($transaction_type) {
+            $sql .= " AND order.transaction_type = ?";
+            $binds[] = $transaction_type;
+        }
+
+        $sql .= <<<EOT
+    GROUP BY `order`.branch_id, `order`.transaction_type) order_summary
+GROUP BY order_summary.branch_id
+EOT;
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
 
     /**
      * Get orderess based on order name, address, contact_person, contact_person_no, tin_no, bir_no
@@ -128,40 +189,5 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
-
-    /**
-     * Get breakdown qty of an item on order detail and order product detail
-     * breakdown_qty = number of product ordered * number of item used in product
-     * breakdown_qty = breakdown_qty + number of addon ordered * number of item used in addon
-     */
-    public function get_item_breakdown_quantity($item_id, $item_unit_id, $branch_id) {
-        $database = \Config\Database::connect();
-        $sql = <<<EOT
-SELECT item.name, 
-    (SUM(order_detail.qty * product_item.qty) + SUM(order_product_detail.qty * product_item.qty)) AS breakdown_qty
-FROM `order` o
-JOIN `order_detail` ON o.id = order_detail.order_id
-JOIN `order_product_detail` order_product_detail ON order_detail.id = order_product_detail.order_detail_id
-JOIN product_item ON order_product_detail.addon_id = product_item.product_id
-JOIN item ON product_item.item_id = item.id
-JOIN item_unit ON item.id = item_unit.id
-GROUP BY item.id;
-EOT;
-        $binds = [];
-
-        if ($item_id) {
-            $sql .= " AND item.id = ?";
-            $binds[] = $item_id;
-        }
-
-        if ($item_unit_id) {
-            $sql .= " AND item_unit.id = ?";
-            $binds[] = $item_unit_id;
-        }
-
-        if ($branch_id) {
-            $sql .= " AND o.branch_id = ?";
-            $binds[] = $branch_id;
-        }
-    }
+    
 }

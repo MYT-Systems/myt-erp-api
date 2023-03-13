@@ -175,7 +175,8 @@ class Adjustments extends MYTController
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $adjustments
+                'data'   => $adjustments,
+                'total_adjustments' => count($adjustments)
             ]);
         }
 

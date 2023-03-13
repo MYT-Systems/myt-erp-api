@@ -32,8 +32,9 @@ class Item extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *
+SELECT item.*, item_unit.inventory_unit AS unit
 FROM item
+LEFT JOIN item_unit ON item.id = item_unit.item_id
 WHERE item.is_deleted = 0
 EOT;
         $binds = [];

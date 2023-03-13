@@ -115,7 +115,7 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
- SELECT supplies_expense.*,
+SELECT supplies_expense.*,
     (SELECT branch.name FROM branch WHERE branch.id = supplies_expense.branch_id) AS branch_name,
     CONCAT(preparer.first_name, ' ', preparer.last_name) AS prepared_by_name,
     CONCAT(approver.first_name, ' ', approver.last_name) AS approved_by_name,
@@ -129,7 +129,7 @@ EOT;
     vendor.trade_name AS vendor_trade_name,
     CONCAT(requisitioner.first_name, ' ', requisitioner.last_name) AS requisitioner_name,
     IF(supplies_expense_payment.total_payment >= supplies_expense.grand_total, 1, 0) AS can_be_paid
- FROM supplies_expense
+FROM supplies_expense
     LEFT JOIN user AS preparer ON preparer.id = supplies_expense.prepared_by
     LEFT JOIN user AS approver ON approver.id = supplies_expense.approved_by
     LEFT JOIN user AS printer ON printer.id = supplies_expense.printed_by
@@ -142,8 +142,8 @@ EOT;
     LEFT JOIN vendor ON vendor.id = supplies_expense.vendor_id
     LEFT JOIN employee AS requisitioner ON requisitioner.id = supplies_expense.requisitioner
     LEFT JOIN supplies_expense_payment ON supplies_expense_payment.supplies_expense_id = supplies_expense.id
- WHERE supplies_expense.is_deleted = 0
- EOT;
+WHERE supplies_expense.is_deleted = 0
+EOT;
         $binds = [];
 
         if ($supplier_id) {

@@ -173,8 +173,6 @@ class Payments extends MYTController
             return $this->failNotFound('No discount found');
         
         $commission  = $this->branchCommissionModel->get_commission($transaction_type_id, $branch_id) ? : 0;
-        $discount    = $percentage * $grand_total;
-        $grand_total = $grand_total - $discount;
 
         $values = [
             'branch_id'           => $branch_id,
@@ -184,7 +182,8 @@ class Payments extends MYTController
             'payment_type'        => $this->request->getVar('payment_type'),
             'paid_amount'         => $this->request->getVar('paid_amount'),
             'subtotal'            => $this->request->getVar('subtotal'),       
-            'grand_total'         => $grand_total,
+            'discount'            => $this->request->getVar('discount'),
+            'grand_total'         => $this->request->getVar('grand_total'),
             'commission'          => $commission * $grand_total,
             'remarks'             => $this->request->getVar('remarks'),
             'acc_no'              => $this->request->getVar('acc_no'),
@@ -193,9 +192,7 @@ class Payments extends MYTController
             'card_expiry'         => $this->request->getVar('card_expiry'),
             'card_bank'           => $this->request->getVar('card_bank'),
             'proof'               => $this->request->getVar('proof'),
-            'or_no'               => $this->request->getVar('or_no'),
-            'discount_remarks'    => $this->request->getVar('discount_remarks'),
-            'discount'            => $discount,
+            'or_no'               => $this->request->getVar('or_no'),            
             'added_by'            => $this->requested_by,
             'added_on'            => date('Y-m-d H:i:s'),
         ];

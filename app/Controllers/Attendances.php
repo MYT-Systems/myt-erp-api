@@ -116,13 +116,23 @@ class Attendances extends MYTController
             return $response;
 
         $branch_id = $this->request->getVar('branch_id') ? : null;
+        $branch_name = $this->request->getVar('branch_name') ? : null;
         $employee_id = $this->request->getVar('employee_id') ? : null;
+        $employee_name = $this->request->getVar('employee_name') ? : null;
         $date = $this->request->getVar('date') ? : null;
         $date_from = $this->request->getVar('date_from') ? : null;
         $date_to = $this->request->getVar('date_to') ? : null;
         $group_by_employees = $this->request->getVar('by_employees') ? : false;
+        $group_datetime = $this->request->getVar('group_datetime') ? : false;
 
-        if (!$attendances = $this->attendanceModel->search($group_by_employees, $branch_id, $employee_id, $date, $date_from, $date_to)) {
+        if ($branches = $this->branchGroupModel->get_branches_per_supervisor($this->requested_by)) {
+            $branches = array_map(function ($datum) {
+                return $datum['branch_id'];
+            }, $branches);
+        }
+        $branches = $branches ? : null;
+
+        if (!$attendances = $this->attendanceModel->search($group_by_employees, $group_datetime, $branch_id, $branch_name, $employee_id, $employee_name, $date, $date_from, $date_to, $branches)) {
             $response = $this->failNotFound('No attendance found');
         } else {
             $total_minutes_per_employee = [];
@@ -132,6 +142,9 @@ class Attendances extends MYTController
                 } 
 
                 $total_minutes_per_employee[$attendance['employee_id']] += (float)$attendance['total_minutes'];
+
+                $attendance_entry_work_minutes = $this->attendanceEntryModel->get_total_work_minutes($attendance['id']);
+                $attendances[$key]['total_minutes'] = $attendance_entry_work_minutes['total_worked_minutes'];
 
                 $attendances[$key]['attendance_entries'] = $this->attendanceEntryModel->get_details_by_attendance_id($attendance['id']);
             }
@@ -159,9 +172,12 @@ class Attendances extends MYTController
         $password = $this->request->getVar('password') ? : null;
 
         $employee = $this->employeeModel->get_details_by_username($username);
-        
+        $user = $this->userModel->select('', ['id' => $this->requested_by, 'is_deleted' => 0], 1);
+
         if (!$employee)
             $response = $this->failNotFound('No employee found');
+        elseif ($employee[0]->type == 'office' AND $user['type'] == 'branch')
+            $response = $this->fail('Crew cannot login supervisors.');
         elseif (!password_verify($password, $employee[0]->password))
             $response = $this->failNotFound('Invalid password');
         elseif (!$this->_attempt_record_attendance($employee[0]->id))
@@ -187,24 +203,28 @@ class Attendances extends MYTController
         $employee_id = $this->request->getVar('employee_id') ? : null;
         $type        = $this->request->getVar('type') ? : null;
 
-        $employee = $this->employeeModel->get_details_by_id($employee_id);
+        $employee = $this->employeeModel->select('', ['id' => $employee_id, 'is_deleted' => 0], 1);
+        $user = $this->userModel->select('', ['id' => $this->requested_by, 'is_deleted' => 0], 1);
 
         if (!$employee)
             $response = $this->failNotFound('No employee found');
+        elseif ($employee['type'] == 'office' AND $user['type'] == 'branch')
+            $response = $this->fail('Crew cannot time in supervisors.');
         elseif (!$this->_attempt_record_attendance($employee_id, $type))
             $response = $this->fail($this->errorMessage);
         else {
-            $branch_id = $this->userBranchModel->get_branches_by_user($this->requested_by);
-            $branch_id = $branch_id ? $branch_id[0]['id'] : null;
             $user = $this->userModel->get_details_by_id($this->requested_by);
             $user = $user ? $user[0] : null;
-            $branch_id = $branch_id ? $branch_id : $user['branch_id'];
+            $branch_id = $user ? $user['branch_id'] : 0;
+            $branch_id = $branch_id ? : 0;
+
             $date = date('Y-m-d');
             $attendance = $this->attendanceModel->search($branch_id, $employee_id, $date);
             if ($attendance) {
                 $attendance = $attendance ? $attendance[0] : null;
                 $attendance['attendance_entries'] = $this->attendanceEntryModel->get_details_by_attendance_id($attendance['id']);
             }
+
             $response = $this->respond([
                 'status' => 'success',
                 'data'   => $employee,
@@ -247,15 +267,11 @@ class Attendances extends MYTController
     {
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
-        $this->db->transCommit();
 
-        $branch_id = $this->userBranchModel->get_branches_by_user($this->requested_by);
-        $branch_id = $branch_id ? $branch_id[0]['id'] : null;
-        if (!$branch_id) {
-            $user = $this->userModel->get_details_by_id($this->requested_by);
-            $user = $user ? $user[0] : null;
-            $branch_id = $user ? $user['branch_id'] : null;
-        }
+        $user = $this->userModel->get_details_by_id($this->requested_by);
+        $user = $user ? $user[0] : null;
+        $branch_id = $user ? $user['branch_id'] : 0;
+        $branch_id = $branch_id ? : 0;
 
         $attendance = $this->attendanceModel->get_latest_attendance_today($employee_id, $branch_id);
         $attendance = $attendance ? $attendance[0] : null;
@@ -366,6 +382,7 @@ class Attendances extends MYTController
             }
         }
 
+        $this->db->transCommit();
         $this->db->close();
         return true;
     }
@@ -387,6 +404,7 @@ class Attendances extends MYTController
      */
     protected function _load_essentials()
     {
+        $this->branchGroupModel     = model('App\Models\Branch_group');
         $this->attendanceModel      = model('App\Models\Attendance');
         $this->attendanceEntryModel = model('App\Models\Attendance_entry');
         $this->employeeModel        = model('App\Models\Employee');

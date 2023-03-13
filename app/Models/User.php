@@ -8,6 +8,7 @@ class User extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'employee_id',
+        'pin',
         'username',
         'password',
         'password_reset',
@@ -40,6 +41,7 @@ class User extends MYTModel
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT user.id, 
+    user.pin, 
     user.password_reset, 
     user.username, 
     user.password, 
@@ -59,7 +61,11 @@ WHERE user.is_deleted = 0
 EOT;
         $binds = [];
         if (isset($user_id)) {
-            $sql .= " AND user.id = ?";
+            if (is_array($user_id))
+                $sql .= " AND user.id IN ?";
+            else
+                $sql .= " AND user.id = ?";
+            
             $binds[] = $user_id;
         }
 
@@ -67,6 +73,41 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
+    /**
+     * Get user details by user pin
+     */
+    public function get_details_by_pin($pin = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT user.id, 
+    user.pin, 
+    user.password_reset, 
+    user.username, 
+    user.password, 
+    user.last_name, 
+    user.first_name, 
+    user.middle_name, 
+    user.email, 
+    user.type, 
+    user.branch_id,
+    branch.name AS branch_name,
+    branch.price_level,
+    user.employee_id,
+    (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE id = user.employee_id) AS employee_name
+FROM user
+LEFT JOIN branch ON branch.id = user.branch_id
+WHERE user.is_deleted = 0
+EOT;
+        $binds = [];
+        if (isset($pin)) {
+            $sql .= " AND user.pin = ?";
+            $binds[] = $pin;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
 
     /**
      * Get all users
@@ -124,6 +165,7 @@ EOT;
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT user.id, 
+    user.pin, 
     user.password_reset, 
     user.username, 
     user.password, 
@@ -196,7 +238,7 @@ WHERE id IN ?
 EOT;
         $binds = [$users];
 
-        $query = $database->query($sql, $binds);
+        $query = $db->query($sql, $binds);
         return $query ? true : false;
     }
 

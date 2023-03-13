@@ -144,7 +144,7 @@ EOT;
     /**
      * Get inventoryess based on transaction_type_id, branch_id, commission
      */
-    public function search($branch_id, $item_id, $beginning_qty, $current_qty, $unit, $status, $name, $item_type, $limit_by, $low_stock, $high_stock, $normal_stock)
+    public function search($branch_id, $item_id, $beginning_qty, $current_qty, $unit, $status, $name, $item_type, $limit_by, $low_stock, $high_stock, $normal_stock, $for_end_inventory)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -206,7 +206,7 @@ EOT;
             $binds[] = "%$name%";
         }
 
-        if ($item_type) {
+        if ($item_type AND $item_type != "all") {
             $sql .= ' AND item_type = ?';
             $binds[] = $item_type;
         }
@@ -221,6 +221,10 @@ EOT;
 
         if ($normal_stock) {
             $sql .= ' AND inventory.current_qty > inventory.min AND inventory.current_qty < inventory.max';
+        }
+
+        if ($for_end_inventory) {
+            $sql .= ' AND inventory.for_end_inventory = 1';
         }
 
         $sql .= " ORDER BY inventory.item_name";
@@ -334,28 +338,29 @@ SELECT *
 FROM 
 (   
     (SELECT NULL AS qty_in, 
-        order_detail_ingredient.qty AS qty_out, 
+        IFNULL(SUM(order_detail_ingredient.qty), 0) AS qty_out, 
         order_detail_ingredient.unit, 
-        order.id AS doc_no, 
-        DATE(order.added_on) AS doc_date, 
-        order.added_on AS encoded_on, 
+        IF(`order`.offline_id IS NULL, `order`.id, CONCAT(`order`.id, "-", `order`.offline_id)) AS doc_no, 
+        DATE(`order`.added_on) AS doc_date, 
+        `order`.added_on AS encoded_on, 
         "Order" AS doc_type, 
-        order.id AS doc_id, 
+        `order`.id AS doc_id, 
         NULL AS branch_from,
         branch.name AS branch_name,
         NULL AS supplier_id,
         NULL AS supplier_name,
-        order.added_by AS added_by,
+        `order`.added_by AS added_by,
         CONCAT(user.first_name, ' ', user.last_name) AS added_by_name,
         NULL as slip_no
-    FROM order
-    LEFT JOIN order_detail ON order.id = order_detail.order_id
+    FROM `order`
+    LEFT JOIN order_detail ON `order`.id = order_detail.order_id
     LEFT JOIN order_detail_ingredient ON order_detail.id = order_detail_ingredient.order_detail_id
-    LEFT JOIN branch ON branch.id = order.branch_id
-    LEFT JOIN user ON user.id = receive_item.added_by
-    WHERE order.is_deleted = 0
+    LEFT JOIN branch ON branch.id = `order`.branch_id
+    LEFT JOIN user ON user.id = `order`.added_by
+    WHERE `order`.is_deleted = 0
         AND order_detail_ingredient.item_id = ?
-        AND order.branch_id = ?
+        AND `order`.branch_id = ?
+    GROUP BY `order`.id
     )
     
     UNION ALL
@@ -456,11 +461,11 @@ FROM
     (SELECT NULL AS qty_in, 
         transfer_receive_item.qty AS qty_out, 
         transfer_receive_item.unit, 
-        transfer_receive.id AS doc_no, 
-        transfer_receive.transfer_receive_date AS doc_date, 
+        transfer_receive.transfer_id AS doc_no, 
+        IF(transfer_receive.updated_on IS NULL, DATE(transfer_receive.added_on), DATE(transfer_receive.updated_on)) AS doc_date, 
         transfer_receive_item.added_on AS encoded_on, 
-        "Transfer Receive" AS doc_type, 
-        transfer_receive.id AS doc_id, 
+        "Transfer" AS doc_type, 
+        transfer_receive.transfer_id AS doc_id, 
         transfer_receive.branch_from,
         branch.name AS branch_name,
         NULL AS supplier_id,
@@ -478,6 +483,7 @@ FROM
     WHERE transfer_receive_item.is_deleted = 0
         AND transfer_receive_item.item_id = ?
         AND transfer_receive.branch_from = ?
+        AND transfer_receive.status = "completed"
     )
 
     UNION ALL
@@ -485,11 +491,11 @@ FROM
     (SELECT transfer_receive_item.qty AS qty_in, 
         NULL AS qty_out, 
         transfer_receive_item.unit, 
-        transfer_receive.id AS doc_no, 
-        transfer_receive.transfer_receive_date AS doc_date, 
+        transfer_receive.transfer_id AS doc_no, 
+        IF(transfer_receive.updated_on IS NULL, DATE(transfer_receive.added_on), DATE(transfer_receive.updated_on)) AS doc_date, 
         transfer_receive_item.added_on AS encoded_on, 
         "Transfer Receive" AS doc_type, 
-        transfer_receive.id AS doc_id, 
+        transfer_receive.transfer_id AS doc_id, 
         transfer_receive.branch_to,
         (SELECT branch.name FROM branch WHERE branch.id = transfer_receive.branch_to) AS branch_name,
         NULL AS supplier_id,
@@ -507,64 +513,7 @@ FROM
     WHERE transfer_receive_item.is_deleted = 0
         AND transfer_receive_item.item_id = ?
         AND transfer_receive.branch_to = ?
-    )
-
-    UNION ALL
-
-    (SELECT NULL AS qty_in, 
-        transfer_item.qty AS qty_out, 
-        transfer_item.unit, 
-        transfer.id AS doc_no, 
-        transfer.transfer_date AS doc_date, 
-        transfer_item.added_on AS encoded_on, 
-        "Transfer" AS doc_type, 
-        transfer.id AS doc_id, 
-        transfer.branch_from,
-        branch.name AS branch_name,
-        NULL AS supplier_id,
-        NULL AS supplier_name,
-        transfer.added_by AS added_by,
-        CONCAT(user.first_name, " ", user.last_name) AS added_by_name,
-        transfer.transfer_number as slip_no
-    FROM transfer_item
-    LEFT JOIN transfer ON transfer.id = transfer_item.transfer_id
-        AND transfer.is_deleted = 0
-    LEFT JOIN branch ON branch.id = transfer.branch_from
-        AND branch.is_deleted = 0
-    LEFT JOIN user ON user.id = transfer_item.added_by
-        AND user.is_deleted = 0
-    WHERE transfer_item.is_deleted = 0
-        AND transfer_item.item_id = ?
-        AND transfer.branch_from = ?
-    )
-
-    UNION ALL
-
-    (SELECT transfer_item.qty AS qty_in, 
-        NULL AS qty_out, 
-        transfer_item.unit, 
-        transfer.id AS doc_no, 
-        transfer.transfer_date AS doc_date, 
-        transfer_item.added_on AS encoded_on, 
-        "Transfer" AS doc_type, 
-        transfer.id AS doc_id, 
-        transfer.branch_to,
-        branch.name AS branch_name,
-        NULL AS supplier_id,
-        NULL AS supplier_name,
-        transfer.added_by AS added_by,
-        CONCAT(user.first_name, " ", user.last_name) AS added_by_name,
-        transfer.transfer_number as slip_no
-    FROM transfer_item
-    LEFT JOIN transfer ON transfer.id = transfer_item.transfer_id
-        AND transfer.is_deleted = 0
-    LEFT JOIN branch ON branch.id = transfer.branch_to
-        AND branch.is_deleted = 0
-    LEFT JOIN user ON user.id = transfer_item.added_by
-        AND user.is_deleted = 0
-    WHERE transfer_item.is_deleted = 0
-        AND transfer_item.item_id = ?
-        AND transfer.branch_to = ?
+        AND transfer_receive.status = "completed"
     )
 
     UNION ALL
@@ -661,7 +610,7 @@ FROM
 ) as item_history
 WHERE item_history.encoded_on is not null
 EOT;
-        $binds = [$item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id];
+        $binds = [$item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id, $item_id, $branch_id];
 
         if ($encoded_on_to) {
             $sql .= " AND encoded_on <= ?";
@@ -777,13 +726,13 @@ FROM (
         UNION ALL
 
         (SELECT 0 AS qty_in, 
-            transfer_receive_item.qty AS qty_out, 
+            IFNULL(transfer_item.qty, transfer_receive_item.qty) AS qty_out,
             transfer_receive_item.unit, 
-            transfer_receive.id AS doc_no, 
+            transfer_receive.transfer_id AS doc_no,
             transfer_receive.transfer_receive_date AS doc_date, 
             transfer_receive_item.added_on AS encoded_on, 
-            "Transfer Receive" AS doc_type, 
-            transfer_receive.id AS doc_id, 
+            "Transfer" AS doc_type, 
+            transfer_receive.transfer_id AS doc_id, 
             transfer_receive.branch_from,
             (SELECT branch.name FROM branch WHERE branch.id = transfer_receive.branch_from) AS branch_name,
             NULL AS supplier_id,
@@ -793,6 +742,8 @@ FROM (
         FROM transfer_receive_item
         LEFT JOIN transfer_receive ON transfer_receive.id = transfer_receive_item.transfer_receive_id
             AND transfer_receive.is_deleted = 0
+        LEFT JOIN transfer_item ON transfer_item.id = transfer_receive_item.transfer_item_id
+            AND transfer_item.is_deleted = 0
         WHERE transfer_receive_item.is_deleted = 0
         )
 
@@ -801,11 +752,11 @@ FROM (
         (SELECT transfer_receive_item.qty AS qty_in, 
             0 AS qty_out, 
             transfer_receive_item.unit, 
-            transfer_receive.id AS doc_no, 
-            transfer_receive.transfer_receive_date AS doc_date, 
+            transfer_receive.transfer_id AS doc_no,
+            transfer_receive.completed_on AS doc_date, 
             transfer_receive_item.added_on AS encoded_on, 
             "Transfer Receive" AS doc_type, 
-            transfer_receive.id AS doc_id, 
+            transfer_receive.transfer_id AS doc_id, 
             transfer_receive.branch_to,
             (SELECT branch.name FROM branch WHERE branch.id = transfer_receive.branch_to) AS branch_name,
             NULL AS supplier_id,
@@ -816,50 +767,6 @@ FROM (
         LEFT JOIN transfer_receive ON transfer_receive.id = transfer_receive_item.transfer_receive_id
             AND transfer_receive.is_deleted = 0
         WHERE transfer_receive_item.is_deleted = 0
-        )
-
-        UNION ALL
-
-        (SELECT 0 AS qty_in, 
-            transfer_item.qty AS qty_out, 
-            transfer_item.unit, 
-            transfer.id AS doc_no, 
-            transfer.transfer_date AS doc_date, 
-            transfer_item.added_on AS encoded_on, 
-            "Transfer" AS doc_type, 
-            transfer.id AS doc_id, 
-            transfer.branch_from,
-            (SELECT branch.name FROM branch WHERE branch.id = transfer.branch_from) AS branch_name,
-            NULL AS supplier_id,
-            NULL AS supplier_name,
-            transfer_item.item_id,
-            transfer.branch_from AS branch_id
-        FROM transfer_item
-        LEFT JOIN transfer ON transfer.id = transfer_item.transfer_id
-            AND transfer.is_deleted = 0
-        WHERE transfer_item.is_deleted = 0
-        )
-
-        UNION ALL
-
-        (SELECT transfer_item.qty AS qty_in, 
-            0 AS qty_out, 
-            transfer_item.unit, 
-            transfer.id AS doc_no, 
-            transfer.transfer_date AS doc_date, 
-            transfer_item.added_on AS encoded_on, 
-            "Transfer" AS doc_type, 
-            transfer.id AS doc_id, 
-            transfer.branch_to,
-            (SELECT branch.name FROM branch WHERE branch.id = transfer.branch_to) AS branch_name,
-            NULL AS supplier_id,
-            NULL AS supplier_name,
-            transfer_item.item_id,
-            transfer.branch_to AS branch_id
-        FROM transfer_item
-        LEFT JOIN transfer ON transfer.id = transfer_item.transfer_id
-            AND transfer.is_deleted = 0
-        WHERE transfer_item.is_deleted = 0
         )
 
         UNION ALL
@@ -1080,7 +987,7 @@ SELECT requesting_inventory.*,
             AND inventory.is_deleted = 0
             AND inventory.current_qty > inventory.min
     ) AS transferrable_qty,
-    requesting_inventory.min - requesting_inventory.current_qty AS qty_needed
+    requesting_inventory.max - requesting_inventory.current_qty AS qty_needed
 FROM inventory AS requesting_inventory
 LEFT JOIN item ON item.id = requesting_inventory.item_id
 LEFT JOIN item_unit ON item_unit.id = requesting_inventory.item_unit_id
@@ -1122,5 +1029,107 @@ EOT;
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
+    }
+
+    /**
+     * Get Initial Inventory
+     */
+    public function get_initial_inventory($branch_id)
+    {
+        $db = db_connect();
+        $current_date = date("Y-m-d 00:00:00");
+        $yesterday_date = date("Y-m-d", strtotime("-1 day"));
+
+        $sql = <<<EOT
+SELECT inventory.id AS inventory_id,
+    inventory.item_id,
+    inventory.current_qty,
+    SUM(IFNULL(transfer_receive_item.qty, 0)) AS delivered_qty,
+    inventory.unit AS inventory_unit
+FROM inventory
+LEFT JOIN daily_sale ON daily_sale.branch_id = inventory.branch_id
+    AND daily_sale.date = ?
+LEFT JOIN transfer_receive 
+ON transfer_receive.branch_to = inventory.branch_id
+    AND transfer_receive.completed_on > IFNULL(daily_sale.added_on, ?)
+    AND transfer_receive.status = "completed"
+LEFT JOIN transfer_receive_item ON transfer_receive.id = transfer_receive_item.transfer_receive_id
+    AND inventory.item_id = transfer_receive_item.item_id
+    AND transfer_receive_item.unit = inventory.unit
+WHERE inventory.branch_id = ?
+GROUP BY inventory.item_id
+EOT;
+
+        $binds = [$yesterday_date, $current_date, $branch_id];
+
+        $query = $db->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Get Inventory by branch
+     */
+    public function get_inventory_by_branch($branch_id)
+    {
+        $db = db_connect();
+        $current_date = date("Y-m-d");
+
+        $sql = <<<EOT
+SELECT item.id AS item_id,
+    item_unit.id AS item_unit_id,
+    item.name AS item_name,
+    item_unit.breakdown_value,
+    item_unit.inventory_value
+    item_unit.breakdown_unit,
+    item_unit.inventory_unit
+FROM inventory
+LEFT JOIN item ON item.id = inventory.item_id
+LEFT JOIN item_unit ON item_unit.item_id = inventory.item_id
+WHERE inventory.is_deleted = 0
+    AND inventory.branch_id = ?
+EOT;
+
+        $binds = [$branch_id];
+
+        $query = $db->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Get item levels (min, max, current, and etc.)
+     */
+    public function get_item_levels($item_id)
+    {
+        $db = db_connect();
+        $sql = <<<EOT
+SELECT inventory.min, inventory.max, inventory.critical_level, inventory.current_qty, inventory.acceptable_variance, inventory.beginning_qty, inventory.unit,
+    branch.name AS branch_name, branch.id AS branch_id,
+    NULL AS inventory_group_id, NULL AS inventory_group_name
+FROM inventory
+LEFT JOIN branch ON branch.id = inventory.branch_id
+WHERE inventory.item_id = ?
+    AND inventory.is_deleted = 0
+
+UNION ALL
+
+SELECT NULL AS min, NULL AS max, NULL AS critical_level, NULL AS current_qty, NULL AS acceptable_variance, NULL AS beginning_qty, NULL AS unit,
+    NULL AS branch_name, NULL AS branch_id,
+    inventory_group.name AS inventory_group_name, inventory_group.id AS inventory_group_id
+FROM inventory_group_detail
+LEFT JOIN inventory_group ON inventory_group.id = inventory_group_detail.inventory_group_id
+WHERE inventory_group_detail.is_deleted = 0
+    AND inventory_group_detail.branch_id IN (
+            SELECT branch_id
+            FROM inventory
+            WHERE inventory.item_id = ?
+                AND inventory.is_deleted = 0
+    )
+GROUP BY inventory_group.id
+EOT;
+
+        $binds = [$item_id, $item_id];
+
+        $query = $db->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
     }
 }

@@ -28,14 +28,16 @@ class Reports extends MYTController
         $type            = $this->request->getVar('type') ? : NULL;
         $date_from       = $this->request->getVar('date_from') ? : NULL;
         $date_to         = $this->request->getVar('date_to') ? : NULL;
+        $payment_status  = $this->request->getVar('payment_status') ? : NULL;
+
         $franchise_sales = [];
         $billings        = [];
         
         if (!$type OR $type == 'invoice_sales')
-            $franchise_sales = $this->franchiseeSalePaymentModel->get_payment_with_sale_details($franchisee_id, $franchisee_name, $branch_id, $date_from, $date_to);
+            $franchise_sales = $this->franchiseeSalePaymentModel->get_payment_with_sale_details($franchisee_id, $franchisee_name, $branch_id, $date_from, $date_to, $payment_status);
         
         if (!$type OR $type != 'invoice_sales')
-            $billings = $this->fsBillingPaymentModel->get_payment_with_billing_details($franchisee_id, $franchisee_name, $branch_id, $type, $date_from, $date_to);
+            $billings = $this->fsBillingPaymentModel->get_payment_with_billing_details($franchisee_id, $franchisee_name, $branch_id, $type, $date_from, $date_to, $payment_status);
 
         if (!$franchise_sales AND !$billings) {
             $response = $this->failNotFound('No franchisee_sale found');
@@ -88,20 +90,6 @@ class Reports extends MYTController
     }
 
     /**
-     * Get daily store deposit
-     */
-    public function get_daily_store_deposit()
-    {
-        if (($response = $this->_api_verification('reports', 'get_daily_store_deposit')) !== true)
-            return $response;
-
-        
-            
-        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
-        return $response;
-    }
-
-    /**
      * Get receivables
      */
     public function get_receive_payables()
@@ -109,14 +97,15 @@ class Reports extends MYTController
         if (($response = $this->_api_verification('reports', 'get_receivable')) !== true)
             return $response;
 
-        $supplier_id = $this->request->getVar('supplier_id');
-        $vendor_id   = $this->request->getVar('vendor_id');
+        $invoice_no  = $this->request->getVar('invoice_no') ? : null;
+        $supplier_id = $this->request->getVar('supplier_id') ? : null;
+        $vendor_id   = $this->request->getVar('vendor_id') ? : null;
         $date_from   = $this->request->getVar('date_from') ? : null;
         $date_to     = $this->request->getVar('date_to') ? : null;
-        $payable     = $this->request->getVar('payable');
+        $payable     = $this->request->getVar('payable') ? : null;
         $paid        = $this->request->getVar('paid') ? : null;
 
-        $receivables = $this->reportModel->get_receive_payables($supplier_id, $vendor_id, $date_from, $date_to, $payable, $paid);
+        $receivables = $this->reportModel->get_receive_payables($invoice_no, $supplier_id, $vendor_id, $date_from, $date_to, $payable, $paid);
 
         if (!$receivables) {
             $response = $this->failNotFound('No report Found');
@@ -483,7 +472,7 @@ class Reports extends MYTController
         $this->franchiseeSaleModel        = model('App\Models\Franchisee_sale');
         $this->franchiseeSaleItemModel    = model('App\Models\Franchisee_sale_item');
         $this->franchiseeSalePaymentModel = model('App\Models\Franchisee_sale_payment');
-        $this->fsBillingPaymentModel      = model('App\Models\FS_billing_payment');
+        $this->fsBillingPaymentModel      = model('App\Models\Fs_billing_payment');
         $this->purchaseItemModel          = model('App\Models\Purchase_item');
         $this->receiveModel               = model('App\Models\Receive');
         $this->webappResponseModel        = model('App\Models\Webapp_response');

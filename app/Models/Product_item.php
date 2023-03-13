@@ -9,6 +9,7 @@ class Product_item extends MYTModel
     protected $allowedFields = [
         'product_id',
         'item_id',
+        'type',
         'qty',
         'unit',
         'added_by',
@@ -47,6 +48,35 @@ WHERE is_deleted = 0
     AND product_id = ?
 EOT;
         $binds = [$product_id];
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    public function search($product_id = null, $type = null, $include_both = true)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT *,
+    (SELECT name FROM item WHERE item.id = product_item.item_id) AS item_name
+FROM product_item
+WHERE is_deleted = 0
+EOT;
+
+        $binds = [];
+
+        if ($product_id) {
+            $sql .= " AND product_id = ?";
+            $binds[] = $product_id;
+        }
+
+        if ($type) {
+            if ($include_both)
+                $sql .= ' AND type IN (?, "both")';
+            else
+                $sql .= ' AND type IN (?)';
+            $binds[] = $type;
+        }
+
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }

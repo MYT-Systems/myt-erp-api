@@ -39,6 +39,27 @@ class Inventory_reports extends MYTController
     }
 
     /**
+     * Get initial inventory
+     */
+    public function get_initial_inventory()
+    {
+        if (($response = $this->_api_verification('inventory_reports', 'get_initial_inventory')) !== true)
+            return $response;
+
+        if (!$initial_inventories = $this->initialInventoryModel->select('', ['date' => date("Y-m-d"), 'is_deleted' => 0])) {
+            $response = $this->failNotFound('No initial inventories found');
+        } else {
+            $response = $this->respond([
+                'status' => 'success',
+                'data' => $initial_inventories
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Get all inventory_reports
      */
     public function get_all_inventory_report()
@@ -70,7 +91,7 @@ class Inventory_reports extends MYTController
      */
     public function create_ending_inventory()
     {
-        if (($response = $this->_api_verification('inventory_reports', 'create')) !== true) {
+        if (($response = $this->_api_verification('inventory_reports', 'create_ending_inventory')) !== true) {
             $this->webappResponseModel->record_response($this->webapp_log_id, $response);
             return $response;
         }
@@ -78,12 +99,14 @@ class Inventory_reports extends MYTController
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
 
+        $has_error = false;
+
+        $branch_id = $this->request->getVar('branch_id');
+
         if (!$ending_inventory_id = $this->_attempt_create_ending_inventory()) {
             $this->db->transRollback(); 
             $response = $this->fail($this->errorMessage);
-        } else if (!$this->_attempt_create_ending_inventory_item($ending_inventory_id)) {
-            $this->db->transRollback();
-            $response = $this->respond($this->errorMessage);
+            $has_error = true;
         } else {
             $this->db->transCommit();
             $response = $this->respond(['response' => 'inventory_report created successfully']);
@@ -91,50 +114,78 @@ class Inventory_reports extends MYTController
 
         $this->db->close();
 
+        if ($has_error) {
+            $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+            return $response;
+        }
+
         //return the ending inventory and initial inventory to reduce api call from the mobile app
-        if (!$ending_inventory = $this->endingInventoryModel->get_details_by_id($ending_inventory_id)) {
-            $response = $this->failNotFound('No ending inventory found');
+        $response = $this->_get_ending_and_initial($branch_id, date("Y-m-d"));
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Get initial and ending inventories
+     */
+    public function get_daily_inventories()
+    {
+        if (($response = $this->_api_verification('inventory_reports', 'get_daily_inventories')) !== true) {
+            $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+            return $response;
+        }
+
+        $branch_id = $this->request->getVar('branch_id');
+        $date = $this->request->getVar('date');
+        $response = $this->_get_ending_and_initial($branch_id, $date);
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    protected function _get_ending_and_initial($branch_id, $date)
+    {
+        if (!$inventories = $this->endingInventoryModel->get_ending_and_initial($branch_id, $date)) {
+            $response = $this->failNotFound('No ending inventory and initial inventory found');
         } else {
-            // get the last ending inventory made by the branch
-            if ($initial_inventory = $this->endingInventoryModel->get_details_from_yesterday_ending($this->request->getVar('branch_id'), $ending_inventory_id)) {
-                $initial_inventory_items = $this->endingInventoryItemModel->get_details_by_ending_inventory_id($initial_inventory[0]['id']);
+            $initial_inventories = [];
+            $usage_inventories = [];
+            $ending_inventories = [];
 
-                $transferred_items_today = $this->transferReceiveItemModel->get_all_items_received_today($this->request->getVar('branch_id')) ? : [];
-                
-                // loop through the transferred items today and add it to the initial inventory
-                foreach ($transferred_items_today as $transferred_item) {
-                    $item_found = false;
-                    foreach ($initial_inventory_items as $key => $initial_inventory_item) {
-                        if ($initial_inventory_item['item_id'] == $transferred_item['item_id']) {
-                            $initial_inventory_items[$key]['actual_inventory_qty'] += $transferred_item['qty'];
-                            $initial_inventory_items[$key]['system_inventory_qty'] += $transferred_item['qty'];
-                            $item_found = true;
-                            break;
-                        }
-                    }
+            foreach ($inventories as $inventory) {
+                $initial_inventories[] = [
+                    "item" => $inventory["name"],
+                    "item_unit_name" => $inventory["item_unit_name"],
+                    "beginning" => $inventory["beginning"],
+                    "delivered" => $inventory["delivered"],
+                    "initial_total" => $inventory["initial_total"]
+                ];
 
-                    if (!$item_found) {
-                        $initial_inventory_items[] = [
-                            'item_id' => $transferred_item['item_id'],
-                            'actual_inventory_qty' => $transferred_item['qty'],
-                            'system_inventory_qty' => $transferred_item['qty'],
-                        ];
-                    }
-                }
+                $usage_inventories[] = [
+                    "item" => $inventory["name"],
+                    "item_unit_name" => $inventory["item_unit_name"],
+                    "actual_usage" => $inventory["actual_usage"],
+                    "system_usage" => $inventory["system_usage"],
+                    "usage_variance" => $inventory["usage_variance"]
+                ];
 
-                $initial_inventory[0]['items'] = $initial_inventory_items;
+                $ending_inventories[] = [
+                    "item" => $inventory["name"],
+                    "item_unit_name" => $inventory["item_unit_name"],
+                    "actual_end" => $inventory["actual_end"],
+                    "system_end" => $inventory["system_end"],
+                    "ending_variance" => $inventory["ending_variance"],
+                ];
             }
-
-            $ending_inventory[0]['items'] = $this->endingInventoryItemModel->get_details_by_ending_inventory_id($ending_inventory_id);
 
             $response = $this->respond([
                 'status' => 'success',
-                'ending_inventory' => $ending_inventory,
-                'initial_inventory' => $initial_inventory
+                'initial_inventories' => $initial_inventories,
+                'usage_inventories' => $usage_inventories,
+                'ending_inventories' => $ending_inventories
             ]);
         }
-
-        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
 
@@ -205,70 +256,102 @@ class Inventory_reports extends MYTController
     // ------------------------------------------------------------------------
 
     /**
-     * Attempt to create inventory_report
-     */
-    private function _attempt_create_ending_inventory()
-    {
-        $values = [
-            'branch_id'              => $this->request->getVar('branch_id'),
-            'date'                   => $this->request->getVar('date'),
-            'added_by'               => $this->requested_by,
-            'added_on'               => date('Y-m-d H:i:s'),
-        ];
-
-        if (!$ending_inventory_id = $this->endingInventoryModel->insert($values)) {
-            $this->errorMessage = $this->db->error()['message'];
-            return false;
-        }
-
-        return $ending_inventory_id;
-    }
-
-    /**
-     * Attempt to create ending inventory item
+     * Attempt to create ending inventory
      * used in creating daily sales
      */   
-    private function _attempt_create_ending_inventory_item($ending_inventory_id)
+    private function _attempt_create_ending_inventory()
     {
+        $branch_id            = $this->request->getVar('branch_id');
         $item_ids             = $this->request->getVar('item_ids');
         $item_unit_ids        = $this->request->getVar('item_unit_ids');
         $inventory_quantities = $this->request->getVar('inventory_quantities');
         $breakdown_quantities = $this->request->getVar('breakdown_quantities');
+        $total_quantities     = $this->request->getVar('total_quantities');
 
         foreach ($item_ids as $key => $item_id) {
             $item_unit = $this->itemUnitModel->get_details_by_id($item_unit_ids[$key]) ?? [];
             $item_unit = $item_unit[0] ?? [];
-            $system_breakdown_qty = $this->orderModel->get_item_breakdown_quantity($item_id, $item_unit_ids[$key], $this->request->getVar('branch_id'));
-            $system_inventory_qty = 0;
-            $inventory = $this->inventoryModel->get_inventory_by_details($item_id, $this->request->getVar('branch_id'), $item_unit_ids[$key]);
+            $inventory = $this->inventoryModel->get_inventory_by_details($item_id, $branch_id, $item_unit_ids[$key]);
             $inventory = $inventory[0] ?? [];
+            $system_inventory_qty = $inventory['current_qty'];
+
+            $branch_id = $this->request->getVar('branch_id');
+            $variance_inventory_qty = $total_quantities[$key] - $system_inventory_qty;
+            $is_inventory_variance = abs($variance_inventory_qty) > $inventory['acceptable_variance'] ? 1 : 0; // 1 means with discrepancy
 
             $values = [
-                'ending_inventory_id'    => $ending_inventory_id,
-                'inventory_id'           => $inventory['id'] ?? 0,
+                'branch_id'              => $branch_id,
+                'date'                   => date("Y-m-d"),
+                'inventory_id'           => $inventory['id'],
                 'item_id'                => $item_id,
                 'item_unit_id'           => $item_unit_ids[$key],
                 'breakdown_unit'         => $item_unit['breakdown_unit'] ?? '',
-                'actual_breakdown_qty'   => $breakdown_quantities[$key],
-                'system_breakdown_qty'   => $system_breakdown_qty ?? 0,
-                'variance_breakdown_qty' => $breakdown_quantities[$key] - $system_breakdown_qty,
-                'inventory_unit'         => $item_unit['unit'] ?? '',
-                'actual_inventory_qty'   => $inventory_quantities[$key],
-                'system_inventory_qty'   => $system_inventory_qty,
-                'variance_inventory_qty' => $inventory_quantities[$key] - $system_inventory_qty,
-                'total_inventory'        => $inventory_quantities[$key] + ($breakdown_quantities[$key] / $item_unit['breakdown_value']),
-                'total_breakdown'        => ($inventory_quantities[$key] * $item_unit['breakdown_value']) + $breakdown_quantities[$key],
+                'breakdown_qty'          => $breakdown_quantities[$key],
+                'inventory_unit'         => $item_unit['inventory_unit'] ?? '',
+                'inventory_qty'          => $inventory_quantities[$key],
+                'actual_inventory_quantity' => $total_quantities[$key],
+                'system_inventory_quantity' => $system_inventory_qty,
+                'variance_inventory_quantity' => $variance_inventory_qty,
+                'is_inventory_variance'  => $is_inventory_variance,
                 'added_by'               => $this->requested_by,
                 'added_on'               => date('Y-m-d H:i:s'),
             ];
 
-            if (!$ending_inventory_item_id = $this->endingInventoryItemModel->insert($values)) {
+            if (!$ending_inventory_item_id = $this->endingInventoryModel->insert($values) OR
+                !$this->_generate_adjustments($branch_id, $inventory, $item_id, $total_quantities[$key], $item_unit['inventory_unit'], $system_inventory_qty, $is_inventory_variance)
+            ) {
                 $this->errorMessage = $this->db->error()['message'];
                 return false;
             }
         }
 
         return true;
+    }
+
+    protected function _generate_adjustments($branch_id, $inventory, $item_id, $physical_count, $unit, $computer_count, $is_inventory_variance)
+    {
+        $where = ['name' => 'Discrepancy', 'is_deleted' => 0];
+        $discrepancy_adjustment_type = $this->adjustmentTypeModel->select('', $where, 1);
+        $where = ['name' => 'System Adjustment', 'is_deleted' => 0];
+        $system_adjustment_type = $this->adjustmentTypeModel->select('', $where, 1);
+
+        $remarks_condition = $is_inventory_variance ? " not" : "";
+        $remarks = "Item discrepancy is$remarks_condition within acceptable variance";
+
+        $values = [
+            'branch_id' => $branch_id,
+            'inventory_id' => $inventory['id'],
+            'item_id' => $item_id,
+            'type_id' => $is_inventory_variance ? $system_adjustment_type['id'] : $discrepancy_adjustment_type['id'],
+            'counted_by' => SYSTEM_ID,
+            'physical_count' => $physical_count,
+            'unit' => $unit,
+            'cost' => 0.00,
+            'approved_on' => date("Y-m-d H:i:s"),
+            'approved_by' => SYSTEM_ID,
+            'difference' => $physical_count - $computer_count,
+            'computer_count' => $computer_count,
+            'difference_cost' => 0.00,
+            'status' => $is_inventory_variance ? 'pending' : 'system_adjustment',
+            'remarks' => $remarks,
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s')
+        ];
+        
+        if ($is_inventory_variance == 0 AND !$this->_adjust_inventory($inventory, $physical_count)) false;
+
+        return ($this->adjustmentModel->insert($values)) ? true : false;
+    }
+
+    protected function _adjust_inventory($inventory, $physical_count)
+    {
+        $values = [
+            'current_qty' => $physical_count,
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
+        ];
+
+        return ($this->inventoryModel->update($inventory['id'], $values)) ? true : false;
     }
 
     /**
@@ -278,14 +361,16 @@ class Inventory_reports extends MYTController
     {
         $this->inventoryReportModel      = model('App\Models\Inventory_report');
         $this->inventoryReportItemModel  = model('App\Models\Inventory_report_item');
+        $this->adjustmentModel           = model('App\Models\Adjustment');
+        $this->adjustmentTypeModel       = model('App\Models\Adjustment_type');
         $this->initialInventoryModel     = model('App\Models\Initial_inventory');
-        $this->initialInventoryItemModel = model('App\Models\Initial_inventory_item');
         $this->endingInventoryModel      = model('App\Models\Ending_inventory');
         $this->endingInventoryItemModel  = model('App\Models\Ending_inventory_item');
         $this->itemUnitModel             = model('App\Models\Item_unit');
         $this->inventoryModel            = model('App\Models\Inventory');
         $this->transferReceiveItemModel  = model('App\Models\Transfer_receive_item');
         $this->orderModel                = model('App\Models\Order');
+        $this->orderDetailIngredModel    = model('App\Models\Order_detail_ingredient');
         $this->webappResponseModel       = model('App\Models\Webapp_response');
         $this->webappResponseItemModel   = model('App\Models\Webapp_response_item');
     }

@@ -187,6 +187,17 @@ EOT;
         $database = $db ? $db : \Config\Database::connect();
         $date_now = date('Y-m-d H:i:s');
 
+        // ON DUPLICATE KEY UPDATE
+        // order_id = VALUES(order_id),
+        // product_id = VALUES(product_id),
+        // price = VALUES(price),
+        // qty = VALUES(qty),
+        // subtotal = VALUES(subtotal),
+        // remarks = VALUES(remarks),
+        // updated_by = VALUES(updated_by),
+        // updated_on = VALUES(updated_on),
+        // is_deleted = 0
+
         $sql = <<<EOT
 INSERT INTO order_detail (
     order_id,
@@ -201,16 +212,6 @@ INSERT INTO order_detail (
     updated_on,
     is_deleted
 ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
-ON DUPLICATE KEY UPDATE
-    order_id = VALUES(order_id),
-    product_id = VALUES(product_id),
-    price = VALUES(price),
-    qty = VALUES(qty),
-    subtotal = VALUES(subtotal),
-    remarks = VALUES(remarks),
-    updated_by = VALUES(updated_by),
-    updated_on = VALUES(updated_on),
-    is_deleted = 0
 EOT;
 
         $binds = [
@@ -229,41 +230,6 @@ EOT;
 
         $query = $database->query($sql, $binds);
         return $query ? $database->insertID() : false;
-    }
-
-    public function get_system_inventory_sales($daily = false)
-    {
-        $database = $db ? $db : \Config\Database::connect();
-        $date_now = date('Y-m-d H:i:s');
-
-        $sql = <<<EOT
-SELECT SUM(inventory_sales.grand_total) AS grand_total
-FROM (
-    SELECT SUM(IFNULL(subtotal, 0)) AS grand_total
-    FROM order_detail
-    WHERE is_deleted = 0
-    ADDITIONAL_CONDITION
-
-    UNION
-
-    SELECT SUM(IFNULL(subtotal, 0)) AS grand_total
-    FROM order_product_detail
-    WHERE is_deleted = 0
-    ADDITIONAL_CONDITION
-) AS inventory_sales
-EOT;
-        $binds = [];
-
-        if ($daily) {
-            $condition = "AND DATE(added_on) = ?";
-            $sql = str_replace("ADDITIONAL_CONDITION", $condition, $sql);
-            $binds = [$date_now, $date_now];
-        } else {
-            $sql = str_replace("ADDITIONAL_CONDITION", "", $sql);
-        }
-
-        $query = $database->query($sql, $binds);
-        return ($query AND $query->getResultArray()) ? $query->getResultArray()[0] : false;
     }
 
 }

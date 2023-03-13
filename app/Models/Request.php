@@ -69,11 +69,11 @@ EOT;
     /**
      * Get request details by ID
      */
-    public function get_by_status($status = null)
+    public function get_by_status($status = null, $branches = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *
+SELECT request.*
 FROM request
 WHERE request.is_deleted = 0
 EOT;
@@ -81,6 +81,11 @@ EOT;
         if ($status) {
             $sql .= " AND request.status = ?";
             $binds[] = $status;
+        }
+
+        if ($branches) {
+            $sql .= " AND request.branch_to IN ?";
+            $binds[] = $branches;
         }
 
         $query = $database->query($sql, $binds);
@@ -106,7 +111,7 @@ EOT;
     /**
      * Get requests based on request name, contact_person, phone_no, tin_no, bir_no, email
      */
-   public function search($branch_from = null, $branch_to = null, $request_number = null, $transfer_number = null, $request_date_from = null, $request_date_to = null, $remarks = null, $grand_total = null, $status = null, $limit_by = null)
+   public function search($branch_from = null, $branch_to = null, $branch_to_name = null, $request_number = null, $transfer_number = null, $request_date_from = null, $request_date_to = null, $remarks = null, $grand_total = null, $status = null, $limit_by = null)
    {
        $database = \Config\Database::connect();
        $sql = <<<EOT
@@ -128,24 +133,19 @@ EOT;
         $binds = [];
         if ($branch_from) {
             $branch_from = explode(',', $branch_from);
-            $sql .= " AND request.branch_from IN (";
-            foreach ($branch_from as $key => $value) {
-                $sql .= "?,";
-                $binds[] = $value;
-            }
-            $sql = rtrim($sql, ',');
-            $sql .= ")";
+            $sql .= " AND request.branch_from IN ?";
+            $binds[] = $branch_from;
         }
         
         if ($branch_to) {
             $branch_to = explode(',', $branch_to);
-            $sql .= " AND request.branch_to IN (";
-            foreach ($branch_to as $key => $value) {
-                $sql .= "?,";
-                $binds[] = $value;
-            }
-            $sql = rtrim($sql, ',');
-            $sql .= ")";
+            $sql .= " AND request.branch_to IN ?";
+            $binds[] = $branch_to;
+        }
+
+        if ($branch_to_name) {
+            $sql .= " AND target_branch.name LIKE ?";
+            $binds[] = $branch_to_name . "%";
         }
         
         if ($request_number) {

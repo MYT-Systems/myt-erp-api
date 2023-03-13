@@ -67,6 +67,30 @@ class Inventory_groups extends MYTController
     }
 
     /**
+     * Get item levels (min, max, current, and etc.)
+     */
+    public function get_item_levels()
+    {
+        if (($response = $this->_api_verification('inventory_groups', 'get_item_levels')) !== true) {
+            return $response;
+        }
+
+        $item_id = $this->request->getVar('item_id');
+
+        if (!$item_levels = $this->inventoryModel->get_item_levels($item_id)) {
+            $response = $this->failNotFound('No item levels found');
+        } else {
+            $response = $this->respond([
+                'data' => $item_levels,
+                'status' => 'success'
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Create inventory_group
      */
     public function create()
@@ -307,6 +331,7 @@ class Inventory_groups extends MYTController
      */
     protected function _load_essentials()
     {
+        $this->inventoryModel            = model('App\Models\Inventory');
         $this->inventoryGroupModel       = model('App\Models\Inventory_group');
         $this->inventoryGroupDetailModel = model('App\Models\Inventory_group_detail');
         $this->webappResponseModel       = model('App\Models\Webapp_response');

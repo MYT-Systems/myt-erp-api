@@ -14,6 +14,7 @@ class Franchisee extends MYTModel
         'royalty_fee',
         'marketing_fee',
         'franchisee_fee',
+        'franchisee_package',
         'paid_amount',
         'balance',
         'payment_status',

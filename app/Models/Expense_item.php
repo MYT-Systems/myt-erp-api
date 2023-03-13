@@ -123,10 +123,8 @@ INSERT INTO expense_item (
     total,
     added_by,
     added_on,
-    updated_by,
-    updated_on,
     is_deleted
-) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
+) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     expense_id = VALUES(expense_id),
     name = VALUES(name),
@@ -134,10 +132,8 @@ ON DUPLICATE KEY UPDATE
     price = VALUES(price),
     qty = VALUES(qty),
     total = VALUES(total),
-    added_by = VALUES(added_by),
-    added_on = VALUES(added_on),
-    updated_by = VALUES(updated_by),
-    updated_on = VALUES(updated_on),
+    updated_by = VALUES(added_by),
+    updated_on = VALUES(added_on),
     is_deleted = 0
 EOT;
     
@@ -148,8 +144,6 @@ EOT;
             $data['price'],
             $data['qty'],
             $data['total'],
-            $requested_by,
-            $date_now,
             $requested_by,
             $date_now,
             0

@@ -76,12 +76,14 @@ class Transfers extends MYTController
         $transfer_id    = $this->request->getVar('transfer_id') ? : null;
         $transfer       = $transfer_id ? $this->transferModel->get_details_by_id($transfer_id) : null;
         $transfer_items = $transfer_id ? $this->transferItemModel->get_details_by_transfer_id($transfer_id) : null;
+        $transfer_receive_items = $transfer_id ? $this->transferReceiveItemModel->get_details_by_transfer_id($transfer_id) : null;
 
 
         if (!$transfer) {
             $response = $this->failNotFound('No transfer found');
         } else {
             $transfer[0]['transfer_items'] = $transfer_items;
+            $transfer[0]['transfer_receive_items'] = $transfer_receive_items;
             $response = $this->respond([
                 'data'   => $transfer,
                 'status' => 'success'
@@ -131,7 +133,7 @@ class Transfers extends MYTController
 
         if (!$transfer_id = $this->_attempt_create()) {
             $this->db->transRollback();
-            $response = $this->fail("Failed to create transfer: " . $this->transferModel->errors());
+            $response = $this->fail("Failed to create transfer: " . $this->errorMessage);
         } else if (!$this->_attempt_generate_transfer_items($transfer_id)) {
             $this->db->transRollback();
             $response = $this->fail("Failed to create transfer items: " . $this->errorMessage);
@@ -193,7 +195,7 @@ class Transfers extends MYTController
             $response = $this->respond(['response' => 'transfer updated successfully']);
         }
 
-        if ($transfer['transfer_status'] == 'approved' && !$this->_attempt_update_stock($transfer)) {
+        if ($transfer['transfer_status'] == 'approved' && $this->version == '1' && !$this->_attempt_update_stock($transfer)) {
             var_dump('failed to update stock');
             return false;
         }
@@ -274,25 +276,57 @@ class Transfers extends MYTController
     }
 
     /**
+     * Search multiple status
+     */
+    public function search_multiple_status()
+    {
+        if (($response = $this->_api_verification('transfers', 'search_multiple_status')) !== true)
+            return $response;
+
+        $transfer_id     = $this->request->getVar('transfer_id') ? : null;
+        $branch_from     = $this->request->getVar('branch_from') ? : null;
+        $branch_to       = $this->request->getVar('branch_to') ? : null;
+        $transfer_number = $this->request->getVar('transfer_number') ? : null;
+        $date_from       = $this->request->getVar('date_from') ? : null;
+        $date_to         = $this->request->getVar('date_to') ? : null;
+        $remarks         = $this->request->getVar('remarks') ? : null;
+        $grand_total     = $this->request->getVar('grand_total') ? : null;
+        $status          = $this->request->getVar('status') ? : null;
+
+        if (!$transfers = $this->transferModel->search_multiple_status($transfer_id, $branch_from, $branch_to, $transfer_number, $date_from, $date_to, $remarks, $grand_total, $status)) {
+            $response = $this->failNotFound('No transfer found');
+        } else {
+            $response = $this->respond([
+                'data' => $transfers
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Search transfer based on parameters passed
      */
     public function search()
     {
-        if (($response = $this->_api_verification('transfer', 'search')) !== true)
+        if (($response = $this->_api_verification('transfers', 'search')) !== true)
             return $response;
 
-        $transfer_id        = $this->request->getVar('transfer_id');
-        $branch_from        = $this->request->getVar('branch_from');
-        $branch_to          = $this->request->getVar('branch_to');
-        $transfer_number    = $this->request->getVar('transfer_number');
-        $transfer_date_to   = $this->request->getVar('transfer_date_to');
-        $transfer_date_from = $this->request->getVar('transfer_date_from');
-        $remarks            = $this->request->getVar('remarks');
-        $grand_total        = $this->request->getVar('grand_total');
-        $status             = $this->request->getVar('status');
-        $limit_by           = $this->request->getVar('limit_by');
+        $transfer_id        = $this->request->getVar('transfer_id') ? : null;
+        $branch_from        = $this->request->getVar('branch_from') ? : null;
+        $branch_to          = $this->request->getVar('branch_to') ? : null;
+        $transfer_number    = $this->request->getVar('transfer_number') ? : null;
+        $transfer_date_to   = $this->request->getVar('transfer_date_to') ? : null;
+        $transfer_date_from = $this->request->getVar('transfer_date_from') ? : null;
+        $date_completed_to   = $this->request->getVar('date_completed_to') ? : null;
+        $date_completed_from = $this->request->getVar('date_completed_from') ? : null;
+        $remarks            = $this->request->getVar('remarks') ? : null;
+        $grand_total        = $this->request->getVar('grand_total') ? : null;
+        $status             = $this->request->getVar('status') ? : null;
+        $limit_by           = $this->request->getVar('limit_by') ? : null;
 
-        if (!$transfer = $this->transferModel->search($transfer_id, $branch_from, $branch_to, $transfer_number, $transfer_date_to, $transfer_date_from, $remarks, $grand_total, $status, $limit_by)) {
+        if (!$transfer = $this->transferModel->search($transfer_id, $branch_from, $branch_to, $transfer_number, $transfer_date_to, $transfer_date_from, $date_completed_from, $date_completed_to, $remarks, $grand_total, $status, $limit_by)) {
             $response = $this->failNotFound('No transfer found');
         } else {
             $response = $this->respond([
@@ -378,7 +412,7 @@ class Transfers extends MYTController
             'transfer_date'   => $this->request->getVar('transfer_date'),
             'remarks'         => $this->request->getVar('remarks'),
             'grand_total'     => $this->request->getVar('grand_total'),
-            'status'          => 'requested',
+            'status'          => 'processed',
             'added_by'        => $this->requested_by,
             'added_on'        => date('Y-m-d H:i:s'),
             'is_deleted'      => 0
@@ -392,7 +426,6 @@ class Transfers extends MYTController
         // Update the status of request to processing
         if ($this->request->getVar('request_id')) {
             $values = [
-                'status' => 'processing',
                 'transfer_number' => $this->request->getVar('transfer_number'),
                 'updated_by' => $this->requested_by,
                 'updated_on' => date('Y-m-d H:i:s')
@@ -550,29 +583,29 @@ class Transfers extends MYTController
                 return false;
             }
 
-            // get the item unit details
-            if (!$item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($transfer['branch_from'], $transfer_item['item_id'], $transfer_item['unit'])) {
-                $this->errorMessage = $this->db->error()['message'];
-                return false;
-            }
+            // // get the item unit details
+            // if (!$item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($transfer['branch_from'], $transfer_item['item_id'], $transfer_item['unit'])) {
+            //     $this->errorMessage = $this->db->error()['message'];
+            //     return false;
+            // }
 
-            $where = [
-                'item_id'      => $transfer_item['item_id'],
-                'item_unit_id' => $item_unit[0]['id'],
-                'branch_id'    => $transfer['branch_from']
-            ];
+            // $where = [
+            //     'item_id'      => $transfer_item['item_id'],
+            //     'item_unit_id' => $item_unit[0]['id'],
+            //     'branch_id'    => $transfer['branch_from']
+            // ];
 
-            if (!$this->inventoryModel->update_quantity($where, $transfer_item['qty'], $this->requested_by)) {
-                $this->errorMessage = $this->db->error()['message'];
-                return false;
-            }
+            // if (!$this->inventoryModel->update_quantity($where, $transfer_item['qty'], $this->requested_by)) {
+            //     $this->errorMessage = $this->db->error()['message'];
+            //     return false;
+            // }
 
-            // Increase the inventory qty from the branch_to
-            $where['branch_id'] = $transfer['branch_to'];
-            if (!$this->inventoryModel->update_quantity($where, $transfer_item['qty']  * -1, $this->requested_by)) {
-                $this->errorMessage = $this->db->error()['message'];
-                return false;
-            }
+            // // Increase the inventory qty from the branch_to
+            // $where['branch_id'] = $transfer['branch_to'];
+            // if (!$this->inventoryModel->update_quantity($where, $transfer_item['qty']  * -1, $this->requested_by)) {
+            //     $this->errorMessage = $this->db->error()['message'];
+            //     return false;
+            // }
         }
 
         return true;
@@ -766,6 +799,7 @@ class Transfers extends MYTController
         $this->transferModel       = model('App\Models\Transfer');
         $this->requestModel        = model('App\Models\Request');
         $this->transferItemModel   = model('App\Models\Transfer_item');
+        $this->transferReceiveItemModel = model('App\Models\Transfer_receive_item');
         $this->checkInvoiceModel   = model('App\Models\Check_invoice');
         $this->inventoryModel      = model('App\Models\Inventory');
         $this->itemUnitModel       = model('App\Models\Item_unit');

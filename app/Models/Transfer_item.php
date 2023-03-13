@@ -56,12 +56,9 @@ SELECT *,
     (SELECT name FROM item WHERE id = transfer_item.item_id) AS item_name
 FROM transfer_item
 WHERE is_deleted = 0
+    AND transfer_id = ?
 EOT;
-        $binds = [];
-        if (isset($transfer_id)) {
-            $sql .= " AND transfer_id = ?";
-            $binds[] = $transfer_id;
-        }
+        $binds = [$transfer_id];
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
@@ -207,14 +204,16 @@ EOT;
     /**
      * Update received by where
      */
-    public function update_received($where = null, $data = null, $db = null)
+    public function update_received($where = null, $data = null, $replace_receive_qty = false, $db = null)
     {
         $database = $db ? $db : \Config\Database::connect();
         $date_now = date('Y-m-d H:i:s');
 
+        $receive_qty_query = $replace_receive_qty ? 'received_qty = ?' : 'received_qty = received_qty + ?';
+
         $sql = <<<EOT
 UPDATE transfer_item
-SET received_qty = received_qty + ?, status = ?, updated_on = ?, updated_by = ?
+SET $receive_qty_query, status = ?, updated_on = ?, updated_by = ?
 WHERE item_id = ?
    AND transfer_id = ?
    AND unit = ?

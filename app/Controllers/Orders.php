@@ -12,6 +12,7 @@ class Orders extends MYTController
         $this->user_key = $_SERVER['HTTP_USER_KEY'];
 
         $this->_load_essentials();
+        $this->errors = [];
     }
 
     /**
@@ -87,6 +88,92 @@ class Orders extends MYTController
     }
 
     /**
+     * Bulk create order
+     */
+    public function bulk_create()
+    {
+        if (($response = $this->_api_verification('orders', 'bulk_create')) !== true)
+            return $response;
+
+        $orders = $this->request->getVar('bulk_order');
+        $filename = $this->_write_json('bulk_order', $orders);
+
+        if ($filename === false) {
+            $response = $this->fail('Something went wrong. Please try again.');
+        }
+
+        $response = $this->respond([
+            'status' => 'success',
+            'sync_time' => date("Y-m-d H:i:s")
+        ]);
+
+        // elseif (!$this->_attempt_bulk_create($filename)) {
+        //     $response = $this->fail([
+        //         'errors' => $this->errors
+        //     ]);
+        // } else {
+        //     $response = $this->respond([
+        //         'status' => 'success'
+        //     ]);
+        // }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    protected function _attempt_bulk_create($filename)
+    {
+        $upload_path = FCPATH . 'public/bulk_order/' . $filename;
+        $json = file_get_contents($upload_path);
+        $orders  = json_decode($json);
+
+        $unsaved_orders = [];
+
+        $this->db = \Config\Database::connect();
+
+        foreach ($orders as $order) {
+            $order = json_decode($order);
+            $this->orders_payload = (array) $order;
+
+            $this->db->transBegin();
+
+            if (!$order_id = $this->_attempt_create()) {
+                $this->db->transRollback();
+                $unsaved_orders[] = $order;
+                $this->errors[] = $this->errorMessage;
+                continue;
+            } elseif (!$this->_attempt_generate_order_detail($order_id)) {
+                $this->db->transRollback();
+                $unsaved_orders[] = $order;
+                $this->errors[] = $this->errorMessage;
+                continue;
+            } elseif (!$this->_attempt_record_payment($order_id)) {
+                $this->db->transRollback();
+                $unsaved_orders[] = $order;
+                $this->errors[] = $this->errorMessage;
+                continue;
+            }
+
+            $this->db->transCommit();
+            $this->orders_payload = null;
+        }
+
+        if ($unsaved_orders) {
+            $write_response = $this->_write_json('bulk_order', $unsaved_orders);
+            
+            $old_file_path = FCPATH . 'public/bulk_order/' . $filename;
+            unlink($old_file_path);
+        
+            return false;
+        }
+        
+        $old_file_path = FCPATH . 'public/bulk_order/' . $filename;
+        unlink($old_file_path);
+
+        return true;
+    }
+
+    /**
      * Create order
      */
     public function create()
@@ -97,15 +184,20 @@ class Orders extends MYTController
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
 
+        $has_error = false;
+
         if (!$order_id = $this->_attempt_create()) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage . ' Order creation failed');
+            $has_error = true;
         } elseif (!$this->_attempt_generate_order_detail($order_id)) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage . ' Order detail creation failed');
+            $has_error = true;
         } elseif (!$this->_attempt_record_payment($order_id)) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage . ' Payment creation failed');
+            $has_error = true;
         } else {
             $this->db->transCommit();
             $response = $this->respond([
@@ -113,6 +205,11 @@ class Orders extends MYTController
                 'response' => 'Order created successfully', 
                 'order_id' => $order_id
             ]);
+        }
+
+        if ($has_error) {
+            $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+            return $response;
         }
 
         $this->db->close();
@@ -177,6 +274,49 @@ class Orders extends MYTController
     }
 
     /**
+     * Get total order amount per branch
+     */
+    public function sales_per_branch()
+    {
+        if (($response = $this->_api_verification('orders', 'sales_per_branch')) !== true)
+            return $response;
+
+        $branch_id        = $this->request->getVar('branch_id') ? : null;
+        $branch_name      = $this->request->getVar('branch_name') ? : null;
+        $added_on_from    = $this->request->getVar('added_on_from') ? : null;
+        $added_on_to      = $this->request->getVar('added_on_to') ? : null;
+        $transaction_type = $this->request->getVar('transaction_type') ? : null;
+        $payment_type     = $this->request->getVar('payment_type') ? : null;
+
+        if (!$orders = $this->orderModel->get_sales_per_branch($branch_id, $branch_name, $added_on_from, $added_on_to, $transaction_type)) {
+            $response = $this->failNotFound('No order found');
+        } else {
+            $summary = [
+                'total_sales'           => 0,
+                'total_store_sales'     => 0,
+                'total_foodpanda_sales' => 0,
+                'total_grabfood_sales'  => 0
+            ];
+
+            foreach ($orders as $key => $order) {
+                $summary['total_sales'] += $orders[$key]['grand_total'];
+                $summary['total_store_sales'] += $orders[$key]['store_sales'];
+                $summary['total_foodpanda_sales'] += $orders[$key]['foodpanda_sales'];
+                $summary['total_grabfood_sales'] += $orders[$key]['grabfood_sales'];
+            }
+
+            $response = $this->respond([
+                'summary' => $summary,
+                'status' => 'success',
+                'data'   => $orders
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Search orders based on parameters passed
      */
     public function search()
@@ -196,26 +336,34 @@ class Orders extends MYTController
             $response = $this->failNotFound('No order found');
         } else {
             $summary = [
-                'number_of_items' => 0,
-                'total_sales'     => 0,
+                'number_of_items'       => 0,
+                'total_sales'           => 0
             ];
 
-            $transaction_types = ['food_panda'];
-
+            $transaction_types = [];
+            
             foreach ($orders as $key => $order) {
                 $orders[$key]['payment'] = $this->paymentModel->get_details_by_order_id($order['id'], $payment_type) ? : null;
-                $orders[$key]['payment'][0]['discounts'] = $orders[$key]['payment'] ? $this->discountPaymentModel->get_details_by_payment_id($orders[$key]['payment'][0]['id']) : null;
-                $orders[$key]['payment'][0]['attachments'] = $orders[$key]['payment'] ? $this->paymentAttachmentModel->get_details_by_payment_id($orders[$key]['payment'][0]['id']) : null;
-                $orders[$key]['order_detail'] = $this->orderDetailModel->get_details_by_order_id($order['id']);
-                $summary['total_sales'] += $orders[$key]['grand_total'];
-                $total_number_of_items = 0;
-                foreach ($orders[$key]['order_detail'] as $new_key => $order_detail) {
-                    $total_number_of_items += $order_detail['qty'];
-                    $orders[$key]['order_detail'][$new_key]['product_detail'] = $this->orderProductDetailModel->get_details_by_order_detail_id($order_detail['id']);
+
+                if ($orders[$key]['payment']) {
+                    $orders[$key]['payment'][0]['discounts'] = $orders[$key]['payment'] ? $this->discountPaymentModel->get_details_by_payment_id($orders[$key]['payment'][0]['id']) : null;
+                    $orders[$key]['payment'][0]['attachments'] = $orders[$key]['payment'] ? $this->paymentAttachmentModel->get_details_by_payment_id($orders[$key]['payment'][0]['id']) : null;
+
+                    $orders[$key]['order_detail'] = $this->orderDetailModel->get_details_by_order_id($order['id']);
+                    $summary['total_sales'] += $orders[$key]['grand_total'];
+
+                    $total_number_of_items = 0;
+                    foreach ($orders[$key]['order_detail'] as $new_key => $order_detail) {
+                        $total_number_of_items += $order_detail['qty'];
+                        $orders[$key]['order_detail'][$new_key]['product_detail'] = $this->orderProductDetailModel->get_details_by_order_detail_id($order_detail['id']);
+                    }
+
+                    $orders[$key]['total_number_of_items'] = $total_number_of_items;
+                    $summary['number_of_items'] += $order_detail['qty'];
+                    $transaction_types[] = $order['transaction_type'];
+                } else {
+                    unset($orders[$key]);
                 }
-                $orders[$key]['total_number_of_items'] = $total_number_of_items;
-                $summary['number_of_items'] += $order_detail['qty'];
-                $transaction_types[] = $order['transaction_type'];
             }
 
             $summary['transaction_types'] = array_unique($transaction_types);
@@ -224,7 +372,7 @@ class Orders extends MYTController
             $response = $this->respond([
                 'summary' => $summary,
                 'status' => 'success',
-                'data'   => $orders
+                'data'   => array_values($orders)
             ]);
         }
 
@@ -238,7 +386,7 @@ class Orders extends MYTController
     public function compute_possible_discounts()
     {
         if (($response = $this->_api_verification('orders', 'compute_possible_discounts')) !== true)
-            return $response;
+            return $response;   
 
         if (!$discounts = $this->_get_computed_discounts()) {
             $response = $this->failNotFound('No discount found');
@@ -262,7 +410,7 @@ class Orders extends MYTController
      */
     protected function _attempt_create()
     {
-        $price_level_type_id = $this->request->getVar('price_level_type_id');
+        $price_level_type_id = $this->_get_payload_value('price_level_type_id');
         if (!$transaction_type = $this->priceLevelTypeModel->get_details_by_id($price_level_type_id)) {
             $this->errorMessage = "Price Level Type not found";
             return false;
@@ -270,21 +418,23 @@ class Orders extends MYTController
 
         $transaction_type = $transaction_type[0];
 
-        $grand_total = $this->request->getVar('grand_total') ?? 0;
-        $paid_amount = $this->request->getVar('paid_amount') ?? 0;
-        $branch_id = $this->request->getVar('branch_id');
+        $grand_total = $this->_get_payload_value('grand_total', 0);
+        $paid_amount = $this->_get_payload_value('paid_amount', 0);
+        $branch_id = $this->_get_payload_value('branch_id');
 
         $values = [
-            'branch_id'        => $this->request->getVar('branch_id'),
+            'branch_id'        => $branch_id,
+            'offline_id'       => $this->_get_payload_value('id', null),
             'paid_amount'      => $paid_amount,
             'transaction_no'   => $branch_id . date("Ymd") . "-" . time(),
             'change'           => (float)$grand_total - (float)$paid_amount,
             'grand_total'      => $grand_total,
-            'remarks'          => $this->request->getVar('remarks'),
-            'gift_cert_code'   => $this->request->getVar('gift_cert_code'),
+            'remarks'          => $this->_get_payload_value('remarks', null),
+            'gift_cert_code'   => $this->_get_payload_value('gift_cert_code'),
             'transaction_type' => $transaction_type['name'],
             'added_by'         => $this->requested_by,
-            'added_on'         => date('Y-m-d H:i:s'),
+            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+                                    $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
         ];
 
         if (!$order_id = $this->orderModel->insert($values)) {
@@ -299,9 +449,9 @@ class Orders extends MYTController
      * Attempt to record payment
      */
     protected function _attempt_record_payment($order_id) {
-        $branch_id        = $this->request->getVar('branch_id') ? : null;
-        $grand_total      = (float)$this->request->getVar('grand_total');
-        $price_level_type_id = $this->request->getVar('price_level_type_id');
+        $branch_id        = $this->_get_payload_value('branch_id', null);
+        $grand_total      = (float) $this->_get_payload_value('grand_total', 0);
+        $price_level_type_id = $this->_get_payload_value('price_level_type_id');
         
         $commission = $this->priceLevelModel->get_commission($price_level_type_id, $this->db);
         $commission = $commission ? $commission[0]['commission_rate'] : 0;
@@ -310,26 +460,28 @@ class Orders extends MYTController
             'branch_id'           => $branch_id,
             'order_id'            => $order_id,
             'price_level_type_id' => $price_level_type_id,
-            'transaction_no'      => $this->request->getVar('transaction_no'),
-            'reference_no'        => $this->request->getVar('reference_no'),
-            'payment_type'        => $this->request->getVar('payment_type'),
-            'paid_amount'         => (float)$this->request->getVar('paid_amount'),
-            'subtotal'            => (float)$this->request->getVar('subtotal'),       
+            'transaction_no'      => $this->_get_payload_value('transaction_no'),
+            'reference_no'        => $this->_get_payload_value('reference_no'),
+            'payment_type'        => $this->_get_payload_value('payment_type'),
+            'paid_amount'         => (float)$this->_get_payload_value('paid_amount'),
+            'subtotal'            => (float)$this->_get_payload_value('subtotal'),
+            'discount'            => (float)$this->_get_payload_value('discount'),
             'grand_total'         => $grand_total,
             'commission'          => $commission * $grand_total,
-            'remarks'             => $this->request->getVar('remarks'),
-            'acc_no'              => $this->request->getVar('acc_no'),
-            'cvc_cvv'             => $this->request->getVar('cvc_cvv'),
-            'card_type'           => $this->request->getVar('card_type'),
-            'card_expiry'         => $this->request->getVar('card_expiry'),
-            'card_bank'           => $this->request->getVar('card_bank'),
-            'proof'               => $this->request->getVar('proof'),
-            'or_no'               => $this->request->getVar('or_no'),
+            'remarks'             => $this->_get_payload_value('remarks'),
+            'acc_no'              => $this->_get_payload_value('acc_no'),
+            'cvc_cvv'             => $this->_get_payload_value('cvc_cvv'),
+            'card_type'           => $this->_get_payload_value('card_type'),
+            'card_expiry'         => $this->_get_payload_value('card_expiry'),
+            'card_bank'           => $this->_get_payload_value('card_bank'),
+            'proof'               => $this->_get_payload_value('proof'),
+            'or_no'               => $this->_get_payload_value('or_no'),
             'added_by'            => $this->requested_by,
-            'added_on'            => date('Y-m-d H:i:s'),
+            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+                                    $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
         ];
 
-        $is_gift_cert = $this->request->getVar('gift_cert_code') ? true : false;
+        $is_gift_cert = $this->_get_payload_value('gift_cert_code') ? true : false;
 
         if (!$payment_id = $this->paymentModel->insert($values)) {
             $this->errorMessage = $this->db->error()['message'];
@@ -340,8 +492,10 @@ class Orders extends MYTController
             return false;
         }
 
-        if (!$this->_attempt_record_discounts($payment_id)) {
-            return false;
+        $discount_prices = $this->request->getVar('discount_prices') ? : null;
+        if ($discount_prices) {
+            if (!$this->_attempt_record_discounts($payment_id))
+                return false;
         }
 
         return $payment_id;
@@ -353,77 +507,62 @@ class Orders extends MYTController
      */
     protected function _attempt_record_discounts($payment_id)
     {
-        // Get the most expensive products
-        $product_ids         = $this->request->getVar('product_ids') ?? [];
-        $product_ids         = $product_ids ? explode(",", $product_ids) : [];
-        $quantities          = $this->request->getVar('quantities') ?? [];
+        $product_ids     = $this->_get_payload_value('product_ids', []);
+        $product_ids     = $product_ids ? explode(",", $product_ids) : [];
+        $quantities          = $this->_get_payload_value('quantities', []);
         $quantities          = $quantities ? explode(",", $quantities) : [];
-        $price_level_type_id = $this->request->getVar('price_level_type_id');
-        $price_level_id      = $this->request->getVar('price_level_id');
-        $products = [];
 
-        foreach ($product_ids as $key => $product_id) {
-            $price = $this->priceLevelModel->get_price($product_id, $price_level_type_id, $price_level_id);
-            $price = $price ? $price[0]['price'] : 0;
-            $product = $this->productModel->get_details_by_id($product_id);
-            $products[] = [
-                'key'           => $key,
-                'product_id'    => $product_id,
-                'item_price'    => (float)$price,
-                'quantity'      => (int)$quantities[$key],
-                'product_name'  => $product[0]['name'] ?? ''
-            ];
-        }
+        $product_prices  = $this->_get_payload_value('product_prices', []);
+        $product_prices  = $product_prices ? explode(",", $product_prices) : [];
+        $discount_ids    = $this->_get_payload_value('discount_ids', []);
+        $discount_ids    = $discount_ids ? explode(",", $discount_ids) : [];
+        $names           = $this->_get_payload_value('names', []);
+        $names           = $names ? explode(",", $names) : [];
+        $id_no           = $this->_get_payload_value('id_no', []);
+        $id_no           = $id_no ? explode(",", $id_no) : [];
+        $discount_prices = $this->_get_payload_value('discount_prices', []);
+        $discount_prices = $discount_prices ? explode(",", $discount_prices) : [];
 
-        $discount_ids = $this->request->getVar('discount_ids') ? : [];
-        $discount_ids = $discount_ids ? explode(",", $discount_ids) : [];
-        $names        = $this->request->getVar('names') ? : null;
-        $names        = $names ? explode(",", $names) : [];
-        $id_no        = $this->request->getVar('id_nos') ? : null;
-        $id_no        = $id_no ? explode(",", $id_no) : [];
-        $values = [
-            'payment_id' => $payment_id,
-            'added_on' => date('Y-m-d H:i:s'),
-            'added_by' => $this->requested_by,
-        ];
+        $discount_index = 0;
+        foreach ($product_ids as $index => $product_id) {
+            
+            if ($discount_prices[$index] != "") {
 
-        $total_discount = 0;
-        foreach ($discount_ids as $key => $discount_id) {
-            $discount   = $this->discountModel->get_discount_by_id($discount_id);
-            $percentage = $discount ? (float)$discount[0]['percentage'] : 0;
-            $percentage = $percentage / 100;
+                for ($i=0; $i < $quantities[$index]; $i++) {
 
-            // get the most expensive product
-            $most_expensive_product = $this->_get_most_expensive_product($products);
-            // mark the product as discounted
-            $products[$most_expensive_product['key']]['quantity'] -= 1;
+                    $product = "";
+                    if ($discount_ids[$discount_index] != "") {
+    
+                        $where = ['id' => $product_id, 'is_deleted' => 0];
+                        $product_details = $this->productModel->select('', $where, 1);
+                        $discount_price = $quantities[$index] <= 1 ? $discount_prices[$index] : round($discount_prices[$index] / $quantities[$index], 2);
+            
+                        $values = [
+                            'payment_id' => $payment_id,
+                            'discount_id' => $discount_id,
+                            'name' => $names[$discount_index],
+                            'id_no' => $id_no[$discount_index],
+                            'percentage' => 0.00,
+                            'product_id' => $product_id,
+                            'product_price' => $discount_prices[$index],
+                            'product_name' => $product_details['name'],
+                            'discount_price' => $discount_price,
+                            'savings' => 0.00,
+                            'added_by' => $this->requested_by,
+                            'added_on' => date("Y-m-d H:i:s")
+                        ];
+            
+                        if (!$this->discountPaymentModel->insert($values)) {
+                            $this->errorMessage = $this->db->error()['message'];
+                            return false;
+                        }
+                    }
 
-            $values['product_id']     = $most_expensive_product['product_id'];
-            $values['product_name']   = $most_expensive_product['product_name'];
-            $values['product_price']  = $most_expensive_product['item_price'];
-            $values['savings']        = ((float)$most_expensive_product['item_price']/1.12) * $percentage;
-            $values['discount_price'] = $most_expensive_product['item_price'] - $values['savings'];
-            $values['discount_id']    = $discount_id;
-            $values['name']           = $names[$key];
-            $values['id_no']          = $id_no[$key];
-            $values['percentage']     = $percentage;
-
-            $total_discount += $values['savings'];
-
-            if (!$this->discountPaymentModel->insert($values)) {
-                $this->errorMessage = $this->db->error()['message'];
-                return false;
+                    $discount_index += 1;
+                }
             }
-        }
 
-        $payment_values = [
-            'discount' => $total_discount,
-            'grand_total' => (float)$this->request->getVar('grand_total') - $total_discount,
-        ];
-
-        if (!$this->paymentModel->update($payment_id, $payment_values)) {
-            $this->errorMessage = $this->db->error()['message'];
-            return false;
+            $discount_index += $quantities[$index];
         }
 
         return true;
@@ -457,20 +596,20 @@ class Orders extends MYTController
      */
     protected function _attempt_generate_order_detail($order_id)
     {
-        $branch_id           = $this->request->getVar('branch_id');
-        $product_ids         = $this->request->getVar('product_ids') ?? [];
+        $branch_id           = $this->_get_payload_value('branch_id');
+        $product_ids         = $this->_get_payload_value('product_ids', []);
         $product_ids         = $product_ids ? explode(",", $product_ids) : [];
-        $quantities          = $this->request->getVar('quantities') ?? [];
+        $quantities          = $this->_get_payload_value('quantities', []);
         $quantities          = $quantities ? explode(",", $quantities) : [];
-        $remarks             = $this->request->getVar('order_detail_remarks') ?? [];
+        $remarks             = $this->_get_payload_value('order_detail_remarks', []);
         $remarks             = $remarks ? explode(",", $remarks) : [];
-        $price_level_type_id = $this->request->getVar('price_level_type_id');
-        $price_level_id      = $this->request->getVar('price_level_id');
+        $price_level_type_id = $this->_get_payload_value('price_level_type_id');
+        $price_level_id      = $this->_get_payload_value('price_level_id');
 
         foreach ($product_ids as $key => $product_id) {
             $price = $this->priceLevelModel->get_price($product_id, $price_level_type_id, $price_level_id);
             $price = $price ? $price[0]['price'] : 0;
-            $quantity = $quantities[$key] ?? 0;
+            $quantity = ($quantities AND $quantities[$key]) ? $quantities[$key] : 0;
 
             $values = [
                 'order_id'   => $order_id,
@@ -478,13 +617,14 @@ class Orders extends MYTController
                 'price'      => $price,
                 'qty'        => $quantity,
                 'subtotal'   => (float)$price * (float)$quantity,
-                'remarks'    => $remarks[$key],
-                'added_on'   => date('Y-m-d H:i:s'),
+                'remarks'    => $remarks ? $remarks[$key] : null,
+                'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+                                    $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
                 'added_by'   => $this->requested_by,
             ];
 
             if (!$order_detail_id = $this->orderDetailModel->insert_on_duplicate_update($values, $this->requested_by, $this->db)) {
-                $this->errorMessage = $this->db->error()['message'] . ' ' . $this->db->getLastQuery();
+                $this->errorMessage = $this->db->error()['message'] . '<br>' . $this->db->getLastQuery();
                 return false;
             } elseif (!$this->_subtract_inventory($order_detail_id, $product_id, $quantity, $branch_id, $key)) {
                 return false;
@@ -501,15 +641,16 @@ class Orders extends MYTController
      */
     protected function _subtract_inventory($order_detail_id, $product_id, $quantity, $branch_id, $index = false)
     {
-        $addon_ids = $this->request->getVar('addon_ids_' . $index) ?? [];
+        $addon_ids = $this->_get_payload_value('addon_ids', []);
+        $addon_ids = $addon_ids ? explode("~", $addon_ids) : [];
+        $addon_ids = $addon_ids ? explode(",", $addon_ids[$index]) : [];
 
-        $where = [
-            'product_id' => $product_id,
-            'is_deleted' => 0
-        ];
+        $where = ['id' => $branch_id, 'is_deleted' => 0];
+        $branch = $this->branchModel->select('', $where, 1);
 
-        if (!$product_ingredients = $this->productItemModel->select('', $where)) {
-            $this->errorMessage = $this->db->error()['message'] . ' ' . $this->db->getLastQuery();
+        if (!$product_ingredients = $this->productItemModel->search($product_id, $branch['type'])) {
+            $error = $this->db->error()['message'] ? : "Product does not exist.";
+            $this->errorMessage = $this->db->error()['message'] . '<br>' . $this->db->getLastQuery();
             return false;
         }
 
@@ -530,7 +671,8 @@ class Orders extends MYTController
             ];
 
             if (!$inventory_details = $this->inventoryModel->select('', $inventory_condition, 1)) {
-                $this->errorMessage = $this->db->error()['message'] . ' ' . $this->db->getLastQuery();
+                $item = $this->itemModel->select('', ['id' => $ingredient['item_id']], 1);
+                $this->errorMessage = $this->db->error()['message'] ? : ucfirst($item['name']) . " (" . $item_unit_details['unit'] . ") does not exist in your branch.";
                 return false;
             }
 
@@ -543,29 +685,32 @@ class Orders extends MYTController
             ];
 
             if (!$this->inventoryModel->update($inventory_details['id'], $values) OR
-                !$this->_save_final_ingredient_used($order_detail_id, $product_id, $ingredient['item_id'], $current_qty, $inventory_details['unit'])
+                !$this->_save_final_ingredient_used($branch_id, $order_detail_id, $product_id, $ingredient['item_id'], $item_unit_details['final_qty'], $inventory_details['unit'])
             ) {
-                $this->errorMessage = $this->db->error()['message'] . ' ' . $this->db->getLastQuery();
+                $this->errorMessage = $this->db->error()['message'] . '<br>' . $this->db->getLastQuery();
                 return false;
             }
         }
         return true;
     }
 
-    protected function _save_final_ingredient_used($order_detail_id, $product_id, $item_id, $qty, $unit)
+    protected function _save_final_ingredient_used($branch_id, $order_detail_id, $product_id, $item_id, $qty, $unit)
     {
         $values = [
+            'branch_id' => $branch_id,
             'order_detail_id' => $order_detail_id,
             'product_id' => $product_id,
             'item_id' => $item_id,
             'qty' => $qty,
             'unit' => $unit,
-            'added_on' => date("Y-m-d H:i:s"),
+            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+                                    $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
             'added_by' => $this->requested_by
         ];
 
         if (!$this->orderDetailIngredModel->insert($values))
             return false;
+        return true;
     }
 
     protected function _replace_product_item_based_on_addon($ingredient, $addon_ids)
@@ -600,7 +745,7 @@ class Orders extends MYTController
         ];
 
         if (!$item_unit = $this->itemUnitModel->select('', $item_unit_condition, 1)) {
-            $this->errorMessage = $this->db->error()['message'] . ' ' . $this->db->getLastQuery();
+            $this->errorMessage = $this->db->error()['message'] . '<br>' . $this->db->getLastQuery();
             return false;
         }
 
@@ -613,7 +758,8 @@ class Orders extends MYTController
 
         return [
             'final_qty' => $final_qty,
-            'item_unit_id' => $item_unit['id']
+            'item_unit_id' => $item_unit['id'],
+            'unit' => $item_unit['inventory_unit']
         ];
     }
 
@@ -622,22 +768,22 @@ class Orders extends MYTController
      */
     protected function _attempt_generate_order_product_detail($order_detail_id, $key, $branch_id)
     {
-        $addon_ids           = $this->request->getVar('addon_ids') ?? [];
+        $addon_ids           = $this->_get_payload_value('addon_ids', []);
         $addon_ids           = $addon_ids ? explode("~", $addon_ids) : [];
         $addon_ids           = $addon_ids ? explode(",", $addon_ids[$key]) : [];
 
-        $quantities          = $this->request->getVar('quantities_' . $key);
-        $quantities          = $quantities ? explode("~", $quantities) : [];
-        $quantities          = $quantities ? explode(",", $quantities[$key]) : [];
+        $addon_qtys          = $this->_get_payload_value('addon_qtys', []);
+        $addon_qtys          = $addon_qtys ? explode("~", $addon_qtys) : [];
+        $addon_qtys          = $addon_qtys ? explode(",", $addon_qtys[$key]) : [];
 
-        $price_level_type_id = $this->request->getVar('price_level_type_id');
-        $price_level_id      = $this->request->getVar('price_level_id');
+        $price_level_type_id = $this->_get_payload_value('price_level_type_id');
+        $price_level_id      = $this->_get_payload_value('price_level_id');
         
         foreach ($addon_ids as $key => $addon_id) {
             if (!$addon_id) continue; // Skip if addon_id is empty
             $price = $this->priceLevelModel->get_price($addon_id, $price_level_type_id, $price_level_id);
             $price = $price ? $price[0]['price'] : 0;
-            $quantity = $quantities[$key] ?? 0;
+            $quantity = $addon_qtys[$key] ?? 0;
 
             $values = [
                 'order_detail_id' => $order_detail_id,
@@ -645,7 +791,8 @@ class Orders extends MYTController
                 'price'           => $price,
                 'qty'             => $quantity,
                 'subtotal'        => (float)$price * (float)$quantity,
-                'added_on'        => date('Y-m-d H:i:s'),
+                'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+                                    $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
                 'added_by'        => $this->requested_by,
             ];
 
@@ -710,16 +857,23 @@ class Orders extends MYTController
         $total_discount = 0;
         $discount_data = [];
         foreach ($discount_ids as $key => $discount_id) {
-            $discount   = $this->discountModel->get_discount_by_id($discount_id);
-            $percentage = $discount ? (float)$discount[0]['percentage'] : 0;
-            $percentage = $percentage / 100;
+            $discount = $this->discountModel->get_discount_by_id($discount_id);
+            $discount = $discount ? $discount[0] : null;
 
             // get the most expensive product
             $most_expensive_product = $this->_get_most_expensive_product($products);
             // decrease the count so that it wont be included in the next iteration
             $products[$most_expensive_product['key']]['quantity'] = 0;
-            // compute savings
-            $savings = ((float)$most_expensive_product['item_price']/1.12) * $percentage;
+
+            $savings = 0;
+            if ($discount AND $discount['type'] == 'percentage') {
+                $percentage = $discount ? (float)$discount[0]['discount_amount'] : 0;
+                $percentage = $percentage / 100;
+                // compute savings
+                $savings = ((float)$most_expensive_product['item_price']/1.12) * $percentage;
+            } elseif ($discount AND $discount['type'] == 'fixed') {
+                $savings = $discount['discount_amount'];
+            }
             
             // check if product_id index is in discount_data
             if (!array_key_exists($most_expensive_product['product_id'] . '-' . $most_expensive_product['add_on_id'], $discount_data)) {
@@ -749,11 +903,23 @@ class Orders extends MYTController
         return $final_discount_data;
     }
 
+    protected function _get_payload_value($parameter, $default_value = null)
+    {
+        $final_value = null;
+        if ($this->orders_payload)
+            $final_value = array_key_exists($parameter, $this->orders_payload) ? $this->orders_payload[$parameter] : $default_value;
+        else
+            $final_value = $this->request->getVar($parameter) ? : $default_value;
+        
+        return $final_value;
+    }
+
     /**
      * Load all essential models and helpers
      */
     protected function _load_essentials()
     {
+        $this->branchModel             = model('App\Models\Branch');
         $this->orderModel              = model('App\Models\Order');
         $this->orderDetailModel        = model('App\Models\Order_detail');
         $this->orderProductDetailModel = model('App\Models\Order_product_detail');
@@ -764,6 +930,7 @@ class Orders extends MYTController
         $this->productItemModel        = model('App\Models\Product_item');
         $this->inventoryModel          = model('App\Models\Inventory');
         $this->branchCommissionModel   = model('App\Models\Branch_commission');
+        $this->itemModel               = model('App\Models\Item');
         $this->itemUnitModel           = model('App\Models\Item_unit');
         $this->discountPaymentModel    = model('App\Models\Discount_payment');
         $this->priceLevelTypeModel     = model('App\Models\Price_level_type');
@@ -771,5 +938,8 @@ class Orders extends MYTController
         $this->productModel            = model('App\Models\Product');
         $this->productAddonReqModel    = model('App\Models\Product_addon_requirement');
         $this->webappResponseModel     = model('App\Models\Webapp_response');
+
+        $this->orders_payload = null;
+        $this->db = null;
     }
 }

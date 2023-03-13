@@ -110,13 +110,19 @@ class Requests extends MYTController
         $request_id = $this->request->getVar('request_id');
         $where      = ['id' => $request_id, 'is_deleted' => 0];
 
+        $this->db = \Config\Database::connect();
+        $this->db->transBegin();
+
         if (!$request = $this->requestModel->select('', $where, 1)) {
             $response = $this->failNotFound('Request not found');
         } elseif (!$this->_attempt_update_request($request_id)) {
+            $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
         } elseif (!$this->_attempt_update_request_items($request_id)) {
+            $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
         } else {
+            $this->db->transCommit();
             $response = $this->respond(['response' => 'Request updated successfully.', 'status' => 'success']);
         }
 
@@ -158,6 +164,7 @@ class Requests extends MYTController
 
         $branch_from       = $this->request->getVar('branch_from');
         $branch_to         = $this->request->getVar('branch_to');
+        $branch_to_name    = $this->request->getVar('branch_to_name');
         $transfer_number   = $this->request->getVar('transfer_number');
         $request_number    = $this->request->getVar('request_number');
         $request_date_from = $this->request->getVar('request_date_from');
@@ -167,7 +174,7 @@ class Requests extends MYTController
         $status            = $this->request->getVar('status');
         $limit_by          = $this->request->getVar('limit_by');
 
-        if (!$requests = $this->requestModel->search($branch_from, $branch_to, $request_number, $transfer_number, $request_date_from, $request_date_to, $remarks, $grand_total, $status, $limit_by)) {
+        if (!$requests = $this->requestModel->search($branch_from, $branch_to, $branch_to_name, $request_number, $transfer_number, $request_date_from, $request_date_to, $remarks, $grand_total, $status, $limit_by)) {
             $response = $this->failNotFound('No request found');
         } else {
             foreach ($requests as $key => $request) {
@@ -225,16 +232,21 @@ class Requests extends MYTController
      */
     protected function _attempt_create()
     {
+        $request_date = $this->request->getVar('request_date');
+        $request_date = date("Y-m-d", strtotime($request_date));
+        $delivery_date = $this->request->getVar('delivery_date');
+        $delivery_date = date("Y-m-d", strtotime($delivery_date));
+
         $values = [
             'branch_from'     => $this->request->getVar('branch_from'),
             'branch_to'       => $this->request->getVar('branch_to'),
             'transfer_number' => $this->request->getVar('transfer_number'),
-            'request_date'    => $this->request->getVar('request_date'),
+            'request_date'    => $request_date,
             'remarks'         => $this->request->getVar('remarks'),
             'grand_total'     => $this->request->getVar('grand_total'),
             'status'          => 'for_approval',
             'encoded_by'      => $this->request->getVar('encoded_by'),
-            'delivery_date'   => $this->request->getVar('delivery_date'),
+            'delivery_date'   => $delivery_date,
             'added_by'        => $this->requested_by,
             'added_on'        => date('Y-m-d H:i:s'),
             'is_deleted'      => 0
@@ -295,17 +307,22 @@ class Requests extends MYTController
      */
     protected function _attempt_update_request($request_id)
     {
+        $request_date = $this->request->getVar('request_date');
+        $request_date = date("Y-m-d", strtotime($request_date));
+        $delivery_date = $this->request->getVar('delivery_date');
+        $delivery_date = date("Y-m-d", strtotime($delivery_date));
+
         $data = [
             'branch_from'     => $this->request->getVar('branch_from'),
             'branch_to'       => $this->request->getVar('branch_to'),
             'transfer_number' => $this->request->getVar('transfer_number'),
-            'request_date'    => $this->request->getVar('request_date'),
+            'request_date'    => $request_date,
             'remarks'         => $this->request->getVar('remarks'),
             'grand_total'     => $this->request->getVar('grand_total'),
             'status'          => $this->request->getVar('status'),
             'completed_on'    => $this->request->getVar('completed_on'),
             'encoded_by'      => $this->request->getVar('encoded_by'),
-            'delivery_date'   => $this->request->getVar('delivery_date'),
+            'delivery_date'   => $delivery_date,
             'updated_by'      => $this->requested_by,
             'updated_on'      => date('Y-m-d H:i:s')
         ];

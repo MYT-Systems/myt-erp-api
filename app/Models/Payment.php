@@ -15,7 +15,10 @@ class Payment extends MYTModel
         'payment_type',
         'paid_amount',
         'subtotal',
+        'merchant_discount_id',
+        'merchant_discount_share',
         'discount',
+        'additional_discounts',
         'grand_total',
         'commission',
         'remarks',
@@ -152,23 +155,23 @@ EOT;
         $database = \Config\Database::connect();
         $date_now = date('Y-m-d');
         $sql = <<<EOT
-SELECT SUM(payment.grand_total) AS total_sales
+SELECT SUM(IFNULL(payment.grand_total, 0)) AS total_sales
 FROM payment
-LEFT JOIN order ON order.id = payment.order_id
+LEFT JOIN `order` ON `order`.id = payment.order_id
 WHERE payment.is_deleted = 0
 EOT;
         $binds = [];
 
         if ($today) {
-            $sql .= " AND payment.added_on >= ?";
+            $sql .= " AND DATE(payment.added_on) = ?";
             $binds[] = $date_now;
         }
         if ($start_date) {
-            $sql .= " AND payment.added_on >= ?";
+            $sql .= " AND DATE(payment.added_on) >= ?";
             $binds[] = $start_date;
         }
         if ($end_date) {
-            $sql .= " AND payment.added_on <= ?";
+            $sql .= " AND DATE(payment.added_on) <= ?";
             $binds[] = $end_date;
         }
         if ($branch_id) {
@@ -184,7 +187,7 @@ EOT;
             $binds[] = $payment_type;
         }
         if ($transaction_type) {
-            $sql .= " AND order.transaction_type = ?";
+            $sql .= " AND `order`.transaction_type = ?";
             $binds[] = $transaction_type;
         }
 
@@ -247,17 +250,99 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *
+SELECT payment.*
 FROM payment
+LEFT JOIN price_level_type
+    ON price_level_type.id = payment.price_level_type_id
 WHERE payment.is_deleted = 0
     AND payment.order_id = ?
 EOT;
         $binds = [$order_id];
 
         if ($payment_type) {
-            $sql .= " AND payment_type = ?";
+            $sql .= " AND payment.payment_type = ?";
             $binds[] = $payment_type;
         }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Get data for discount reports
+     */
+    public function get_discount_reports($branch_id, $date, $transaction_type)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT payment.*, branch.name AS branch_name,
+    payment.subtotal AS gross_value,
+    payment.discount AS partner_funded_discount,
+    (payment.grand_total + payment.merchant_discount_share) AS sales_revenue
+FROM payment
+LEFT JOIN order ON payment.order_id = order.id
+    AND order.is_deleted = 0
+LEFT JOIN branch ON branch.id = payment.branch_id
+WHERE payment.is_deleted = 0
+    AND payment.merchant_discount_id IS NOT NULL
+    AND payment.branch_id = ?
+EOT;
+        $binds = [$branch_id];
+
+        if ($date) {
+            $sql .= " AND DATE(payment.added_on) = ?";
+            $binds[] = $date;
+        }
+
+        if ($transaction_type) {
+            $sql .= " AND order.transaction_type = ?";
+            $binds[] = $transaction_type;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Get data for discount reports
+     */
+    public function get_discount_invoice($branch_id, $date, $transaction_type)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT computation.*,
+    (computation.commission + computation.total_fees_and_adjustments) AS vat_and_deductions,
+    (computation.sales_revenue + (computation.commission + computation.total_fees_and_adjustments)) AS total_amount_paid_out
+FROM (
+    SELECT SUM(payment.subtotal) AS gross_value,
+        SUM(payment.grand_total + payment.merchant_discount_share) AS sales_revenue,
+        (CASE
+            WHEN discount.commission_base = "gross_sales" THEN ((discount.commission_rate/100) * SUM(payment.subtotal))
+            WHEN discount.commission_base = "sales_revenue" THEN ((discount.commission_rate/100) * SUM(payment.grand_total + payment.merchant_discount_share))
+        END) AS commission,
+        discount.other_fee AS total_fees_and_adjustments
+    FROM payment
+    LEFT JOIN order ON payment.order_id = order.id
+        AND order.is_deleted = 0
+    LEFT JOIN discount ON discount.id = payment.merchant_discount_id
+    LEFT JOIN branch ON branch.id = payment.branch_id
+    WHERE payment.is_deleted = 0
+        AND payment.merchant_discount_id IS NOT NULL
+        AND payment.branch_id = ?
+EOT;
+        $binds = [$branch_id];
+
+        if ($date) {
+            $sql .= " AND DATE(payment.added_on) = ?";
+            $binds[] = $date;
+        }
+
+        if ($transaction_type) {
+            $sql .= " AND order.transaction_type = ?";
+            $binds[] = $transaction_type;
+        }
+
+        $sql .= " ) AS computation";
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;

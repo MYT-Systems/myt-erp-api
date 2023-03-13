@@ -191,7 +191,7 @@ EOT;
     /**
      * Get payments with franchise sale details
      */
-    public function get_payment_with_sale_details($franchisee_id, $franchisee_name, $branch_id, $date_from, $date_to)
+    public function get_payment_with_sale_details($franchisee_id, $franchisee_name, $branch_id, $date_from, $date_to, $payment_status)
     {
         $database = \Config\Database::connect();
 
@@ -206,8 +206,8 @@ SELECT franchisee_sale.id, franchisee_sale_payment.payment_date, franchisee.name
     franchisee_sale_payment.cheque_date,
     franchisee_sale_payment.reference_number,
     franchisee_sale_payment.payment_type AS pay_mode
-FROM franchisee_sale_payment
-LEFT JOIN franchisee_sale
+FROM franchisee_sale
+LEFT JOIN franchisee_sale_payment
     ON franchisee_sale_payment.franchisee_sale_id = franchisee_sale.id
 LEFT JOIN franchisee
     ON franchisee.id = franchisee_sale.franchisee_id
@@ -243,6 +243,14 @@ EOT;
         if ($date_to) {
             $sql .= ' AND franchisee_sale_payment.payment_date <= ?';
             $binds[] = $date_to;
+        }
+
+        if ($payment_status) {
+            if ($payment_status == 'paid') {
+                $sql .= ' AND franchisee_sale.payment_status = "closed_bill"';
+            } else {
+                $sql .= ' AND franchisee_sale.payment_status = "open_bill"';
+            }
         }
 
         $query = $database->query($sql, $binds);

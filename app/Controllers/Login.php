@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Controllers;
+use DateTime;
 
 class Login extends MYTController
 {
@@ -46,12 +47,18 @@ class Login extends MYTController
             $user[0]->{'token'}   = $this->new_token;
 
             // Update the branch that user has logged in to be open
-            $branch = $this->userBranchModel->get_branches_by_user($user[0]->id);
-            $branch_id = $branch ? $branch[0]['id'] : $user[0]->branch_id;
-            $branch_details = $branch_id ? $this->branchModel->get_details_by_id($branch_id) : null;
+            // $branch = $this->userBranchModel->get_branches_by_user($user[0]->id);
+            // $branch_id = $branch ? $branch[0]['id'] : $user[0]->branch_id;
+            // $branch_details = $branch_id ? $this->branchModel->get_details_by_id($branch_id) : null;
             
             // check if user is a supervisor
+            $operation_log_id = null;
             $branch_groups = null;
+            $has_daily_sale = false;
+            
+            $grab_discounts = null;
+            $foodpanda_discounts = null;
+            
             if ($user[0]->type == 'supervisor') {
                 $branch_groups = $this->branchGroupModel->search(null, null, $user[0]->id, null, null);
                 foreach ($branch_groups as $key => $branch_group) {
@@ -59,45 +66,65 @@ class Login extends MYTController
                     $branch_group_details = $this->branchGroupDetailModel->get_details_by_branch_group_id($branch_group_id);
                     $branch_groups[$key]['branch_group_details'] = $branch_group_details;
                 }
-            }
 
-            $operation_log_id = null;
-            if ($user[0]->type == 'branch') {
+                $this->db = \Config\Database::connect();
+                $this->db->transBegin();
 
+                if (!$this->_attempt_record_attendance($user[0]->employee_id)) {
+                    $this->db->transRollback();
+                    $response = $this->fail($this->errorMessage);
+                    $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+                    return $response;
+                } elseif (!$this->_attempt_record_attendance($user[0]->employee_id, 'time_in')) {
+                    $this->db->transRollback();
+                    $response = $this->fail($this->errorMessage);
+                    $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+                    return $response;
+                }
+
+                $this->db->transCommit();
+
+            } elseif ($user[0]->type == 'branch') {
                 $branch_operation_log_data = [
-                    'branch_id' => $branch_id,
+                    'branch_id' => $user[0]->branch_id,
                     'user_id' => $user[0]->id,
                     'time_in' => date("Y-m-d H:i:s")
                 ];
 
-                if (!$this->operationLogModel->insert($branch_operation_log_data)) {
+                if (!$operation_log_id = $this->operationLogModel->insert($branch_operation_log_data)) {
                     $response = $this->fail('Something went wrong');
                     $this->webappResponseModel->record_response($this->webapp_log_id, $response);
                     return $response;
                 }
 
-                $operation_log_id = $this->operationLogModel->insertID();
+                $grab_discounts = $this->discountModel->search($user[0]->branch_id, null, null, null, "valid", "grab", null, null);
+                $foodpanda_discounts = $this->discountModel->search($user[0]->branch_id, null, null, null, "valid", "foodpanda", null, null);
+
+                $where = ["branch_id" => $user[0]->branch_id, "date" => date("Y-m-d"), "is_deleted" => 0];
+                $has_daily_sale = $this->dailySaleModel->select('', $where, 1) ? true : false;
             }
 
             $response = $this->respond([
                 'status' => 200,
                 'message' => 'Login successful',
                 'user' => $user[0],
-                'branch' => $branch,
                 'branch_group' => $branch_groups,
+                'grab_discounts' => $grab_discounts,
+                'foodpanda_discounts' => $foodpanda_discounts,
+                'has_daily_sale' => $has_daily_sale
             ]);
 
-            if ($branch_id && $branch_details[0]['is_open'] == 0) {
-            
+            if ($operation_log_id) {
                 $values = [
                     'is_open'    => 1,
                     'operation_log_id' => $operation_log_id,
                     'opened_on'  => date('Y-m-d H:i:s'),
+                    'closed_on'  => null,
                     'updated_on' => date('Y-m-d H:i:s'),
                     'updated_by' => $user[0]->id
                 ];
 
-                if (!$this->branchModel->update($branch_id, $values)) {
+                if (!$this->branchModel->update($user[0]->branch_id, $values)) {
                     $response = $this->fail('Something went wrong');
                     $this->webappResponseModel->record_response($this->webapp_log_id, $response);
                     return $response;
@@ -112,6 +139,132 @@ class Login extends MYTController
     // ------------------------------------------------------------------------
     // Private Methods
     // ------------------------------------------------------------------------
+
+    /**
+     * Attempt to record attendance
+     */
+    protected function _attempt_record_attendance($employee_id, $type = false)
+    {
+        $user = $this->userModel->get_details_by_id($this->requested_by);
+        $user = $user ? $user[0] : null;
+        $branch_id = $user ? $user['branch_id'] : 0;
+        $branch_id = $branch_id ? : 0;
+
+        $attendance = $this->attendanceModel->get_latest_attendance_today($employee_id, $branch_id);
+        $attendance = $attendance ? $attendance[0] : null;
+        
+        if (!$type) {
+            
+            $value = [
+                'branch_id'   => $branch_id,
+                'employee_id' => $employee_id,
+                'datetime'    => date('Y-m-d H:i:s'),
+                'added_by'    => $this->requested_by,
+                'added_on'    => date('Y-m-d H:i:s')
+            ];
+
+            if (!$attendance AND !$this->attendanceModel->insert($value)) {
+                $this->errorMessage = $this->db->error()['message'];
+                $this->db->transRollback();
+                return false;
+            }
+        } else {
+            if (!$attendance) {
+                $this->errorMessage = "Employee has no attendance";
+                $this->db->transRollback();
+                return false;
+            }
+
+            $attendance_entry = $this->attendanceEntryModel->get_latest_attendance_entry($attendance['id']);
+            $attendance_entry = $attendance_entry ? $attendance_entry[0] : null;
+            if (!$attendance_entry && $type == 'time_out') {
+                $this->errorMessage = "Employee has no attendance entry, time in first.";
+                $this->db->transRollback();
+                return false;
+            }
+
+            switch($type) {
+                case 'time_in':
+                    // User needs to time_out first before time_in
+                    if ($attendance_entry && !$attendance_entry['time_out']) {
+                        $this->errorMessage = "User needs to time_out first before time_in";
+                        $this->db->transRollback();
+                        return false;
+                    }
+
+                    $value = [
+                        'attendance_id' => $attendance['id'],
+                        'time_in'       => date('Y-m-d H:i:s'),
+                        'added_by'      => $this->requested_by,
+                        'added_on'      => date('Y-m-d H:i:s')
+                    ];
+
+                    if (!$this->attendanceEntryModel->insert($value)) {
+                        $this->errorMessage = $this->db->error()['message'];
+                        $this->db->transRollback();
+                        return false;
+                    }
+
+                    break;
+                case 'time_out':                    
+                    // If the user time_out already
+                    if ($attendance_entry && $attendance_entry['time_out']) {
+                        $this->errorMessage = "User has already time_out";
+                        $this->db->transRollback();
+                        return false;
+                    }
+                    
+                    $time_in = $attendance_entry['time_in'];
+                    $time_out = date('Y-m-d H:i:s');
+                    $worked_minutes = $this->_get_worked_minutes($time_in, $time_out);
+
+                    $value = [
+                        'time_out'       => date('Y-m-d H:i:s'),
+                        'worked_minutes' => $worked_minutes,
+                        'updated_by'     => $this->requested_by,
+                        'updated_on'     => date('Y-m-d H:i:s')
+                    ];
+
+                    if (!$this->attendanceEntryModel->update($attendance_entry['id'], $value)) {
+                        $this->errorMessage = $this->db->error()['message'];
+                        $this->db->transRollback();
+                        return false;
+                    }
+
+                    $value = [
+                        'total_minutes' => $attendance['total_minutes'] + $worked_minutes,
+                        'updated_by'    => $this->requested_by,
+                        'updated_on'    => date('Y-m-d H:i:s')
+                    ];
+
+                    if (!$this->attendanceModel->update($attendance['id'], $value)) {
+                        $this->errorMessage = $this->db->error()['message'];
+                        $this->db->transRollback();
+                        return false;
+                    }
+                    break;
+                default:
+                    $this->db->transRollback();
+                    $this->errorMessage = "Invalid type";
+                    return false;
+            }
+        }
+
+        $this->db->transCommit();
+        return true;
+    }
+
+    /**
+     * Get worked minutes
+     */
+    protected function _get_worked_minutes($time_in, $time_out)
+    {
+        $time_in = new DateTime($time_in);
+        $time_out = new DateTime($time_out);
+        $diff = $time_in->diff($time_out);
+        
+        return $diff->h * 60 + $diff->i;
+    }
 
     /**
      * Update new api key and token
@@ -137,12 +290,18 @@ class Login extends MYTController
      */
     protected function _load_essentials()
     {
+        $this->attendanceModel        = model('App\Models\Attendance');
+        $this->attendanceEntryModel   = model('App\Models\Attendance_entry');
+        $this->employeeModel          = model('App\Models\Employee');
+
         $this->userModel              = model('App\Models\User');
         $this->branchModel            = model('App\Models\Branch');
+        $this->discountModel          = model('App\Models\Discount');
         $this->userBranchModel        = model('App\Models\User_branch');
         $this->branchGroupModel       = model('App\Models\Branch_group');
         $this->branchGroupDetailModel = model('App\Models\Branch_group_detail');
         $this->operationLogModel      = model('App\Models\Branch_operation_log');
+        $this->dailySaleModel         = model('App\Models\Daily_sale');
         $this->webappResponseModel    = model('App\Models\Webapp_response');
     }
 }

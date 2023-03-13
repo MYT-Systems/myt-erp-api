@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-class wastage extends MYTModel
+class Wastage extends MYTModel
 {
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
@@ -83,7 +83,8 @@ EOT;
         $binds = [];
 
         if ($branch_id) {
-            $sql .= ' AND wastage.branch_id = ?';
+            $branch_id = explode(",", $branch_id);
+            $sql .= " AND wastage.branch_id IN ?";
             $binds[] = $branch_id;
         }
 

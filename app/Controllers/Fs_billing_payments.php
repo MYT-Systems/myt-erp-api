@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-class FS_billing_payments extends MYTController
+class Fs_billing_payments extends MYTController
 {
 
     public function __construct()
@@ -326,7 +326,7 @@ class FS_billing_payments extends MYTController
             'updated_on'  => date('Y-m-d H:i:s'),
         ];
 
-        if ($update_values['balance'] == 0) {
+        if ($update_values['balance'] <= 0) {
             $update_values['payment_status'] = 'closed_bill';
             $update_values['fully_paid_on']  = date('Y-m-d H:i:s');
         }
@@ -367,6 +367,9 @@ class FS_billing_payments extends MYTController
         if ($update_values['balance'] > 0) {
             $update_values['payment_status'] = 'open_bill';
             $update_values['fully_paid_on']  = null;
+        } else {
+            $update_values['payment_status'] = 'closed_bill';
+            $update_values['fully_paid_on']  = date("Y-m-d H:i:s");
         }
 
         if (!$this->franchiseeSaleBillingModel->update($fs_billing['id'], $update_values))
@@ -427,7 +430,7 @@ class FS_billing_payments extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->FsBillingPaymentModel      = model('App\Models\FS_billing_payment');
+        $this->FsBillingPaymentModel      = model('App\Models\Fs_billing_payment');
         $this->franchiseeSaleBillingModel = model('App\Models\Franchisee_sale_billing');
         $this->franchiseeModel            = model('App\Models\Franchisee');
         $this->webappResponseModel        = model('App\Models\Webapp_response');

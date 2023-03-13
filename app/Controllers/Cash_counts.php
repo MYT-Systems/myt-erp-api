@@ -24,15 +24,90 @@ class Cash_counts extends MYTController
 
         $cash_count_id = $this->request->getVar('cash_count_id') ? : null;
         $cash_count    = $cash_count_id ? $this->cashCountModel->get_details_by_id($cash_count_id) : null;
-        $daily_sale   = $cash_count ? $this->dailySaleModel->get_details_by_id($cash_count[0]['daily_sale_id']) : null;
 
         if (!$cash_count) {
             $response = $this->failNotFound('No cash_count found');
         } else {
             $response = $this->respond([
-                'daily_sale' => $daily_sale ? $daily_sale[0] : null,
                 'status' => 'success',
                 'data'   => $cash_count
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Get cash count reports
+     */
+    public function get_cash_count_reports()
+    {
+        if (($response = $this->_api_verification('cash_counts', 'get_cash_count_reports')) !== true)
+            return $response;
+
+        $branch_id = $this->request->getVar('branch_id') ? : null;
+        $date = $this->request->getVar('date') ? : null;
+        $date_from = $this->request->getVar('date_from') ? : null;
+        $date_to = $this->request->getVar('date_to') ? : null;
+
+        $total_expense = $this->expenseModel->get_total_expense($branch_id, $date, $date_from, $date_to);
+        $cash_sales = $this->paymentModel->get_sales($date, $branch_id, $date_from, $date_to, null, 'cash') ?? 0;
+
+        $daily_sales = $this->dailySaleModel->search($branch_id, $date, null, null, $date_from, $date_to);
+
+        $where = [
+            'branch_id' => $branch_id,
+            'count_date' => $date,
+            'type' => 'deposit',
+            'is_deleted' => 0
+        ];
+        $date_from = $date ? $date : $date_from;
+        $date_to = $date ? $date : $date_to;
+        $deposit_cash_counts = $this->cashCountModel->search($branch_id, null, null, null, null, null, $date_from, $date_to, 'deposit', null);
+
+        $where['type'] = 'change_funds';
+        $change_funds_cash_counts = $this->cashCountModel->search($branch_id, null, null, null, null, null, $date_from, $date_to, 'change_funds', null);
+
+        if (!$deposit_cash_counts OR !$change_funds_cash_counts) {
+            $response = $this->failNotFound('No cash count reports found');
+        } else {
+            if ($daily_sales) {
+                $daily_sales[0]['actual_total_sales'] = ($daily_sales[0]['total_sales'] - $daily_sales[0]['system_cash_sales']) + $daily_sales[0]['actual_cash_sales'];
+                $daily_sales[0]['system_total_sales'] = $daily_sales[0]['total_sales'];
+            }
+
+            $deposit_quantities = [];
+            $change_funds_quantities = [];
+
+            foreach ($deposit_cash_counts as $index => $deposit_cash_count) {
+                $deposit_quantities[] = [
+                    $deposit_cash_count['bill_1000'], $deposit_cash_count['bill_500'], $deposit_cash_count['bill_200'], $deposit_cash_count['bill_100'], $deposit_cash_count['bill_50'], $deposit_cash_count['bill_20'], $deposit_cash_count['coin_10'], $deposit_cash_count['coin_5'], $deposit_cash_count['coin_1'], $deposit_cash_count['cent_25']
+                ];
+
+                $change_funds_quantities[] = [
+                    $change_funds_cash_counts[$index]['bill_1000'], $change_funds_cash_counts[$index]['bill_500'], $change_funds_cash_counts[$index]['bill_200'], $change_funds_cash_counts[$index]['bill_100'], $change_funds_cash_counts[$index]['bill_50'], $change_funds_cash_counts[$index]['bill_20'], $change_funds_cash_counts[$index]['coin_10'], $change_funds_cash_counts[$index]['coin_5'], $change_funds_cash_counts[$index]['coin_1'], $change_funds_cash_counts[$index]['cent_25']
+                ];
+            }
+
+            $cash_variance = 0;
+            if ($cash_sales !== false AND $total_expense !== false) {
+                foreach ($deposit_cash_counts as $deposit_cash_count) {
+                    $current_cash_variance = ($deposit_cash_count['total_count']) - ($cash_sales - $total_expense);
+                    $cash_variance += $current_cash_variance;
+                }
+            }
+
+            $response = $this->respond([
+                'status' => 'success',
+                'daily_sales' => $daily_sales,
+                'deposit' => $deposit_cash_counts,
+                'change_funds' => $change_funds_cash_counts,
+                'system_cash_sales' => $cash_sales,
+                'total_expenses' => $total_expense,
+                'cash_variance' => $cash_variance,
+                'deposit_quantities' => $deposit_quantities,
+                'change_funds_quantities' => $change_funds_quantities
             ]);
         }
 
@@ -74,18 +149,23 @@ class Cash_counts extends MYTController
         $db = \Config\Database::connect();
         $db->transBegin();
 
+        $where = [
+            'count_date' => date("Y-m-d"),
+            'branch_id' => $this->request->getVar('branch_id'),
+            'is_deleted' => 0
+        ];
+
         /* 
         ** DEFINITIONS:
         ** dep_ = deposit
         ** chf_ = change funds
         **/ 
-        if (!$cash_count_deposit_id = $this->_attempt_create_cash_breakdown('dep_')) {
+        if ($this->cashCountModel->select('', $where)) {
+            $response = $this->fail(['response' => 'Cash count already exist.']);
+        } elseif (!$cash_count_deposit_id = $this->_attempt_create_cash_breakdown('dep_')) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to create cash count.', 'status' => 'error']);
         } elseif (!$cash_count_change_funds_id = $this->_attempt_create_cash_breakdown('chf_')) {
-            $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to create cash count.', 'status' => 'error']);
-        } elseif (!$daily_sale_id = $this->_attempt_create_sales($cash_count_deposit_id)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to create cash count.', 'status' => 'error']);
         } else {
@@ -93,7 +173,6 @@ class Cash_counts extends MYTController
             $response = $this->respond([
                 'response'                   => 'Cash count created successfully.',
                 'status'                     => 'success',
-                'daily_sale_id'              => $daily_sale_id,
                 'cash_count_deposit_id'      => $cash_count_deposit_id,
                 'cash_count_change_funds_id' => $cash_count_change_funds_id
             ]);
@@ -167,20 +246,26 @@ class Cash_counts extends MYTController
         if (($response = $this->_api_verification('cash_counts', 'search')) !== true)
             return $response;
 
-        $branch_id       = $this->request->getVar('branch_id');
-        $branch_name     = $this->request->getVar('branch_name');
-        $sales_report_id = $this->request->getVar('sales_report_id');
-        $is_reviewed     = $this->request->getVar('is_reviewed');
-        $prepared_by     = $this->request->getVar('prepared_by');
-        $approved_by     = $this->request->getVar('approved_by');
-        $count_date_from = $this->request->getVar('count_date_from');
-        $count_date_to   = $this->request->getVar('count_date_to');
-        $type            = $this->request->getVar('type');
+        $branch_id         = $this->request->getVar('branch_id');
+        $branch_name       = $this->request->getVar('branch_name');
+        $sales_report_id   = $this->request->getVar('sales_report_id');
+        $is_reviewed       = $this->request->getVar('is_reviewed');
+        $prepared_by       = $this->request->getVar('prepared_by');
+        $approved_by       = $this->request->getVar('approved_by');
+        $count_date_from   = $this->request->getVar('count_date_from');
+        $count_date_to     = $this->request->getVar('count_date_to');
+        $type              = $this->request->getVar('type');
+        $group_cash_counts = $this->request->getVar('group_cash_counts') ? : false;
 
 
-        if (!$cash_counts = $this->cashCountModel->search($branch_id, $branch_name, $sales_report_id, $is_reviewed, $prepared_by, $approved_by, $count_date_from, $count_date_to, $type)) {
+        if (!$cash_counts = $this->cashCountModel->search($branch_id, $branch_name, $sales_report_id, $is_reviewed, $prepared_by, $approved_by, $count_date_from, $count_date_to, $type, $group_cash_counts)) {
             $response = $this->failNotFound('No cash_count found');
         } else {
+            foreach ($cash_counts as $index => $cash_count) {
+                $quantities = [$cash_count['bill_1000'], $cash_count['bill_500'], $cash_count['bill_200'], $cash_count['bill_100'], $cash_count['bill_50'], $cash_count['bill_20'], $cash_count['coin_10'], $cash_count['coin_5'], $cash_count['coin_1'], $cash_count['cent_25']];
+                $cash_counts[$index]['quantities'] = $quantities;
+            }
+
             $response = [];
             $response['data'] = $cash_counts;
             $response = $this->respond($response);
@@ -199,13 +284,22 @@ class Cash_counts extends MYTController
             return $response;
 
         $branch_id = $this->request->getVar('branch_id');
+        $cash_sales = $this->paymentModel->get_sales(true, $branch_id, null, null, null, 'cash') ?? 0;
+        $gcash_sales = $this->paymentModel->get_sales(true, $branch_id, null, null, null, 'gcash') ?? 0;
+        $food_panda_sales = $this->paymentModel->get_sales(true, $branch_id, null, null, null, 'credit', 'foodpanda') ?? 0;
+        $grab_food_sales = $this->paymentModel->get_sales(true, $branch_id, null, null, null, 'credit', 'grabfood') ?? 0;
+        $total_sales = $cash_sales + $gcash_sales + $food_panda_sales + $grab_food_sales;
 
         if (!$sales_report = $this->paymentModel->get_current_sales_report($branch_id)) {
             $response = $this->failNotFound('No sales report found');
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $sales_report
+                'cash_sales' => $cash_sales,
+                'gcash_sales' => $gcash_sales,
+                'food_panda_sales' => $food_panda_sales,
+                'grab_food_sales' => $grab_food_sales,
+                'total_sales' => $total_sales
             ]);
         }
 
@@ -216,59 +310,6 @@ class Cash_counts extends MYTController
     // --------------------------------------------------------------------
     // PRIVATE METHODS
     // --------------------------------------------------------------------
-
-    /**
-     * Attempt create the daily sale
-     */
-    protected function _attempt_create_sales($cash_count_deposit_id)
-    {
-        $branch_id = $this->request->getVar('branch_id');
-        $current_date = date('Y-m-d H:i:s');
-        $cash_sales = $this->paymentModel->get_sales(true, $branch_id, null, null, null, 'cash') ?? 0;
-        $gcash_sales = $this->paymentModel->get_sales(true, $branch_id, null, null, null, 'gcash') ?? 0;
-        $food_panda_sales = $this->paymentModel->get_sales(true, $branch_id, null, null, null, 'credit', 'food_panda') ?? 0;
-        $grab_food_sales = $this->paymentModel->get_sales(true, $branch_id, null, null, null, 'credit', 'grab_food') ?? 0;
-        $total_sales = $cash_sales + $gcash_sales + $food_panda_sales + $grab_food_sales;
-
-        $total_expense = $this->expenseModel->get_total_expense($branch_id, $current_date);
-
-        $actual_inventory_sales = $this->request->getVar('actual_inventory_sales');
-        $net_actual_sales = $actual_inventory_sales - $total_expense;
-        
-        $system_inventory_sales = $this->orderDetailModel->get_system_inventory_sales(true);
-        $net_system_sales = $system_inventory_sales['grand_total'] - $total_expense;
-
-        $values = [
-            'branch_id'         => $branch_id,
-            'cash_count_id'     => $cash_count_deposit_id,
-            'date'              => date('Y-m-d'),
-            'actual_cash_sales' => $this->total_cash,
-            'system_cash_sales' => $cash_sales,
-            'cash_sales_overage' => $this->total_cash - $cash_sales, // actual - system
-            'gcash_sales'       => $gcash_sales,
-            'food_panda_sales'  => $food_panda_sales,
-            'grab_food_sales'   => $grab_food_sales,
-            'total_sales'       => $total_sales,
-            'total_expense'     => $total_expense,
-            'actual_inventory_sales' => $actual_inventory_sales,
-            'net_actual_sales' => $net_actual_sales,
-            'system_inventory_sales' => $system_inventory_sales['grand_total'],
-            'net_system_sales' => $net_system_sales,
-            'overage_inventory_sales' => $net_actual_sales - $net_system_sales, // actual - system
-            'cashier_id'        => $this->request->getVar('cashier_id'),
-            'prepared_by'       => $this->request->getVar('prepared_by'),
-            'prepared_on'       => date('Y-m-d H:i:s'),
-            'added_by'          => $this->requested_by,
-            'added_on'          => date('Y-m-d H:i:s')
-        ];
-
-        if (!$daily_sale_id = $this->dailySaleModel->insert($values)) {
-            var_dump("Failed to create daily sale");
-            return false;
-        }
-
-        return $daily_sale_id;
-    }
 
     /**
      * Attempt create cash count
@@ -372,15 +413,40 @@ class Cash_counts extends MYTController
     }
 
     /**
+     * Compute total cash from cash count table
+     */
+    protected function _compute_total_cash($branch_id, $current_date)
+    {
+        $where = [
+            'branch_id' => $branch_id,
+            'count_date' => $current_date,
+            'type' => 'deposit',
+            'is_deleted' => 0
+        ];
+
+        if (!$cash_counts = $this->cashCountModel->select('', $where))
+            return false;
+
+        $total_cash = 0;
+
+        foreach ($cash_counts as $cash_count) {
+            $total_cash += $cash_count['total_count'];
+        }
+
+        return $total_cash;
+    }
+
+    /**
      * Load all essential models and helpers
      */
     protected function _load_essentials()
     {
-        $this->cashCountModel       = model('App\Models\Cash_count');
-        $this->paymentModel         = model('App\Models\Payment');
-        $this->expenseModel         = model('App\Models\Expense');
-        $this->dailySaleModel       = model('App\Models\Daily_sale');
-        $this->webappResponseModel  = model('App\Models\Webapp_response');
+        $this->cashCountModel         = model('App\Models\Cash_count');
+        $this->paymentModel           = model('App\Models\Payment');
+        $this->expenseModel           = model('App\Models\Expense');
+        $this->dailySaleModel         = model('App\Models\Daily_sale');
+        $this->orderDetailIngredModel = model('App\Models\Order_detail_ingredient');
+        $this->webappResponseModel    = model('App\Models\Webapp_response');
 
         // TO BE USED FOR attempt create sale function
         $this->total_cash = 0;

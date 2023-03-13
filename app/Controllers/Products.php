@@ -49,12 +49,18 @@ class Products extends MYTController
             return $response;
 
         $product_name = $this->request->getVar('product_name') ? : null;
+        $is_addon = $this->request->getVar('is_addon');
+        $is_addon = ($is_addon !== "1" AND $is_addon !== "0") ? null : $is_addon;
 
-        if (!$products = $this->productModel->get_all_product($product_name)) {
+        if (!$products = $this->productModel->get_all_product($product_name, $is_addon)) {
             $response = $this->failNotFound('No product found');
         } else {
             foreach ($products as $key => $product) {
-                $products[$key]['items'] = $this->productItemModel->get_details_by_product_id($product['id']);
+                $products[$key]['items'] = $this->productItemModel->search($product['id'], 'both', false);
+                $products[$key]['plastic_items'] = $this->productItemModel->search($product['id'], 'plastic', false);
+                $products[$key]['paper_items'] = $this->productItemModel->search($product['id'], 'paper', false);
+                $products[$key]['optional_items'] = $this->productAddonReqModel->get_optional_items($product['id']);
+                $products[$key]['price_levels'] = $this->productModel->get_price_level_by_product($product['id']);
             }
             $response = $this->respond([
                 'status' => 'success',
@@ -94,6 +100,9 @@ class Products extends MYTController
         } elseif ($is_addon AND !$this->_attempt_generate_addon_requirements($product_id)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to generate product addon requirement items.', 'status' => 'error']);
+        } elseif (!$this->_add_product_to_price_level($product_id)) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to add product to chosen price levels.', 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond([
@@ -118,9 +127,11 @@ class Products extends MYTController
 
         $product_id = $this->request->getVar('product_id');
         $where     = ['id' => $product_id, 'is_deleted' => 0];
-
+        
         $db = \Config\Database::connect();
         $db->transBegin();
+
+        $is_addon = $this->request->getVar('is_addon');
 
         if (!$product = $this->productModel->select('', $where, 1)) {
             $response = $this->failNotFound('product not found');
@@ -133,6 +144,9 @@ class Products extends MYTController
         } elseif ($is_addon AND !$this->_attempt_generate_update_requirements($product_id)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to update product addon requirement items.', 'status' => 'error']);
+        } elseif (!$this->_update_product_to_price_level($product_id)) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to update product to chosen price levels.', 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'Product updated successfully.', 'status' => 'success']);
@@ -281,7 +295,7 @@ class Products extends MYTController
             'updated_by' => $this->requested_by
         ];
 
-        if (!$this->productAddonReqModel->update($delete_conditions, $delete_values))
+        if (!$this->productAddonReqModel->custom_update($delete_conditions, $delete_values))
             return false;
 
         $values = [
@@ -343,28 +357,130 @@ class Products extends MYTController
     }
 
     /**
+     * Add product to chosen price levels
+     */
+    protected function _update_product_to_price_level($product_id)
+    {
+        $price_level_ids = $this->request->getVar('price_level_ids') ? : [];
+
+        $current_price_levels = $this->priceLevelTypeDetailModel->get_price_level_by_product($product_id);
+        $current_price_levels = $current_price_levels ? array_column($current_price_levels, 'price_level_id') : [];
+
+        foreach ($price_level_ids as $price_level_id) {
+
+            if (!in_array($price_level_id, $current_price_levels)) {
+                $price_level_types = $this->priceLevelTypeModel->get_details_by_price_level_id($price_level_id);
+
+                foreach ($price_level_types as $price_level_type) {
+                    $values = [
+                        'price_level_id' => $price_level_id,
+                        'price_level_type_id' => $price_level_type['id'],
+                        'product_id' => $product_id,
+                        'price' => 0.00,
+                        'added_by' => $this->requested_by,
+                        'added_on' => date('Y-m-d H:i:s')
+                    ];
+        
+                    if (!$this->priceLevelTypeDetailModel->insert($values)) return false;
+                }                
+            } else {
+                $key = array_search($price_level_id, $current_price_levels);
+                unset($current_price_levels[$key]);
+                $current_price_levels = array_values($current_price_levels);
+            }
+        }
+
+        if ($current_price_levels AND 
+            !$this->priceLevelTypeDetailModel->delete_by_product_and_price_level($product_id, $current_price_levels, $this->requested_by)
+        ) return false;
+
+        return true;
+    }
+
+    /**
+     * Add product to chosen price levels
+     */
+    protected function _add_product_to_price_level($product_id)
+    {
+        $price_level_ids = $this->request->getVar('price_level_ids') ? : [];
+
+        foreach ($price_level_ids as $price_level_id) {
+            $price_level_types = $this->priceLevelTypeModel->get_details_by_price_level_id($price_level_id);
+
+            foreach ($price_level_types as $price_level_type) {
+                $values = [
+                    'price_level_id' => $price_level_id,
+                    'price_level_type_id' => $price_level_type['id'],
+                    'product_id' => $product_id,
+                    'price' => 0.00,
+                    'added_by' => $this->requested_by,
+                    'added_on' => date('Y-m-d H:i:s')
+                ];
+    
+                if (!$this->priceLevelTypeDetailModel->insert($values)) return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Attempt generate product items
      */
     protected function _attempt_generate_product_item($product_id)
     {
-        $item_ids   = $this->request->getVar('item_ids');
-        $units      = $this->request->getVar('units');
-        $quantities = $this->request->getVar('quantities');
+        $item_ids   = $this->request->getVar('item_ids') ? : [];
+        $units      = $this->request->getVar('units') ? : [];
+        $quantities = $this->request->getVar('quantities') ? : [];
 
-        foreach($item_ids as $key => $item_id) {
-            $values = [
-                'product_id' => $product_id,
-                'item_id'    => $item_id,
-                'qty'        => $quantities[$key],
-                'unit'       => $units[$key],
-                'added_by'   => $this->requested_by,
-                'added_on'   => date('Y-m-d H:i:s')
-            ];
+        $plastic_item_ids   = $this->request->getVar('plastic_item_ids') ? : [];
+        $plastic_units      = $this->request->getVar('plastic_units') ? : [];
+        $plastic_quantities = $this->request->getVar('plastic_quantities') ? : [];
 
-            if (!$this->productItemModel->insert($values)) {
-                return false;
+        $paper_item_ids   = $this->request->getVar('paper_item_ids') ? : [];
+        $paper_units      = $this->request->getVar('paper_units') ? : [];
+        $paper_quantities = $this->request->getVar('paper_quantities') ? : [];
+
+        $item_ids_length = count($item_ids);
+        $plastic_item_ids_length = count($plastic_item_ids);
+        $paper_item_ids_length = count($paper_item_ids);
+
+        $max_length = max([$item_ids_length, $plastic_item_ids_length, $paper_item_ids_length]);
+
+        $values = [];
+        $datum = [
+            'product_id' => $product_id,
+            'added_by'   => $this->requested_by,
+            'added_on'   => date('Y-m-d H:i:s')
+        ];
+
+        for ($index=0; $index<$max_length; $index++) {
+            if ($index < $item_ids_length) {
+                $datum['type'] = "both";
+                $datum['item_id'] = $item_ids[$index];
+                $datum['qty'] = $quantities[$index];
+                $datum['unit'] = $units[$index];
+                $values[] = $datum;
+            }
+
+            if ($index < $plastic_item_ids_length) {
+                $datum['type'] = "plastic";
+                $datum['item_id'] = $plastic_item_ids[$index];
+                $datum['qty'] = $plastic_quantities[$index];
+                $datum['unit'] = $plastic_units[$index];
+                $values[] = $datum;
+            }
+
+            if ($index < $paper_item_ids_length) {
+                $datum['type'] = "paper";
+                $datum['item_id'] = $paper_item_ids[$index];
+                $datum['qty'] = $paper_quantities[$index];
+                $datum['unit'] = $paper_units[$index];
+                $values[] = $datum;
             }
         }
+
+        if (count($values) > 0 AND !$this->productItemModel->insertBatch($values))
+            return false;
 
         return true;
     }
@@ -439,9 +555,12 @@ class Products extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->productModel         = model('App\Models\Product');
-        $this->productItemModel     = model('App\Models\Product_item');
-        $this->productAddonReqModel = model('App\Models\Product_addon_requirement');
-        $this->webappResponseModel  = model('App\Models\Webapp_response');
+        $this->priceLevelModel           = model('App\Models\Price_level');
+        $this->priceLevelTypeModel       = model('App\Models\Price_level_type');
+        $this->priceLevelTypeDetailModel = model('App\Models\Price_level_type_detail');
+        $this->productModel              = model('App\Models\Product');
+        $this->productItemModel          = model('App\Models\Product_item');
+        $this->productAddonReqModel      = model('App\Models\Product_addon_requirement');
+        $this->webappResponseModel       = model('App\Models\Webapp_response');
     }
 }
