@@ -23,8 +23,8 @@ class App extends BaseConfig
      *
      * @var string
      */
-    // public $baseURL = 'http://localhost/mango_magic_api/';
-    public $baseURL = 'https://erp-api.myt-servers.com/';
+    public $baseURL = 'http://localhost/myt-erp-api/';
+    // public $baseURL = 'https://erp-api.myt-servers.com/';
 
     /**
      * --------------------------------------------------------------------------
