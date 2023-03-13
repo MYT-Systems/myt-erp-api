@@ -33,11 +33,10 @@ class Database extends Config
     public $default = [
         'DSN'      => 'mysql:host=localhost;port=3306;dbname=stadaevents_erp',
         'hostname' => 'localhost',
-        'username' => 'stadaevents_erp',
-        'password' => 'vK-DM9L,.dKe',
+        'username' => 'root',
+        'password' => '',
         'database' => 'stadaevents_erp',
-        
-        'DBDriver' => 'MySQLi',
+         'DBDriver' => 'MySQLi',
         'DBPrefix' => '',
         'pConnect' => false,
         'DBDebug'  => (ENVIRONMENT !== 'development'),

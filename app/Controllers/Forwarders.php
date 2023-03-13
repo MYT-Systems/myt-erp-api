@@ -23,7 +23,7 @@ class Forwarders extends MYTController
     public function get_forwarder()
     {
         if (($response = $this->_api_verification('forwarders', 'get_forwarder')) !== true)
-            return $response;
+            return $response; 
 
         $forwarder_id = $this->request->getVar('forwarder_id') ? : null;
         $forwarder    = $forwarder_id ? $this->forwarderModel->get_details_by_id($forwarder_id) : null;
