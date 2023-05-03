@@ -2,9 +2,6 @@
 
 namespace App\Controllers;
 
-use App\Models\Expense_type;
-use App\Models\Webapp_response;
-
 class Expense_types extends MYTController
 {
 
@@ -100,20 +97,20 @@ class Expense_types extends MYTController
         if (($response = $this->_api_verification('expense_types', 'update')) !== true)
             return $response;
 
-        $expense_types_id = $this->request->getVar('expense_types_id');
-        $where = ['id' => $expense_types_id, 'is_deleted' => 0];
+        $expense_type_id = $this->request->getVar('expense_type_id');
+        $where = ['id' => $expense_type_id, 'is_deleted' => 0];
 
         $db = \Config\Database::connect();
         $db->transBegin();
 
         if (!$expense_types = $this->expenseTypeModel->select('', $where, 1)) {
-            $response = $this->failNotFound('forwarder not found');
-        } elseif (!$this->_attempt_update($expense_types_id)) {
+            $response = $this->failNotFound('Expense Type not found');
+        } elseif (!$this->_attempt_update($expense_type_id)) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to update forwarder.', 'status' => 'error']);
+            $response = $this->fail(['response' => 'Failed to update expense type.', 'status' => 'error']);
         } else {
             $db->transCommit();
-            $response = $this->respond(['response' => 'Forwarder updated successfully.', 'status' => 'success']);
+            $response = $this->respond(['response' => 'Expense Type updated successfully.', 'status' => 'success']);
         }
 
         $db->close();
@@ -124,26 +121,26 @@ class Expense_types extends MYTController
     /**
      * Delete expense_types
      */
-    public function delete($id = '')
+    public function delete($id = null)
     {
         if (($response = $this->_api_verification('forwarders', 'delete')) !== true)
             return $response;
 
-        $expense_types_id = $this->request->getVar('forwarder_id');
+        $expense_type_id = $this->request->getVar('expense_type_id');
 
-        $where = ['id' => $expense_types_id, 'is_deleted' => 0];
+        $where = ['id' => $expense_type_id, 'is_deleted' => 0];
 
         $db = \Config\Database::connect();
         $db->transBegin();
 
         if (!$expense_types = $this->expenseTypeModel->select('', $where, 1)) {
-            $response = $this->failNotFound('forwarder not found');
-        } elseif (!$this->_attempt_delete($Expense_types_id)) {
+            $response = $this->failNotFound('Expense Type not found');
+        } elseif (!$this->_attempt_delete($expense_type_id)) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Fail to delete forwarder.', 'status' => 'error']);
+            $response = $this->fail(['response' => 'Fail to delete expense type.', 'status' => 'error']);
         } else {
             $db->transCommit();
-            $response = $this->respond(['response' => 'Forwarder deleted successfully.', 'status' => 'success']);
+            $response = $this->respond(['response' => 'Expense Type deleted successfully.', 'status' => 'success']);
         }
 
         $db->close();
@@ -184,10 +181,10 @@ class Expense_types extends MYTController
     protected function _attempt_create()
     {
         $values = [
-            'name'    => $this->request->getVar('name'),
-            'description'    => $this->request->getVar('description'),            
-            'added_by' => $this->requested_by,
-            'added_on' => date('Y-m-d H:i:s')
+            'name'        => $this->request->getVar('name'),
+            'description' => $this->request->getVar('description'),            
+            'added_by'    => $this->requested_by,
+            'added_on'    => date('Y-m-d H:i:s')
         ];
 
         if (!$expense_types_id = $this->expenseTypeModel->insert($values))
@@ -199,18 +196,17 @@ class Expense_types extends MYTController
     /**
      * Attempt update
      */
-    protected function _attempt_update($expense_type)
+    protected function _attempt_update($id)
     {
         $values = [
-            'id'       => $this->request->getVar('id'),            
-            'name'    => $this->request->getVar('name'),
-            'description'    => $this->request->getVar('description'),
-            'phone_no'   => $this->request->getVar('phone_no'),
-            'updated_by' => $this->requested_by,
-            'updated_on' => date('Y-m-d H:i:s')
+            'name'          => $this->request->getVar('name'),
+            'description'   => $this->request->getVar('description'),
+            'phone_no'      => $this->request->getVar('phone_no'),
+            'updated_by'    => $this->requested_by,
+            'updated_on'    => date('Y-m-d H:i:s')
         ];
 
-        if (!$this->expenseTypeModel->update($Expense_types_id, $values))
+        if (!$this->expenseTypeModel->update($id, $values))
             return false;
 
         return true;
@@ -219,7 +215,7 @@ class Expense_types extends MYTController
     /**
      * Attempt delete
      */
-    protected function _attempt_delete($expense_types_id)
+    protected function _attempt_delete($id)
     {
         $values = [
             'is_deleted' => 1,
@@ -227,7 +223,7 @@ class Expense_types extends MYTController
             'updated_on' => date('Y-m-d H:i:s')
         ];
 
-        if (!$this->expenseTypeModel->update($expense_types_id, $values))
+        if (!$this->expenseTypeModel->update($id, $values))
             return false;
 
         return true;
@@ -238,8 +234,8 @@ class Expense_types extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->expenseTypeModel = new Expense_type();
-        $this->webappResponseModel  = new Webapp_response();
+        $this->expenseTypeModel = model('App\Models\Expense_type');
+        $this->webappResponseModel  = model('App\Models\Webapp_response');
 
     }
 }

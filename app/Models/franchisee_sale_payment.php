@@ -102,7 +102,6 @@ WHERE franchisee_sale_payment.is_deleted = 0
     AND franchisee_sale_payment.franchisee_sale_id = ?
 EOT;
         $binds = [$franchisee_sale_id];
-
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }

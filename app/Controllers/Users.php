@@ -338,9 +338,7 @@ class Users extends MYTController
             'updated_on' => date('Y-m-d H:i:s')
         ];
 
-        if (!$this->userModel->update($where, $values) OR
-            !$this->userAssignmentModel->custome_update(['user_id' => $user['id'], 'is_deleted' => 0], ['is_deleted' => 1])
-        ) {
+        if (!$this->userModel->update($where, $values)) {
             $this->db->transRollback();
             return false;
         }

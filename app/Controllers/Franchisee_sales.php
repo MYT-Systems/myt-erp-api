@@ -247,8 +247,9 @@ class Franchisee_sales extends MYTController
         $fully_paid_on           = $this->request->getVar('fully_paid_on') ?? null;
         $franchisee_name         = $this->request->getVar('franchisee_name') ?? null;
         $anything                = $this->request->getVar('anything') ?? null;
+        $id                      = $this->request->getVar('id') ?? null;
 
-        if (!$franchisee_sales = $this->franchiseeSaleModel->search($franchise_sale_id, $franchisee_id, $franchisee_name, $sales_date_from, $sales_date_to, $delivery_date_from, $delivery_date_to, $order_request_date_from, $order_request_date_to, $seller_branch_id, $buyer_branch_id, $sales_invoice_no, $dr_no, $charge_invoice_no, $collections_invoice_no, $address, $remarks, $sales_staff, $payment_status, $status, $fully_paid_on, $anything)) {
+        if (!$franchisee_sales = $this->franchiseeSaleModel->search($franchise_sale_id, $franchisee_id, $franchisee_name, $sales_date_from, $sales_date_to, $delivery_date_from, $delivery_date_to, $order_request_date_from, $order_request_date_to, $seller_branch_id, $buyer_branch_id, $sales_invoice_no, $dr_no, $charge_invoice_no, $collections_invoice_no, $address, $remarks, $sales_staff, $payment_status, $status, $fully_paid_on, $anything, $id)) {
             $response = $this->failNotFound('No franchisee_sale found');
         } else {
             $summary = [
@@ -264,6 +265,7 @@ class Franchisee_sales extends MYTController
                 $summary['total_paid_amount'] += $franchisee_sale['paid_amount'];
                 $summary['total_balance'] += $franchisee_sale['balance'];
             }
+
             $response = $this->respond([
                 'summary' => $summary,
                 'data'    => $franchisee_sales,

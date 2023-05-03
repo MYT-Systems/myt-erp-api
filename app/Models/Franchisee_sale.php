@@ -93,7 +93,7 @@ EOT;
     /**
      * Search
      */
-    public function search($franchise_sale_id = null, $franchisee_id = null, $franchisee_name = null, $sales_date_from = null, $sales_date_to = null, $delivery_date_from = null, $delivery_date_to = null, $order_request_date_from = null, $order_request_date_to = null, $seller_branch_id = null, $buyer_branch_id = null, $sales_invoice_no = null, $dr_no = null, $charge_invoice_no = null, $collection_invoice_no = null, $address = null, $remarks = null, $sales_staff = null, $payment_status = null, $status = null, $fully_paid_on  = null, $anything = null)
+    public function search($franchise_sale_id = null, $franchisee_id = null, $franchisee_name = null, $sales_date_from = null, $sales_date_to = null, $delivery_date_from = null, $delivery_date_to = null, $order_request_date_from = null, $order_request_date_to = null, $seller_branch_id = null, $buyer_branch_id = null, $sales_invoice_no = null, $dr_no = null, $charge_invoice_no = null, $collection_invoice_no = null, $address = null, $remarks = null, $sales_staff = null, $payment_status = null, $status = null, $fully_paid_on  = null, $anything = null, $id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -221,6 +221,11 @@ EOT;
         if ($fully_paid_on) {
             $sql .= ' AND franchisee_sale.fully_paid_on = ?';
             $binds[] = $fully_paid_on;
+        }
+
+        if ($id) {
+            $sql .= ' AND franchisee_sale.id = ?';
+            $binds[] = $id;
         }
 
         if ($anything) {

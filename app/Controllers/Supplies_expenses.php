@@ -85,6 +85,9 @@ class Supplies_expenses extends MYTController
         $db = \Config\Database::connect();
         $db->transBegin();
 
+        // var_dump($this->_attempt_create());
+        // die();
+    
         if (!$supplies_expense_id = $this->_attempt_create()) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to create supplies expense.', 'status' => 'error']);
@@ -311,18 +314,18 @@ class Supplies_expenses extends MYTController
     protected function _attempt_create()
     {
         $values = [
-            'branch_id'             => $this->request->getVar('branch_id') ? : null,
+            // 'branch_id'             => $this->request->getVar('branch_id') ? : null,
             'supplier_id'           => $this->request->getVar('supplier_id') ? : null,
-            'vendor_id'             => $this->request->getVar('vendor_id') ? : null,
-            'forwarder_id'          => $this->request->getVar('forwarder_id'),
+            // 'vendor_id'             => $this->request->getVar('vendor_id') ? : null,
+            // 'forwarder_id'          => $this->request->getVar('forwarder_id'),
             'supplies_expense_date' => $this->request->getVar('supplies_expense_date') ? : null,
-            'type'                  => $this->request->getVar('type'),
+            // 'type'                  => $this->request->getVar('type'),
             'delivery_address'      => $this->request->getVar('delivery_address') ? : null,
-            'delivery_date'         => $this->request->getVar('delivery_date') ? : null,
-            'doc_no'                => $this->request->getVar('doc_no') ? : null,
+            // 'delivery_date'         => $this->request->getVar('delivery_date') ? : null,
+            // 'doc_no'                => $this->request->getVar('doc_no') ? : null,
             'remarks'               => $this->request->getVar('remarks') ? : null,
-            'requisitioner'         => $this->request->getVar('requisitioner') ? : null,
-            'status'                => $this->request->getVar('is_save') ? 'pending' : 'for_approval',
+            'requisitioner'         => $this->request->getVar('requester') ? : null,
+            // 'status'                => $this->request->getVar('is_save') ? 'pending' : 'for_approval',
             'prepared_by'           => $this->requested_by,
             'added_by'              => $this->requested_by,
             'added_on'              => date('Y-m-d H:i:s'),
