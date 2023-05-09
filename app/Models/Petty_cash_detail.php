@@ -41,10 +41,11 @@ class Petty_cash_detail extends MYTModel
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT petty_cash_detail.*, CONCAT(user.first_name, " ", user.last_name) AS approved_by_name,
-    CONCAT(employee.first_name, " ", employee.last_name) AS requested_by_name
+    CONCAT(requested_by_user.first_name, " ", requested_by_user.last_name) AS requested_by_name
 FROM petty_cash_detail
 LEFT JOIN user
     ON user.id = petty_cash_detail.approved_by
+LEFT JOIN user AS requested_by_user ON  requested_by_user.id = petty_cash_detail.requested_by
 LEFT JOIN employee ON employee.id = petty_cash_detail.requested_by
 WHERE petty_cash_detail.is_deleted = 0
     AND petty_cash_detail.id = ?
@@ -138,9 +139,10 @@ EOT;
         $sql = <<<EOT
 SELECT petty_cash_detail.*,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE id = petty_cash_detail.added_by) AS added_by_name,
-    CONCAT(employee.first_name, ' ', employee.last_name) AS requested_by_name
+    CONCAT(requested_by_user.first_name, ' ', requested_by_user.last_name) AS requested_by_name
 FROM petty_cash_detail
-LEFT JOIN employee ON employee.id = petty_cash_detail.requested_by
+LEFT JOIN user ON user.id = petty_cash_detail.requested_by
+LEFT JOIN user AS requested_by_user ON  requested_by_user.id = petty_cash_detail.requested_by
 WHERE petty_cash_detail.is_deleted = 0
 EOT;
         $binds = [];

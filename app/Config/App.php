@@ -23,8 +23,8 @@ class App extends BaseConfig
      *
      * @var string
      */
-    public $baseURL = 'http://localhost/myt-erp-api/';
-    // public $baseURL = 'http://myt-erp-api.myt-projects.com/';
+    // public $baseURL = 'http://localhost/myt-erp-api/';
+    public $baseURL = 'http://myt-erp-api.myt-projects.com/';
 
     /**
      * --------------------------------------------------------------------------

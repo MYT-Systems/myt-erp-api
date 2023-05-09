@@ -67,6 +67,7 @@ class MYTController extends ResourceController
 
     protected function _api_verification($controller, $method)
     {
+
         $this->requested_by = $this->request->getVar('requester') ?? 0;
         $userModel = new User();
         $where = [

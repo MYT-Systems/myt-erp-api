@@ -163,26 +163,17 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT se_item.*, 
-    se_item.name  AS item_name,
-    SUM(supplies_receive_item.qty) AS received_qty,
-    se_item.qty - se_item.received_qty AS remaining_qty,
-    (SELECT supplies_receive_item.price
-        FROM supplies_receive_item
-        WHERE supplies_receive_item.se_item_id = se_item.id
-            AND supplies_receive_item.is_deleted = 0
-            ORDER BY supplies_receive_item.id DESC LIMIT 1) AS previous_item_price,
-    IFNULL(supplies_receive_item.updated_on, supplies_receive_item.added_on) AS last_received_date,
-    (SELECT CONCAT(user.first_name, ' ', user.last_name) 
-        FROM user 
-        WHERE user.id = IFNULL(supplies_receive_item.updated_by, supplies_receive_item.added_by)) AS last_received_by
+SELECT se_item.*,
+se_item.name AS item_name,
+SUM(supplies_receive_item.qty) AS received_qty,
+se_item.qty - se_item.received_qty AS remaining_qty
 FROM se_item
-LEFT JOIN supplies_expense ON supplies_expense.id = se_item.se_id 
-    AND supplies_expense.is_deleted = 0
-LEFT JOIN supplies_receive_item ON supplies_receive_item.se_item_id = se_item.id 
-    AND supplies_receive_item.is_deleted = 0
-WHERE se_id = ? 
-    AND se_item.is_deleted = 0
+LEFT JOIN supplies_expense ON supplies_expense.id = se_item.se_id
+AND supplies_expense.is_deleted = 0
+LEFT JOIN supplies_receive_item ON supplies_receive_item.se_item_id = se_item.id
+AND supplies_receive_item.is_deleted = 0
+WHERE se_id = ?
+AND se_item.is_deleted = 0
 GROUP BY se_item.id
 EOT;
         $binds = [$se_id];

@@ -22,6 +22,8 @@ class Supplies_expenses extends MYTController
         if (($response = $this->_api_verification('supplies_expenses', 'get_supplies_expense')) !== true)
             return $response;
 
+
+
         $supplies_expense_id         = $this->request->getVar('supplies_expense_id') ? : null;
         $supplies_expense            = $supplies_expense_id ? $this->suppliesExpenseModel->get_details_by_id($supplies_expense_id) : null;
         $supplies_expense_attachment = $supplies_expense_id ? $this->suppliesExpenseItemModel->get_details_by_supplies_expense_id($supplies_expense_id) : null;

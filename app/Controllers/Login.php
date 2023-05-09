@@ -29,7 +29,6 @@ class Login extends MYTController
     {
         $username = $this->request->getVar('username');
         $password = $this->request->getVar('password');
-
         $user = $this->userModel->get_details_by_username($username);
 
         // if user doesn't exist
