@@ -206,8 +206,8 @@ class Franchisee_sale_payments extends MYTController
     {
         $franchisee_sale_items = $this->franchiseeSaleItemModel->get_details_by_franchisee_sales_id($franchisee_sale['id']);
         foreach ($franchisee_sale_items as $franchisee_sale_item) {
-            if ($item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($franchisee_sale['seller_branch_id'], $franchisee_sale_item['item_id'], $franchisee_sale_item['unit'])) {
-                if ($seller_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['seller_branch_id'], $item_unit[0]['id'])) {
+            if ($item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($franchisee_sale['seller_project_id'], $franchisee_sale_item['item_id'], $franchisee_sale_item['unit'])) {
+                if ($seller_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['seller_project_id'], $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $seller_inventory[0]['current_qty'] - $franchisee_sale_item['qty'],
                         'updated_by'  => $this->requested_by,
@@ -220,7 +220,7 @@ class Franchisee_sale_payments extends MYTController
                     }
                 }
     
-                if ($buyer_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['buyer_branch_id'], $item_unit[0]['id'])) {
+                if ($buyer_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['buyer_project_id'], $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $buyer_inventory[0]['current_qty'] + $franchisee_sale_item['qty'],
                         'updated_by'  => $this->requested_by,
@@ -234,7 +234,7 @@ class Franchisee_sale_payments extends MYTController
                 } else {
                     $new_values = [
                         'item_id'       => $franchisee_sale_item['item_id'],
-                        'branch_id'     => $franchisee_sale['buyer_branch_id'],
+                        'project_id'     => $franchisee_sale['buyer_project_id'],
                         'item_unit_id'  => $item_unit[0]['id'],
                         'beginning_qty' => 0,
                         'current_qty'   => $franchisee_sale_item['qty'],

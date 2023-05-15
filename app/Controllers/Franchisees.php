@@ -175,7 +175,7 @@ class Franchisees extends MYTController
         if (($response = $this->_api_verification('franchisees', 'search')) !== true)
             return $response;
 
-        $branch_id          = $this->request->getVar('branch_id') ?? null;
+        $project_id         = $this->request->getVar('project_id') ?? null;
         $name               = $this->request->getVar('name') ?? null;
         $type               = $this->request->getVar('type') ?? null;
         $franchisee_fee     = $this->request->getVar('franchisee_fee') ?? null;
@@ -192,7 +192,7 @@ class Franchisees extends MYTController
         $email              = $this->request->getVar('email') ?? null;
         $contract_status    = $this->request->getVar('contract_status') ?? null;
 
-        if (!$franchisees = $this->franchiseeModel->search($branch_id, $name, $type, $franchisee_fee, $royalty_fee, $paid_amount, $payment_status, $franchised_on_from, $franchised_on_to, $opening_start, $remarks, $contact_person, $contact_number, $address, $email, $contract_status)) {
+        if (!$franchisees = $this->franchiseeModel->search($project_id, $name, $type, $franchisee_fee, $royalty_fee, $paid_amount, $payment_status, $franchised_on_from, $franchised_on_to, $opening_start, $remarks, $contact_person, $contact_number, $address, $email, $contract_status)) {
             $response = $this->failNotFound('No franchisee found');
         } else {
             $summary = [
@@ -229,11 +229,11 @@ class Franchisees extends MYTController
 
         $franchisee_name = $this->request->getVar('franchisee_name') ?? null;
         $franchisee_id   = $this->request->getVar('franchisee_id') ?? null;
-        $branch_id       = $this->request->getVar('branch_id') ?? null;
+        $project_id       = $this->request->getVar('project_id') ?? null;
         $date_from       = $this->request->getVar('date_from') ?? null;
         $date_to         = $this->request->getVar('date_to') ?? null;
 
-        if (!$franchisees = $this->franchiseeModel->reports($franchisee_name, $franchisee_id, $branch_id, $date_from, $date_to)) {
+        if (!$franchisees = $this->franchiseeModel->reports($franchisee_name, $franchisee_id, $project_id, $date_from, $date_to)) {
             $response = $this->failNotFound('No franchisee found');
         } else {
             $response = $this->respond([
@@ -264,7 +264,7 @@ class Franchisees extends MYTController
         $grand_total        = $franchisee_fee + $other_fee + $securtiy_deposit + $taxes;
         
         $values = [
-            'branch_id'              => $this->request->getVar('branch_id'),
+            'project_id'              => $this->request->getVar('project_id'),
             'name'                   => $this->request->getVar('name'),
             'type'                   => $this->request->getVar('type'),
             'grand_total'            => $grand_total,
@@ -320,7 +320,7 @@ class Franchisees extends MYTController
         $new_current_credit_limit = (float)$franchisee['current_credit_limit'] + $credit_difference;
 
         $values = [
-            'branch_id'              => $this->request->getVar('branch_id'),
+            'project_id'              => $this->request->getVar('project_id'),
             'name'                   => $this->request->getVar('name'),
             'type'                   => $this->request->getVar('type'),
             'grand_total'            => $grand_total,
@@ -362,7 +362,7 @@ class Franchisees extends MYTController
                 'updated_on'   => date('Y-m-d H:i:s')
             ];
 
-            if (!$this->branchModel->update($franchisee['branch_id'], $values))
+            if (!$this->branchModel->update($franchisee['project_id'], $values))
                 return false;
         }
 

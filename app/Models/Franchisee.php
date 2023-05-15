@@ -7,7 +7,7 @@ class Franchisee extends MYTModel
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $allowedFields = [
-        'branch_id',
+        'project_id',
         'name',
         'type',
         'grand_total',
@@ -56,8 +56,8 @@ class Franchisee extends MYTModel
 
         $sql = <<<EOT
 SELECT franchisee.*,
-    branch.name AS branch_name,
-    (SELECT IFNULL(sum(franchisee_sale.balance),0) 
+    project.name AS project_name,
+    (SELECT IFNULL(sum(franchisee_sale.balance), 0)
         FROM franchisee_sale
         WHERE franchisee_sale.franchisee_id = franchisee.id
         AND franchisee_sale.is_deleted = 0
@@ -65,7 +65,7 @@ SELECT franchisee.*,
     ) AS payable_credit,
     IF (franchisee.contract_end < ?, 'expired', 'active') AS contract_status
 FROM franchisee
-LEFT JOIN branch ON branch.id = franchisee.branch_id
+LEFT JOIN project ON project.id = franchisee.project_id
 WHERE franchisee.is_deleted = 0
     AND franchisee.id = ?
 EOT;
@@ -127,8 +127,8 @@ EOT;
         
         $sql = <<<EOT
 SELECT franchisee.*,
-    branch.name AS branch_name,
-    (SELECT IFNULL(sum(franchisee_sale.balance),0) 
+    project.name AS project_name,
+    (SELECT IFNULL(sum(franchisee_sale.balance), 0)
         FROM franchisee_sale
         WHERE franchisee_sale.franchisee_id = franchisee.id
         AND franchisee_sale.is_deleted = 0
@@ -136,8 +136,8 @@ SELECT franchisee.*,
     ) AS payable_credit,
     IF (franchisee.contract_end < ?, 'expired', 'active') AS contract_status
 FROM franchisee
-LEFT JOIN branch ON branch.id = franchisee.branch_id
-WHERE franchisee.is_deleted = 0
+LEFT JOIN project ON project.id = franchisee.project_id
+WHERE franchisee.is_deleted = 0;
 EOT;
         $binds = [$date_now];
 
@@ -148,14 +148,14 @@ EOT;
     /**
      * Search
      */
-    public function search($branch_id, $name, $type, $franchisee_fee, $royalty_fee, $paid_amount, $payment_status, $franchised_on_from, $franchised_on_to, $opening_start, $remarks, $contact_person, $contact_number, $address, $email, $contract_status)
+    public function search($project_id, $name, $type, $franchisee_fee, $royalty_fee, $paid_amount, $payment_status, $franchised_on_from, $franchised_on_to, $opening_start, $remarks, $contact_person, $contact_number, $address, $email, $contract_status)
     {
         $database = \Config\Database::connect();
         $date_now = date('Y-m-d H:i:s');
         $sql = <<<EOT
 SELECT franchisee.*,
-    branch.name AS branch_name,
-    (SELECT IFNULL(sum(franchisee_sale.balance),0) 
+    project.name AS project_name,
+    (SELECT IFNULL(sum(franchisee_sale.balance), 0) 
         FROM franchisee_sale
         WHERE franchisee_sale.franchisee_id = franchisee.id
         AND franchisee_sale.is_deleted = 0
@@ -163,14 +163,14 @@ SELECT franchisee.*,
     ) AS payable_credit,
     IF (franchisee.contract_end < ?, 'expired', 'active') AS contract_status
 FROM franchisee
-LEFT JOIN branch ON branch.id = franchisee.branch_id
+LEFT JOIN project ON project.id = franchisee.project_id
 WHERE franchisee.is_deleted = 0
 EOT;
         $binds = [$date_now];
 
-        if ($branch_id) {
-            $sql .= ' AND branch_id = ?';
-            $binds[] = $branch_id;
+        if ($project_id) {
+            $sql .= ' AND project_id = ?';
+            $binds[] = $project_id;
         }
 
         if ($name) {
@@ -264,15 +264,15 @@ EOT;
     /**
      * Update schedule by branch id
      */
-    public function update_schedule_by_branch_id($branch_id, $values, $db)
+    public function update_schedule_by_project_id($project_id, $values, $db)
     {
         $database = $db ? $db : \Config\Database::connect();
         $sql = <<<EOT
 UPDATE franchisee
 SET opening_start = ?, updated_by = ?, updated_on = ?
-WHERE branch_id = ?
+WHERE project_id = ?
 EOT;    
-        $binds = [$values['opening_start'], $values['updated_by'], $values['updated_on'], $branch_id];
+        $binds = [$values['opening_start'], $values['updated_by'], $values['updated_on'], $project_id];
 
         return $this->query($sql, $binds);
     }

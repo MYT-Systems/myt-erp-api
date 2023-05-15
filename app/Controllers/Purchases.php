@@ -230,6 +230,7 @@ class Purchases extends MYTController
         $supplier_id        = $this->request->getVar('supplier_id') ? : null;
         $vendor_id          = $this->request->getVar('vendor_id') ? : null;
         $forwarder_id       = $this->request->getVar('forwarder_id') ? : null;
+        $expense_type_id       = $this->request->getVar('expense_type_id') ? : null;
         $purchase_date      = $this->request->getVar('purchase_date') ? : null;
         $delivery_date      = $this->request->getVar('delivery_date') ? : null;
         $delivery_address   = $this->request->getVar('delivery_address') ? : null;
@@ -245,7 +246,7 @@ class Purchases extends MYTController
         $limit_by           = $this->request->getVar('limit_by') ? : null;
         $anything           = $this->request->getVar('anything') ? : null;
 
-        if (!$purchases = $this->purchaseModel->search($branch_id, $supplier_id, $vendor_id, $forwarder_id, $purchase_date, $delivery_date, $delivery_address, $remarks, $purpose, $requisitioner, $status, $order_status, $purchase_date_from, $purchase_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)) {
+        if (!$purchases = $this->purchaseModel->search($branch_id, $supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $purchase_date, $delivery_date, $delivery_address, $remarks, $purpose, $requisitioner, $status, $order_status, $purchase_date_from, $purchase_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)) {
             $response = $this->failNotFound('No purchase found');
         } else {
             foreach ($purchases as $key => $purchase) {
@@ -364,6 +365,7 @@ class Purchases extends MYTController
             'supplier_id'      => $this->request->getVar('supplier_id'),
             'vendor_id'        => $this->request->getVar('vendor_id'),
             'forwarder_id'     => $this->request->getVar('forwarder_id'),
+            'expense_type_id'     => $this->request->getVar('expense_type_id'),
             'purchase_date'    => $this->request->getVar('purchase_date'),
             'delivery_date'    => $this->request->getVar('delivery_date'),
             'delivery_address' => $this->request->getVar('delivery_address'),
@@ -391,6 +393,7 @@ class Purchases extends MYTController
             'supplier_id'      => $this->request->getVar('supplier_id'),
             'vendor_id'        => $this->request->getVar('vendor_id'),
             'forwarder_id'     => $this->request->getVar('forwarder_id'),
+            'expense_type_id'     => $this->request->getVar('expense_type_id'),
             'purchase_date'    => $this->request->getVar('purchase_date'),
             'delivery_date'    => $this->request->getVar('delivery_date'),
             'delivery_address' => $this->request->getVar('delivery_address'),

@@ -11,9 +11,11 @@ class Supplies_expense extends MYTModel
         'supplier_id',
         'vendor_id',
         'forwarder_id',
+        'expense_type_id',
         'supplies_expense_date',
         'type',
         'delivery_address',
+        'branch_name',
         'delivery_date',
         'doc_no',
         'grand_total',
@@ -56,18 +58,18 @@ class Supplies_expense extends MYTModel
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT supplies_expense.*,
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_expense.branch_id) AS branch_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.prepared_by) AS prepared_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.approved_by) AS approved_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.printed_by) AS printed_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.disapproved_by) AS disapproved_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.added_by) AS added_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.updated_by) AS updated_by_name,
-    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requester_name,
+    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requisitioner_name,
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_expense.supplier_id) AS supplier_trade_name,
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_expense.forwarder_id) AS forwarder_name,
+    (SELECT expense_type.name FROM expense_type WHERE expense_type.id = supplies_expense.expense_type_id) AS expense_name,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_trade_name,
-    (SELECT CONCAT(employee.first_name, ' ', employee.last_name) FROM employee WHERE employee.id = supplies_expense.requisitioner) AS requisitioner_name,
+    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requisitioner_name,
     (SELECT supplier.email FROM supplier WHERE supplier.id = supplies_expense.supplier_id) AS supplier_email,
     (SELECT vendor.email FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_email
 FROM supplies_expense
@@ -81,14 +83,13 @@ EOT;
     }
 
     /**
-     * Get all supplies_expenses
+     * Get all supplies_expenses.
      */
     public function get_all_supplies_expense()
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT supplies_expense.*,
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_expense.branch_id) AS branch_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.prepared_by) AS prepared_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.approved_by) AS approved_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.printed_by) AS printed_by_name,
@@ -98,8 +99,9 @@ SELECT supplies_expense.*,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requester_name,
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_expense.supplier_id) AS supplier_trade_name,
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_expense.forwarder_id) AS forwarder_name,
+    (SELECT expense_type.name FROM expense_type WHERE expense_type.id = supplies_expense.expense_type_id) AS expense_name,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_trade_name,
-    (SELECT CONCAT(employee.first_name, ' ', employee.last_name) FROM employee WHERE employee.id = supplies_expense.requisitioner) AS requisitioner_name
+    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requisitioner_name
 FROM supplies_expense
 WHERE supplies_expense.is_deleted = 0
 EOT;
@@ -111,12 +113,11 @@ EOT;
     /**
      * Get supplies_expenses based on supplies_expense name, contact_person, phone_no, tin_no, bir_no, email
      */
-    public function search($supplier_id, $vendor_id, $forwarder_id, $supplies_expense_date, $delivery_date, $delivery_address, $remarks, $purpose, $requisitioner, $status, $order_status, $se_date_from, $se_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything) 
+    public function search($supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $supplies_expense_date, $delivery_date, $delivery_address, $branch_name, $remarks, $purpose, $requisitioner, $status, $order_status, $se_date_from, $se_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything) 
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT supplies_expense.*,
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_expense.branch_id) AS branch_name,
     CONCAT(preparer.first_name, ' ', preparer.last_name) AS prepared_by_name,
     CONCAT(approver.first_name, ' ', approver.last_name) AS approved_by_name,
     CONCAT(printer.first_name, ' ', printer.last_name) AS printed_by_name,
@@ -126,6 +127,7 @@ SELECT supplies_expense.*,
     CONCAT(requester.first_name, ' ', requester.last_name) AS requester_name,
     supplier.trade_name AS supplier_trade_name,
     forwarder.name AS forwarder_name,
+    expense_type.name AS expense_name,
     vendor.trade_name AS vendor_trade_name,
     CONCAT(requisitioner.first_name, ' ', requisitioner.last_name) AS requisitioner_name,
     IF(supplies_expense_payment.total_payment >= supplies_expense.grand_total, 1, 0) AS can_be_paid
@@ -139,8 +141,9 @@ FROM supplies_expense
     LEFT JOIN user AS requester ON requester.id = supplies_expense.requisitioner
     LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
     LEFT JOIN forwarder ON forwarder.id = supplies_expense.forwarder_id
+    LEFT JOIN expense_type ON expense_type.id = supplies_expense.expense_type_id
     LEFT JOIN vendor ON vendor.id = supplies_expense.vendor_id
-    LEFT JOIN employee AS requisitioner ON requisitioner.id = supplies_expense.requisitioner
+    LEFT JOIN user AS requisitioner ON requisitioner.id = supplies_expense.requisitioner
     LEFT JOIN supplies_expense_payment ON supplies_expense_payment.supplies_expense_id = supplies_expense.id
 WHERE supplies_expense.is_deleted = 0
 EOT;
@@ -161,6 +164,11 @@ EOT;
             $binds[] = $forwarder_id;
         }
 
+        if ($expense_type_id) {
+            $sql .= ' AND supplies_expense.expense_type_id = ?';
+            $binds[] = $expense_type_id;
+        }
+
         if ($supplies_expense_date) {
             $sql .= ' AND supplies_expense.supplies_expense_date = ?';
             $binds[] = $supplies_expense_date;
@@ -174,6 +182,11 @@ EOT;
         if ($delivery_address) {
             $sql .= ' AND supplies_expense.delivery_address LIKE ?';
             $binds[] = $delivery_address;
+        }
+
+        if ($branch_name) {
+            $sql .= ' AND supplies_expense.branch_name LIKE ?';
+            $binds[] = $branch_name;
         }
 
         if ($remarks) {
@@ -212,7 +225,7 @@ EOT;
         }
 
         if ($anything) {
-            $sql .= ' AND (supplies_expense.type LIKE ? OR supplies_expense.delivery_address LIKE ? OR supplies_expense.doc_no LIKE ? OR supplies_expense.remarks LIKE ? OR supplies_expense.requisitioner LIKE ? OR supplier.trade_name LIKE ? OR forwarder.name LIKE ? OR vendor.trade_name LIKE ? OR preparer.first_name LIKE ? OR preparer.last_name LIKE ? OR approver.first_name LIKE ? OR approver.last_name LIKE ? OR printer.first_name LIKE ? OR printer.last_name LIKE ? OR disapprover.first_name LIKE ? OR disapprover.last_name LIKE ? OR adder.first_name LIKE ? OR adder.last_name LIKE ? OR updater.first_name LIKE ? OR updater.last_name LIKE ? OR requester.first_name LIKE ? OR requester.last_name LIKE ?)';
+            $sql .= ' AND (supplies_expense.delivery_address LIKE ? OR supplies_expense.branch_name LIKE ? OR supplies_expense.doc_no LIKE ? OR supplies_expense.remarks LIKE ? OR supplies_expense.requisitioner LIKE ? OR supplier.trade_name LIKE ? OR forwarder.name LIKE ? OR expense_type.name LIKE ? OR vendor.trade_name LIKE ? OR preparer.first_name LIKE ? OR preparer.last_name LIKE ? OR approver.first_name LIKE ? OR approver.last_name LIKE ? OR printer.first_name LIKE ? OR printer.last_name LIKE ? OR disapprover.first_name LIKE ? OR disapprover.last_name LIKE ? OR adder.first_name LIKE ? OR adder.last_name LIKE ? OR updater.first_name LIKE ? OR updater.last_name LIKE ? OR requester.first_name LIKE ? OR requester.last_name LIKE ?)';
             $new_binds = [];
             for ($i = 0; $i < 22; $i++) {
                 $new_binds[] = '%' . $anything . '%';

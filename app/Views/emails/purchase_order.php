@@ -19,7 +19,7 @@
                 <img src="https://mangomagic.myt-pos.com/static/media/logo_2.33299458199ff7b38f7b.png"/>
             </div>
             <div style="text-align: center; margin-bottom: 20px;">
-                TRIPLE K EXPRESSFOODS/ 3K EXPRESSFOODS/ CHK BUSINESS VENTURES CORP.
+                MYT SOFTDEV SOLUTIONS.
             </div>
             <div>
                 <div style="display: flex; justify-content: space-between; margin-top: 10px;">
