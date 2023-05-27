@@ -15,6 +15,7 @@ class Purchase extends MYTModel
         'purchase_date',
         'delivery_date',
         'delivery_address',
+        'company',
         'branch_name',
         'grand_total',
         'remarks',
@@ -171,7 +172,7 @@ EOT;
      * Get purchases based on purchase name, contact_person, phone_no, tin_no, bir_no, email
      * can_be_paid - used by add payment function, this avoid overpaying
      */
-    public function search($branch_id, $supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $purchase_date, $delivery_date, $delivery_address, $branch_name, $remarks, $purpose, $requisitioner, $status, $order_status, $purchase_date_from, $purchase_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)
+    public function search($branch_id, $supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $purchase_date, $delivery_date, $delivery_address,$company, $branch_name, $remarks, $purpose, $requisitioner, $status, $order_status, $purchase_date_from, $purchase_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -244,6 +245,11 @@ EOT;
             $binds[] = $delivery_address;
         }
 
+        if ($company) {
+            $sql .= ' AND purchase.company LIKE ?';
+            $binds[] = $company;
+        }
+
         if ($branch_name) {
             $sql .= ' AND purchase.branch_name LIKE ?';
             $binds[] = $branch_name;
@@ -285,7 +291,7 @@ EOT;
         }
 
         if ($anything) {
-            $sql .= ' AND (purchase.delivery_address LIKE ? OR purchase.branch_name LIKE ? OR purchase.remarks LIKE ? OR purchase.requisitioner LIKE ? OR purchase.status LIKE ? OR purchase.order_status LIKE ? OR forwarder.name LIKE ? OR approver.first_name LIKE ? OR approver.last_name LIKE ? OR printer.first_name LIKE ? OR printer.last_name LIKE ? OR adder.first_name LIKE ? OR adder.last_name LIKE ? OR updater.first_name LIKE ? OR updater.last_name LIKE ? OR supplier.trade_name LIKE ? OR branch.name LIKE ? OR vendor.trade_name LIKE ? OR requisitioner.first_name LIKE ? OR requisitioner.last_name LIKE ?)';
+            $sql .= ' AND (purchase.delivery_address LIKE ? OR purchase.company LIKE ? OR purchase.branch_name LIKE ? OR purchase.remarks LIKE ? OR purchase.requisitioner LIKE ? OR purchase.status LIKE ? OR purchase.order_status LIKE ? OR forwarder.name LIKE ? OR approver.first_name LIKE ? OR approver.last_name LIKE ? OR printer.first_name LIKE ? OR printer.last_name LIKE ? OR adder.first_name LIKE ? OR adder.last_name LIKE ? OR updater.first_name LIKE ? OR updater.last_name LIKE ? OR supplier.trade_name LIKE ? OR branch.name LIKE ? OR vendor.trade_name LIKE ? OR requisitioner.first_name LIKE ? OR requisitioner.last_name LIKE ?)';
             $new_binds = [];
             for ($i = 0; $i < 19; $i++) {
                 $new_binds[] = '%' . $anything . '%';

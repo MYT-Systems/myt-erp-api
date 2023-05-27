@@ -176,6 +176,7 @@ class Franchisees extends MYTController
             return $response;
 
         $project_id         = $this->request->getVar('project_id') ?? null;
+        $customer_id        = $this->request->getVar('customer_id') ?? null;
         $name               = $this->request->getVar('name') ?? null;
         $type               = $this->request->getVar('type') ?? null;
         $franchisee_fee     = $this->request->getVar('franchisee_fee') ?? null;
@@ -188,11 +189,12 @@ class Franchisees extends MYTController
         $remarks            = $this->request->getVar('remarks') ?? null;
         $contact_person     = $this->request->getVar('contact_person') ?? null;
         $contact_number     = $this->request->getVar('contact_number') ?? null;
+        $phone_no           = $this->request->getVar('phone_no') ?? null;
         $address            = $this->request->getVar('address') ?? null;
         $email              = $this->request->getVar('email') ?? null;
         $contract_status    = $this->request->getVar('contract_status') ?? null;
 
-        if (!$franchisees = $this->franchiseeModel->search($project_id, $name, $type, $franchisee_fee, $royalty_fee, $paid_amount, $payment_status, $franchised_on_from, $franchised_on_to, $opening_start, $remarks, $contact_person, $contact_number, $address, $email, $contract_status)) {
+        if (!$franchisees = $this->franchiseeModel->search($project_id,$customer_id, $name, $type, $franchisee_fee, $royalty_fee, $paid_amount, $payment_status, $franchised_on_from, $franchised_on_to, $opening_start, $remarks, $contact_person, $contact_number, $phone_no, $address, $email, $contract_status)) {
             $response = $this->failNotFound('No franchisee found');
         } else {
             $summary = [
@@ -264,7 +266,8 @@ class Franchisees extends MYTController
         $grand_total        = $franchisee_fee + $other_fee + $securtiy_deposit + $taxes;
         
         $values = [
-            'project_id'              => $this->request->getVar('project_id'),
+            'project_id'             => $this->request->getVar('project_id'),
+            'customer_id'            => $this->request->getVar('customer_id'),
             'name'                   => $this->request->getVar('name'),
             'type'                   => $this->request->getVar('type'),
             'grand_total'            => $grand_total,
@@ -285,7 +288,7 @@ class Franchisees extends MYTController
             'contact_number'         => $this->request->getVar('contact_number'),
             'address'                => $this->request->getVar('address'),
             'email'                  => $this->request->getVar('email'),
-            'type'                   => $this->request->getVar('type'),
+            'phone_no'               => $this->request->getVar('phone_no'),
             'package_type'           => $this->request->getVar('package_type'),
             'beginning_credit_limit' => $this->request->getVar('beginning_credit_limit'),
             'current_credit_limit'   => $this->request->getVar('beginning_credit_limit'),
@@ -321,6 +324,7 @@ class Franchisees extends MYTController
 
         $values = [
             'project_id'              => $this->request->getVar('project_id'),
+            'customer_id'            => $this->request->getVar('customer_id'),
             'name'                   => $this->request->getVar('name'),
             'type'                   => $this->request->getVar('type'),
             'grand_total'            => $grand_total,
@@ -341,7 +345,7 @@ class Franchisees extends MYTController
             'contact_number'         => $this->request->getVar('contact_number'),
             'address'                => $this->request->getVar('address'),
             'email'                  => $this->request->getVar('email'),
-            'type'                   => $this->request->getVar('type'),
+            'phone_no'               => $this->request->getVar('phone_no'),
             'package_type'           => $this->request->getVar('package_type'),
             'beginning_credit_limit' => $this->request->getVar('beginning_credit_limit'),
             'current_credit_limit'   => $new_current_credit_limit < 0 ? 0 : $new_current_credit_limit,

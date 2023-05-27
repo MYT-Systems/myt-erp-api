@@ -233,8 +233,8 @@ class Franchisee_sales extends MYTController
         $delivery_date_to        = $this->request->getVar('delivery_date_to') ?? null;
         $order_request_date_from = $this->request->getVar('order_request_date_from') ?? null;
         $order_request_date_to   = $this->request->getVar('order_request_date_to') ?? null;
-        $seller_project_id       = $this->request->getVar('seller_project_id') ?? null;
-        $buyer_project_id        = $this->request->getVar('buyer_project_id') ?? null;
+        $seller_branch_id        = $this->request->getVar('seller_branch_id') ?? null;
+        $buyer_branch_id         = $this->request->getVar('buyer_branch_id') ?? null;
         $sales_invoice_no        = $this->request->getVar('sales_invoice_no') ?? null;
         $dr_no                   = $this->request->getVar('dr_no') ?? null;
         $charge_invoice_no       = $this->request->getVar('charge_invoice_no') ?? null;
@@ -249,7 +249,7 @@ class Franchisee_sales extends MYTController
         $anything                = $this->request->getVar('anything') ?? null;
         $id                      = $this->request->getVar('id') ?? null;
 
-        if (!$franchisee_sales = $this->franchiseeSaleModel->search($franchise_sale_id, $franchisee_id, $franchisee_name, $sales_date_from, $sales_date_to, $delivery_date_from, $delivery_date_to, $order_request_date_from, $order_request_date_to, $seller_project_id, $buyer_project_id, $sales_invoice_no, $dr_no, $charge_invoice_no, $collections_invoice_no, $address, $remarks, $sales_staff, $payment_status, $status, $fully_paid_on, $anything, $id)) {
+        if (!$franchisee_sales = $this->franchiseeSaleModel->search($franchise_sale_id, $franchisee_id, $franchisee_name, $sales_date_from, $sales_date_to, $delivery_date_from, $delivery_date_to, $order_request_date_from, $order_request_date_to, $seller_branch_id, $buyer_branch_id, $sales_invoice_no, $dr_no, $charge_invoice_no, $collections_invoice_no, $address, $remarks, $sales_staff, $payment_status, $status, $fully_paid_on, $anything, $id)) {
             $response = $this->failNotFound('No franchisee_sale found');
         } else {
             $summary = [
@@ -344,8 +344,8 @@ class Franchisee_sales extends MYTController
             'franchise_order_no'    => $this->request->getVar('franchise_order_no'),
             'transfer_slip_no'      => $this->request->getVar('transfer_slip_no'),
             'order_request_date'    => $this->request->getVar('order_request_date'),
-            'seller_project_id'     => $this->request->getVar('seller_project_id'),
-            'buyer_project_id'      => $this->request->getVar('buyer_project_id'),
+            'seller_branch_id'      => $this->request->getVar('seller_branch_id'),
+            'buyer_branch_id'       => $this->request->getVar('buyer_branch_id'),
             'sales_invoice_no'      => $this->request->getVar('sales_invoice_no'),
             'dr_no'                 => $this->request->getVar('dr_no'),
             'ship_via'              => $this->request->getVar('ship_via'),
@@ -392,8 +392,8 @@ class Franchisee_sales extends MYTController
             'added_on'           => date('Y-m-d H:i:s'),
         ];
 
-        $seller_project_id = $this->request->getVar('seller_project_id');
-        $buyer_project_id  = $this->request->getVar('buyer_project_id');
+        $seller_branch_id = $this->request->getVar('seller_branch_id');
+        $buyer_branch_id  = $this->request->getVar('buyer_branch_id');
         $grand_total = 0;
         foreach ($item_ids as $key => $item_id) {
             $subtotal = $prices[$key] * $quantities[$key];
@@ -401,8 +401,8 @@ class Franchisee_sales extends MYTController
 
             // checks if it is an item in case an item_name was passed
             $item_id = $item_id == 'null' ? null : $item_id;
-            if ($item_id && !$item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($seller_project_id, $item_id, $units[$key])) {
-                $this->errorMessage = `item unit not found: {$seller_project_id} - {$item_id} - {$units[$key]}`;
+            if ($item_id && !$item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($seller_branch_id, $item_id, $units[$key])) {
+                $this->errorMessage = `item unit not found: {$seller_branch_id} - {$item_id} - {$units[$key]}`;
                 return false;
             }
 
@@ -475,8 +475,8 @@ class Franchisee_sales extends MYTController
             'franchise_order_no'    => $this->request->getVar('franchise_order_no'),
             'transfer_slip_no'      => $this->request->getVar('transfer_slip_no'),
             'order_request_date'    => $this->request->getVar('order_request_date'),
-            'seller_project_id'     => $this->request->getVar('seller_project_id'),
-            'buyer_project_id'      => $this->request->getVar('buyer_project_id'),
+            'seller_branch_id'      => $this->request->getVar('seller_branch_id'),
+            'buyer_branch_id'       => $this->request->getVar('buyer_branch_id'),
             'sales_invoice_no'      => $this->request->getVar('sales_invoice_no'),
             'dr_no'                 => $this->request->getVar('dr_no'),
             'ship_via'              => $this->request->getVar('ship_via'),
@@ -499,14 +499,14 @@ class Franchisee_sales extends MYTController
     /**
      * Attempt to revert and delete franchise sale items
      */
-    protected function _revert_franchisee_item($franchisee_sale_id, $seller_project_id, $buyer_project_id)
+    protected function _revert_franchisee_item($franchisee_sale_id, $seller_branch_id, $buyer_branch_id)
     {
         // revert the balance and grand total
         $franchisee_sale_items = $this->franchiseeSaleItemModel->get_details_by_franchisee_sales_id($franchisee_sale_id);
 
         foreach ($franchisee_sale_items as $franchisee_sale_item) {
-            if ($item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($seller_project_id, $franchisee_sale_item['item_id'], $franchisee_sale_item['unit'])) {
-                if ($seller_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $seller_project_id, $item_unit[0]['id'])) {
+            if ($item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($seller_branch_id, $franchisee_sale_item['item_id'], $franchisee_sale_item['unit'])) {
+                if ($seller_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $seller_branch_id, $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $seller_inventory[0]['current_qty'] + $franchisee_sale_item['qty'],
                         'updated_by'  => $this->requested_by,
@@ -519,7 +519,7 @@ class Franchisee_sales extends MYTController
                     }
                 }
 
-                if ($buyer_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $buyer_project_id, $item_unit[0]['id'])) {
+                if ($buyer_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $buyer_branch_id, $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $buyer_inventory[0]['current_qty'] - $franchisee_sale_item['qty'],
                         'updated_by'  => $this->requested_by,
@@ -542,11 +542,11 @@ class Franchisee_sales extends MYTController
      */
     protected function _attempt_update_franchisee_sale_items($franchisee_sale, $db)
     {
-        $seller_project_id = $this->request->getVar('seller_project_id');
-        $buyer_project_id  = $this->request->getVar('buyer_project_id');
+        $seller_branch_id = $this->request->getVar('seller_branch_id');
+        $buyer_branch_id  = $this->request->getVar('buyer_branch_id');
         $old_grand_total  = $franchisee_sale['grand_total'];
 
-        if ($franchisee_sale['fs_status'] == 'invoiced' && !$this->_revert_franchisee_item($franchisee_sale['id'], $seller_project_id, $buyer_project_id)) {
+        if ($franchisee_sale['fs_status'] == 'invoiced' && !$this->_revert_franchisee_item($franchisee_sale['id'], $seller_branch_id, $buyer_branch_id)) {
             var_dump("failed to revert and delete");
             return false;
         }
@@ -588,10 +588,10 @@ class Franchisee_sales extends MYTController
      */
     protected function _attempt_delete($franchisee_sale, $db)
     {
-        $seller_project_id = $franchisee_sale['seller_project_id'];
-        $buyer_project_id  = $franchisee_sale['buyer_project_id'];
+        $seller_branch_id = $franchisee_sale['seller_branch_id'];
+        $buyer_branch_id  = $franchisee_sale['buyer_branch_id'];
 
-        if ($franchisee_sale['fs_status'] == 'invoiced' && !$this->_revert_franchisee_item($franchisee_sale['id'], $seller_project_id, $buyer_project_id)) {
+        if ($franchisee_sale['fs_status'] == 'invoiced' && !$this->_revert_franchisee_item($franchisee_sale['id'], $seller_branch_id, $buyer_branch_id)) {
             var_dump("failed to revert and delete");
             return false;
         } elseif (!$this->franchiseeSaleItemModel->delete_by_franchisee_sale_id($franchisee_sale['id'], $this->requested_by, $db)) {
@@ -791,10 +791,10 @@ class Franchisee_sales extends MYTController
                 $values['fs_status'] = 'processing';
                 if ($franchisee_sale['fs_status'] == 'invoiced') {
 
-                    $seller_project_id = $franchisee_sale['seller_project_id'];
-                    $buyer_project_id  = $franchisee_sale['buyer_project_id'];
+                    $seller_branch_id = $franchisee_sale['seller_branch_id'];
+                    $buyer_branch_id  = $franchisee_sale['buyer_branch_id'];
 
-                    if (!$this->_revert_franchisee_item($franchisee_sale['id'], $seller_project_id, $buyer_project_id)) {
+                    if (!$this->_revert_franchisee_item($franchisee_sale['id'], $seller_branch_id, $buyer_branch_id)) {
                         var_dump("failed to revert and delete");
                         return false;
                     }
@@ -826,8 +826,8 @@ class Franchisee_sales extends MYTController
                 continue;
             }
 
-            if ($item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($franchisee_sale['seller_project_id'], $franchisee_sale_item['item_id'], $franchisee_sale_item['unit'])) {
-                if ($seller_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['seller_project_id'], $item_unit[0]['id'])) {
+            if ($item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($franchisee_sale['seller_branch_id'], $franchisee_sale_item['item_id'], $franchisee_sale_item['unit'])) {
+                if ($seller_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['seller_branch_id'], $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $seller_inventory[0]['current_qty'] - $franchisee_sale_item['qty'],
                         'updated_by'  => $this->requested_by,
@@ -841,7 +841,7 @@ class Franchisee_sales extends MYTController
                 } else {
                     $new_values = [
                         'item_id'       => $franchisee_sale_item['item_id'],
-                        'project_id'     => $franchisee_sale['seller_project_id'],
+                        'branch_id'     => $franchisee_sale['seller_branch_id'],
                         'item_unit_id'  => $item_unit[0]['id'],
                         'beginning_qty' => 0,
                         'current_qty'   => (float)$franchisee_sale_item['qty'] * -1,
@@ -855,7 +855,7 @@ class Franchisee_sales extends MYTController
                     }
                 }
     
-                if ($buyer_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['buyer_project_id'], $item_unit[0]['id'])) {
+                if ($buyer_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['buyer_branch_id'], $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $buyer_inventory[0]['current_qty'] + $franchisee_sale_item['qty'],
                         'updated_by'  => $this->requested_by,
@@ -869,7 +869,7 @@ class Franchisee_sales extends MYTController
                 } else {
                     $new_values = [
                         'item_id'       => $franchisee_sale_item['item_id'],
-                        'project_id'     => $franchisee_sale['buyer_project_id'],
+                        'branch_id'     => $franchisee_sale['buyer_branch_id'],
                         'item_unit_id'  => $item_unit[0]['id'],
                         'beginning_qty' => 0,
                         'current_qty'   => $franchisee_sale_item['qty'],

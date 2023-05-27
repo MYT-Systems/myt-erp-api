@@ -315,7 +315,7 @@ class Branches extends MYTController
         } elseif ($this->request->getFile('file') AND
                   $this->branchAttachmentModel->delete_attachments_by_branch_id($branch['id'], $this->requested_by)
         ) {
-            $this->_attempt_upload_file_base64($this->branchAttachmentModel, ['expense_id' => $expense_id]);
+            // $this->_attempt_upload_file_base64($this->branchAttachmentModel, ['expense_id' => $expense_id]);
         }
         
         /*

@@ -8,6 +8,7 @@ class Franchisee extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'project_id',
+        'customer_id',
         'name',
         'type',
         'grand_total',
@@ -26,6 +27,7 @@ class Franchisee extends MYTModel
         'remarks',
         'contact_person',
         'contact_number',
+        'phone_no',
         'address',
         'email',
         'package_type',
@@ -57,7 +59,8 @@ class Franchisee extends MYTModel
         $sql = <<<EOT
 SELECT franchisee.*,
     project.name AS project_name,
-    (SELECT IFNULL(sum(franchisee_sale.balance), 0)
+    customer.name AS customer_name,
+    (SELECT IFNULL(sum(franchisee_sale.balance),0) 
         FROM franchisee_sale
         WHERE franchisee_sale.franchisee_id = franchisee.id
         AND franchisee_sale.is_deleted = 0
@@ -66,6 +69,7 @@ SELECT franchisee.*,
     IF (franchisee.contract_end < ?, 'expired', 'active') AS contract_status
 FROM franchisee
 LEFT JOIN project ON project.id = franchisee.project_id
+LEFT JOIN customer ON customer.id = franchisee.customer_id
 WHERE franchisee.is_deleted = 0
     AND franchisee.id = ?
 EOT;
@@ -128,7 +132,8 @@ EOT;
         $sql = <<<EOT
 SELECT franchisee.*,
     project.name AS project_name,
-    (SELECT IFNULL(sum(franchisee_sale.balance), 0)
+    customer.name AS customer_name,
+    (SELECT IFNULL(sum(franchisee_sale.balance),0) 
         FROM franchisee_sale
         WHERE franchisee_sale.franchisee_id = franchisee.id
         AND franchisee_sale.is_deleted = 0
@@ -137,7 +142,8 @@ SELECT franchisee.*,
     IF (franchisee.contract_end < ?, 'expired', 'active') AS contract_status
 FROM franchisee
 LEFT JOIN project ON project.id = franchisee.project_id
-WHERE franchisee.is_deleted = 0;
+LEFT JOIN customer ON customer.id = franchisee.customer_id
+WHERE franchisee.is_deleted = 0
 EOT;
         $binds = [$date_now];
 
@@ -148,14 +154,15 @@ EOT;
     /**
      * Search
      */
-    public function search($project_id, $name, $type, $franchisee_fee, $royalty_fee, $paid_amount, $payment_status, $franchised_on_from, $franchised_on_to, $opening_start, $remarks, $contact_person, $contact_number, $address, $email, $contract_status)
+    public function search($project_id, $name, $type, $customer_id, $franchisee_fee, $royalty_fee, $paid_amount, $payment_status, $franchised_on_from, $franchised_on_to, $opening_start, $remarks, $contact_person, $contact_number,$phone_no, $address, $email, $contract_status)
     {
         $database = \Config\Database::connect();
         $date_now = date('Y-m-d H:i:s');
         $sql = <<<EOT
 SELECT franchisee.*,
     project.name AS project_name,
-    (SELECT IFNULL(sum(franchisee_sale.balance), 0) 
+    customer.name AS customer_name,
+    (SELECT IFNULL(sum(franchisee_sale.balance),0) 
         FROM franchisee_sale
         WHERE franchisee_sale.franchisee_id = franchisee.id
         AND franchisee_sale.is_deleted = 0
@@ -164,6 +171,7 @@ SELECT franchisee.*,
     IF (franchisee.contract_end < ?, 'expired', 'active') AS contract_status
 FROM franchisee
 LEFT JOIN project ON project.id = franchisee.project_id
+LEFT JOIN customer ON customer.id = franchisee.customer_id
 WHERE franchisee.is_deleted = 0
 EOT;
         $binds = [$date_now];
@@ -172,6 +180,12 @@ EOT;
             $sql .= ' AND project_id = ?';
             $binds[] = $project_id;
         }
+
+         if ($customer_id) {
+            $sql .= ' AND customer_id = ?';
+            $binds[] = $customer_id;
+        }
+
 
         if ($name) {
             $sql .= ' AND franchisee.name REGEXP ?';
@@ -237,6 +251,12 @@ EOT;
             $binds[] = $contact_number;
         }
 
+         if ($phone_no) {
+            $sql .= ' AND phone_no REGEXP ?';
+            $phone_no = str_replace(' ', '|', $phone_no);
+            $binds[] = $phone_no;
+        }
+
         if ($address) {
             $sql .= ' AND address REGEXP ?';
             $address = str_replace(' ', '|', $address);
@@ -264,7 +284,7 @@ EOT;
     /**
      * Update schedule by branch id
      */
-    public function update_schedule_by_project_id($project_id, $values, $db)
+    public function update_schedule_by_branch_id($project_id, $values, $db)
     {
         $database = $db ? $db : \Config\Database::connect();
         $sql = <<<EOT

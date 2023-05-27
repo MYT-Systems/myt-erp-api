@@ -15,8 +15,8 @@ class Franchisee_sale extends MYTModel
         'franchise_order_no',
         'transfer_slip_no',
         'order_request_date',
-        'seller_project_id',
-        'buyer_project_id',
+        'seller_branch_id',
+        'buyer_branch_id',
         'sales_invoice_no',
         'dr_no',
         'ship_via',
@@ -55,8 +55,8 @@ SELECT *,
     (SELECT name FROM franchisee WHERE franchisee.id = franchisee_sale.franchisee_id) AS franchisee_name,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = franchisee_sale.added_by) AS added_by_name,
     (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE employee.id = franchisee_sale.sales_staff) AS sales_staff_name,
-    (SELECT name FROM project WHERE project.id = franchisee_sale.seller_project_id) AS seller_branch_name,
-    (SELECT name FROM project WHERE project.id = franchisee_sale.buyer_project_id) AS buyer_branch_name,
+    (SELECT name FROM branch WHERE branch.id = franchisee_sale.seller_branch_id) AS seller_branch_name,
+    (SELECT name FROM branch WHERE branch.id = franchisee_sale.buyer_branch_id) AS buyer_branch_name,
     (SELECT current_credit_limit FROM franchisee WHERE franchisee.id = franchisee_sale.franchisee_id) AS current_credit_limit
 FROM franchisee_sale
 WHERE franchisee_sale.is_deleted = 0
@@ -79,8 +79,8 @@ SELECT *,
     (SELECT name FROM franchisee WHERE franchisee.id = franchisee_sale.franchisee_id) AS franchisee_name,
     (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE employee.id = franchisee_sale.added_by) AS added_by_name,
     (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE employee.id = franchisee_sale.sales_staff) AS sales_staff_name,
-    (SELECT name FROM project WHERE project.id = franchisee_sale.seller_project_id) AS seller_branch_name,
-    (SELECT name FROM project WHERE project.id = franchisee_sale.buyer_project_id) AS buyer_branch_name,
+    (SELECT name FROM branch WHERE branch.id = franchisee_sale.seller_branch_id) AS seller_branch_name,
+    (SELECT name FROM branch WHERE branch.id = franchisee_sale.buyer_branch_id) AS buyer_branch_name,
     (SELECT current_credit_limit FROM franchisee WHERE franchisee.id = franchisee_sale.franchisee_id) AS current_credit_limit
 FROM franchisee_sale
 WHERE is_deleted = 0
@@ -93,7 +93,7 @@ EOT;
     /**
      * Search
      */
-    public function search($franchise_sale_id = null, $franchisee_id = null, $franchisee_name = null, $sales_date_from = null, $sales_date_to = null, $delivery_date_from = null, $delivery_date_to = null, $order_request_date_from = null, $order_request_date_to = null, $seller_project_id = null, $buyer_project_id = null, $sales_invoice_no = null, $dr_no = null, $charge_invoice_no = null, $collection_invoice_no = null, $address = null, $remarks = null, $sales_staff = null, $payment_status = null, $status = null, $fully_paid_on  = null, $anything = null, $id = null)
+    public function search($franchise_sale_id = null, $franchisee_id = null, $franchisee_name = null, $sales_date_from = null, $sales_date_to = null, $delivery_date_from = null, $delivery_date_to = null, $order_request_date_from = null, $order_request_date_to = null, $seller_branch_id = null, $buyer_branch_id = null, $sales_invoice_no = null, $dr_no = null, $charge_invoice_no = null, $collection_invoice_no = null, $address = null, $remarks = null, $sales_staff = null, $payment_status = null, $status = null, $fully_paid_on  = null, $anything = null, $id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -106,8 +106,8 @@ SELECT franchisee_sale.*,
     franchisee.current_credit_limit,
     IF (franchisee_sale.is_closed = 1, 'closed_bill', IF (franchisee_sale.paid_amount > franchisee_sale.grand_total, 'overpaid', franchisee_sale.payment_status)) AS payment_status
 FROM franchisee_sale
-LEFT JOIN project AS buyer_branch ON buyer_branch.id = franchisee_sale.buyer_project_id
-LEFT JOIN project AS seller_branch ON seller_branch.id = franchisee_sale.seller_project_id
+LEFT JOIN branch AS buyer_branch ON buyer_branch.id = franchisee_sale.buyer_branch_id
+LEFT JOIN branch AS seller_branch ON seller_branch.id = franchisee_sale.seller_branch_id
 LEFT JOIN franchisee ON franchisee.id = franchisee_sale.franchisee_id
 LEFT JOIN employee AS adder ON adder.id = franchisee_sale.added_by
 LEFT JOIN employee AS sales_staff ON sales_staff.id = franchisee_sale.sales_staff
@@ -160,14 +160,14 @@ EOT;
             $binds[] = $order_request_date_to;
         }
 
-        if ($seller_project_id) {
-            $sql .= ' AND franchisee_sale.seller_project_id = ?';
-            $binds[] = $seller_project_id;
+        if ($seller_branch_id) {
+            $sql .= ' AND franchisee_sale.seller_branch_id = ?';
+            $binds[] = $seller_branch_id;
         }
 
-        if ($buyer_project_id) {
-            $sql .= ' AND franchisee_sale.buyer_project_id = ?';
-            $binds[] = $buyer_project_id;
+        if ($buyer_branch_id) {
+            $sql .= ' AND franchisee_sale.buyer_branch_id = ?';
+            $binds[] = $buyer_branch_id;
         }
 
         if ($sales_invoice_no) {
@@ -267,8 +267,8 @@ SELECT  item.name AS item_name,
 FROM franchisee_sale_item
 LEFT JOIN franchisee_sale ON franchisee_sale.id = franchisee_sale_item.franchisee_sale_id
 LEFT JOIN franchisee ON franchisee.id = franchisee_sale.franchisee_id
-LEFT JOIN project AS seller_branch ON seller_branch.id = franchisee_sale.seller_project_id
-LEFT JOIN project AS buyer_branch ON buyer_branch.id = franchisee_sale.buyer_project_id
+LEFT JOIN branch AS seller_branch ON seller_branch.id = franchisee_sale.seller_branch_id
+LEFT JOIN branch AS buyer_branch ON buyer_branch.id = franchisee_sale.buyer_branch_id
 LEFT JOIN item ON item.id = franchisee_sale_item.item_id
 LEFT JOIN item_unit ON item_unit.id = franchisee_sale_item.item_unit_id
 WHERE franchisee_sale_item.is_deleted = 0

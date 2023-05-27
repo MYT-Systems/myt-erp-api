@@ -234,6 +234,7 @@ class Purchases extends MYTController
         $purchase_date      = $this->request->getVar('purchase_date') ? : null;
         $delivery_date      = $this->request->getVar('delivery_date') ? : null;
         $delivery_address   = $this->request->getVar('delivery_address') ? : null;
+        $company            = $this->request->getVar('company') ? : null;
         $remarks            = $this->request->getVar('remarks') ? : null;
         $purpose            = $this->request->getVar('purpose') ? : null;
         $requisitioner      = $this->request->getVar('requisitioner') ? : null;
@@ -246,7 +247,7 @@ class Purchases extends MYTController
         $limit_by           = $this->request->getVar('limit_by') ? : null;
         $anything           = $this->request->getVar('anything') ? : null;
 
-        if (!$purchases = $this->purchaseModel->search($branch_id, $supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $purchase_date, $delivery_date, $delivery_address, $remarks, $purpose, $requisitioner, $status, $order_status, $purchase_date_from, $purchase_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)) {
+        if (!$purchases = $this->purchaseModel->search($branch_id, $supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $purchase_date, $delivery_date, $delivery_address, $company, $remarks, $purpose, $requisitioner, $status, $order_status, $purchase_date_from, $purchase_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)) {
             $response = $this->failNotFound('No purchase found');
         } else {
             foreach ($purchases as $key => $purchase) {
@@ -365,10 +366,11 @@ class Purchases extends MYTController
             'supplier_id'      => $this->request->getVar('supplier_id'),
             'vendor_id'        => $this->request->getVar('vendor_id'),
             'forwarder_id'     => $this->request->getVar('forwarder_id'),
-            'expense_type_id'     => $this->request->getVar('expense_type_id'),
+            'expense_type_id'  => $this->request->getVar('expense_type_id'),
             'purchase_date'    => $this->request->getVar('purchase_date'),
             'delivery_date'    => $this->request->getVar('delivery_date'),
             'delivery_address' => $this->request->getVar('delivery_address'),
+            'company'          => $this->request->getVar('company'),
             'remarks'          => $this->request->getVar('remarks'),
             'requisitioner'    => $this->request->getVar('requisitioner'),
             'status'           => $is_save ? 'pending' : 'for_approval',
@@ -398,6 +400,7 @@ class Purchases extends MYTController
             'delivery_date'    => $this->request->getVar('delivery_date'),
             'delivery_address' => $this->request->getVar('delivery_address'),
             'remarks'          => $this->request->getVar('remarks'),
+            'company'          => $this->request->getVar('company'),
             'requisitioner'    => $this->request->getVar('requisitioner'),
             'updated_by'       => $this->requested_by,
             'updated_on'       => date('Y-m-d H:i:s')
