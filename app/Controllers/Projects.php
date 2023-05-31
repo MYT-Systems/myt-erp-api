@@ -176,29 +176,22 @@ class Projects extends MYTController
         if (($response = $this->_api_verification('projects', 'search')) !== true)
             return $response;
 
-        $project_id            = $this->request->getVar('project_id');
-        $name                  = $this->request->getVar('name');
-        $address               = $this->request->getVar('address');
-        $phone_no              = $this->request->getVar('phone_no');
-        $contact_person        = $this->request->getVar('contact_person');
-        $contact_person_no     = $this->request->getVar('contact_person_no');
-        $franchisee_name       = $this->request->getVar('franchisee_name');
-        $franchisee_contact_no = $this->request->getVar('franchisee_contact_no');
-        $tin_no                = $this->request->getVar('tin_no');
-        $bir_no                = $this->request->getVar('bir_no');
-        $contract_start        = $this->request->getVar('contract_start');
-        $contract_end          = $this->request->getVar('contract_end');
-        $opening_date          = $this->request->getVar('opening_date');
-        $is_open               = $this->request->getVar('is_open');
-        $is_franchise          = $this->request->getVar('is_franchise');
-        $no_project_group       = $this->request->getVar('no_project_group');
-        $no_inventory_group    = $this->request->getVar('no_inventory_group');
+        $project_id = $this->request->getVar('project_id');
+        $name = $this->request->getVar('name');
+        $project_date = $this->request->getVar('project_date');
+        $start_date = $this->request->getVar('start_date');
+        $customer_id = $this->request->getVar('customer_id');
+        $address = $this->request->getVar('address');
+        $company = $this->request->getVar('company');
+        $contact_person = $this->request->getVar('contact_person');
+        $contact_number = $this->request->getVar('contact_number');
+        $project_type = $this->request->getVar('project_type');
 
         // var_dump($project_id, $name, $address, $phone_no, $contact_person, $contact_person_no, $franchisee_name, $franchisee_contact_no, $tin_no, $bir_no, $contract_start, $contract_end, $opening_date, $is_open, $is_franchise, $no_project_group, $no_inventory_group);
         // var_dump($this->projectModel->search($project_id, $name, $address, $phone_no, $contact_person, $contact_person_no, $franchisee_name, $franchisee_contact_no, $tin_no, $bir_no, $contract_start, $contract_end, $opening_date, $is_open, $is_franchise, $no_project_group, $no_inventory_group));
         // die();
 
-        if (!$projects = $this->projectModel->search($project_id, $name, $address, $phone_no, $contact_person, $contact_person_no, $franchisee_name, $franchisee_contact_no, $tin_no, $bir_no, $contract_start, $contract_end, $opening_date, $is_open, $is_franchise, $no_project_group, $no_inventory_group)) {
+        if (!$projects = $this->projectModel->search($project_id, $name, $project_date, $start_date, $customer_id, $address, $company, $contact_person, $contact_number, $project_type)) {
             $response = $this->failNotFound('No project found');
         } else {
             $response = [];
@@ -217,29 +210,19 @@ class Projects extends MYTController
     private function _attempt_create()
     {
         $values = [
-            'name'                      => $this->request->getVar('name'),
-            'address'                   => $this->request->getVar('address'),
-            'company'                   => $this->request->getVar('company'),
-            'contact_person'            => $this->request->getVar('contact_person'),
-            'phone_no'                  => $this->request->getVar('phone_no'),
-            'tin_no'                    => $this->request->getVar('tin_no'),
-            // 'contact_person_no'     => $this->request->getVar('contact_person_no'),
-            // 'franchisee_name'       => $this->request->getVar('franchisee_name'),
-            // 'franchisee_contact_no' => $this->request->getVar('franchisee_contact_no'),
-            // 'tin_no'                => $this->request->getVar('tin_no'),
-            // 'bir_no'                => $this->request->getVar('bir_no'),
-            // 'contract_start'        => $this->request->getVar('contract_start'),
-            // 'contract_end'          => $this->request->getVar('contract_end'),
-            // 'opening_date'          => $this->request->getVar('opening_date'),
-            // 'is_franchise'          => $this->request->getVar('is_franchise'),
-            // 'operation_days'        => $this->request->getVar('operation_days'),
-            // 'operation_times'       => $this->request->getVar('operation_times'),
-            // 'delivery_days'         => $this->request->getVar('delivery_days'),
-            // 'delivery_times'        => $this->request->getVar('delivery_times'),
-            // 'price_level'           => $this->request->getVar('price_level'),
-            // 'rental_monthly_fee'    => $this->request->getVar('rental_monthly_fee'),
-            // 'inventory_group_id'    => $this->request->getVar('inventory_group_id'),
-            // 'project_group_id'       => $this->request->getVar('project_group_id'),
+            'name' => $this->request->getVar('name'),
+            'project_date' => $this->request->getVar('project_date'),
+            'start_date' => $this->request->getVar('start_date'),
+            'customer_id' => $this->request->getVar('customer_id'),
+            'address' => $this->request->getVar('address'),
+            'company' => $this->request->getVar('company'),
+            'contact_person' => $this->request->getVar('contact_person'),
+            'contact_number' => $this->request->getVar('contact_number'),
+            'project_type' => $this->request->getVar('project_type'),
+            'project_price' => $this->request->getVar('project_price'),
+            'taxes' => $this->request->getVar('taxes'),
+            'other_fees' => $this->request->getVar('other_fees'),
+            'grand_total' => $this->request->getVar('grand_total'),
             'added_by'              => $this->requested_by,
             'added_on'              => date('Y-m-d H:i:s'),
         ];
@@ -283,29 +266,19 @@ class Projects extends MYTController
     protected function _attempt_update($project)
     {
         $values = [
-            'name'                      => $this->request->getVar('name'),
-            'address'                   => $this->request->getVar('address'),
-            'company'                   => $this->request->getVar('company'),
-            'contact_person'            => $this->request->getVar('contact_person'),
-            'phone_no'                  => $this->request->getVar('phone_no'),
-            'tin_no'                    => $this->request->getVar('tin_no'),
-            // 'contact_person_no'     => $this->request->getVar('contact_person_no'),
-            // 'franchisee_name'       => $this->request->getVar('franchisee_name'),
-            // 'franchisee_contact_no' => $this->request->getVar('franchisee_contact_no'),
-            // 'tin_no'                => $this->request->getVar('tin_no'),
-            // 'bir_no'                => $this->request->getVar('bir_no'),
-            // 'contract_start'        => $this->request->getVar('contract_start'),
-            // 'contract_end'          => $this->request->getVar('contract_end'),
-            // 'opening_date'          => $this->request->getVar('opening_date'),
-            // 'is_franchise'          => $this->request->getVar('is_franchise'),
-            // 'operation_days'        => $this->request->getVar('operation_days'),
-            // 'operation_times'       => $this->request->getVar('operation_times'),
-            // 'delivery_days'         => $this->request->getVar('delivery_days'),
-            // 'delivery_times'        => $this->request->getVar('delivery_times'),
-            // 'price_level'           => $this->request->getVar('price_level'),
-            // 'rental_monthly_fee'    => $this->request->getVar('rental_monthly_fee'),
-            // 'inventory_group_id'    => $this->request->getVar('inventory_group_id'),
-            // 'project_group_id'       => $this->request->getVar('project_group_id'),
+            'name' => $this->request->getVar('name'),
+            'project_date' => $this->request->getVar('project_date'),
+            'start_date' => $this->request->getVar('start_date'),
+            'customer_id' => $this->request->getVar('customer_id'),
+            'address' => $this->request->getVar('address'),
+            'company' => $this->request->getVar('company'),
+            'contact_person' => $this->request->getVar('contact_person'),
+            'contact_number' => $this->request->getVar('contact_number'),
+            'project_type' => $this->request->getVar('project_type'),
+            'project_price' => $this->request->getVar('project_price'),
+            'taxes' => $this->request->getVar('taxes'),
+            'other_fees' => $this->request->getVar('other_fees'),
+            'grand_total' => $this->request->getVar('grand_total'),
             'updated_by'            => $this->requested_by,
             'updated_on'            => date('Y-m-d H:i:s')
         ];

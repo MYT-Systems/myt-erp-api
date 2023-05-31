@@ -8,38 +8,23 @@ class Project extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'name',
-        'type',
-        'initial_drawer',
+        'project_date',
+        'start_date',
+        'customer_id',
         'address',
-        'phone_no',
+        'company',
         'contact_person',
-        'contact_person_no',
-        'franchisee_name',
-        'franchisee_contact_no',
-        'tin_no',
-        'bir_no',
-        'contract_start',
-        'contract_end',
-        'opening_date',
-        'is_franchise',
-        'operation_days',
-        'operation_times',
-        'delivery_days',
-        'delivery_times',
-        'price_level',
-        'rental_monthly_fee',
-        'is_open',
-        'opened_on',
-        'closed_on',
-        'operation_log_id',
-        'inventory_group_id',
-        'project_group_id',
+        'contact_number',
+        'project_type',
+        'project_price',
+        'taxes',
+        'other_fees',
+        'grand_total',
         'added_by',
         'added_on',
         'updated_by',
         'updated_on',
-        'is_deleted',
-        'company'
+        'is_deleted'
     ];
 
     public function __construct()
@@ -114,8 +99,9 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *
+SELECT project.*, customer.name AS customer_name
 FROM project
+LEFT JOIN customer ON customer.id = project.customer_id
 WHERE project.is_deleted = 0
 EOT;
         $binds = [];
@@ -167,24 +153,31 @@ EOT;
     /**
      * Search
      */
-    public function search($project_id = null, $name = null, $address = null, $phone_no = null, $contact_person = null, $contact_person_no = null, $franchisee_name = null, $franchisee_contact_no = null, $tin_no = null, $bir_no = null, $contract_start = null, $contract_end = null, $opening_date = null, $is_open = null, $is_franchise = null, $no_project_group = null, $no_inventory_group = null)
+    public function search($project_id = null, $name = null, $project_date = null, $start_date = null, $customer_id = null, $address = null, $company = null, $contact_person = null, $contact_number = null, $project_type = null)
     {
         $database = \Config\Database::connect();
         
         $sql = <<<EOT
-SELECT project.*, project_group.name AS project_group, price_level.name AS price_level_name
+SELECT project.*, customer.name AS customer_name
 FROM project
-LEFT JOIN project_group_detail ON project_group_detail.project_id = project.id AND project_group_detail.is_deleted = 0
-LEFT JOIN project_group ON project_group.id = project_group_detail.project_group_id
-LEFT JOIN price_level ON price_level.id = project.price_level
+LEFT JOIN customer ON customer.id = project.customer_id
 WHERE project.is_deleted = 0
 EOT;
 
         $binds = [];
-
         if ($project_id) {
             $sql .= ' AND project.id = ?';
             $binds[] = $project_id;
+        }
+
+        if ($project_date) {
+            $sql .= ' AND project_date = ?';
+            $binds[] = $project_date;
+        }
+
+        if ($start_date) {
+            $sql .= ' AND project_date = ?';
+            $binds[] = $start_date;
         }
 
         if ($name) {
@@ -193,86 +186,33 @@ EOT;
             $binds[] = $name;
         }
 
+        if ($customer_id) {
+            $sql .= ' AND customer.id = ?';
+            $binds[] = $customer_id;
+        }
+
         if ($address) {
-            $sql .= ' AND incharge REGEXP ?';
+            $sql .= ' AND project.address REGEXP ?';
             $address = str_replace(' ', '|', $address);
             $binds[] = $address;
         }
 
-        if ($phone_no) {
-            $sql .= ' AND phone_no REGEXP ?';
-            $phone_no = str_replace(' ', '|', $phone_no);
-            $binds[] = $phone_no;
+        if ($company) {
+            $sql .= ' AND project.company REGEXP ?';
+            $phone_no = str_replace(' ', '|', $company);
+            $binds[] = $company;
         }
 
-        if ($contact_person) {
-            $sql .= ' AND contact_person REGEXP ?';
-            $contact_person = str_replace(' ', '|', $contact_person);
-            $binds[]        = $contact_person;
+        if ($contact_number) {
+            $sql .= ' AND project.contact_number REGEXP ?';
+            $name    = str_replace(' ', '|', $contact_number);
+            $binds[] = $contact_number;
         }
 
-        if ($contact_person_no) {
-            $sql .= ' AND contact_person_no = ?';
-            $binds[] = $contact_person_no;
-        }
-
-        if ($franchisee_name) {
-            $sql .= ' AND franchisee_name REGEXP ?';
-            $franchisee_name = str_replace(' ', '|', $franchisee_name);
-            $binds[]         = $franchisee_name;
-        }
-
-        if ($franchisee_contact_no) {
-            $sql .= ' AND franchisee_contact_no = ?';
-            $binds[] = $franchisee_contact_no;
-        }
-
-        if ($tin_no) {
-            $sql .= ' AND tin_no = ?';
-            $binds[] = $tin_no;
-        }
-
-        if ($bir_no) {
-            $sql .= ' AND bir_no = ?';
-            $binds[] = $bir_no;
-        }
-
-        if ($contract_start) {
-            $sql .= ' AND contract_start = ?';
-            $binds[] = $contract_start;
-        }
-
-        if ($contract_end) {
-            $sql .= ' AND contract_end = ?';
-            $binds[] = $contract_end;
-        }
-
-        if ($opening_date) {
-            $sql .= ' AND opening_date = ?';
-            $binds[] = $opening_date;
-        }
-
-        if ($is_open) {
-            $sql .= ' AND is_open = ?';
-            $binds[] = $is_open;
-        }
-
-        if ($is_franchise == '0' || $is_franchise) {
-            $is_franchise = explode(',', $is_franchise);
-            $is_franchise = array_map('intval', $is_franchise);
-            $sql .= ' AND is_franchise IN (' . implode(',', $is_franchise) . ')';
-        }
-
-        if ($no_project_group) {
-            $sql .= ' AND project.id NOT IN (SELECT project_id FROM project_group_detail WHERE is_deleted = 0)';
-        } elseif ($no_project_group == '0') {
-            $sql .= ' AND project.id IN (SELECT project_id FROM project_group_detail WHERE is_deleted = 0)';
-        }
-
-        if ($no_inventory_group) {
-            $sql .= ' AND project.id NOT IN (SELECT project_id FROM inventory_group_detail WHERE is_deleted = 0)';
-        } elseif ($no_inventory_group == '0') {
-            $sql .= ' AND project.id IN (SELECT project_id FROM inventory_group_detail WHERE is_deleted = 0)';
+        if ($project_type) {
+            $sql .= ' AND project.project_type REGEXP ?';
+            $name    = str_replace(' ', '|', $project_type);
+            $binds[] = $project_type;
         }
 
         $sql .= ' ORDER BY project.name ASC';

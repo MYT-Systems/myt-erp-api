@@ -22,9 +22,8 @@ class Supplies_expenses extends MYTController
         if (($response = $this->_api_verification('supplies_expenses', 'get_supplies_expense')) !== true)
             return $response;
 
-
-
         $supplies_expense_id         = $this->request->getVar('supplies_expense_id') ? : null;
+
         $supplies_expense            = $supplies_expense_id ? $this->suppliesExpenseModel->get_details_by_id($supplies_expense_id) : null;
         $supplies_expense_attachment = $supplies_expense_id ? $this->suppliesExpenseItemModel->get_details_by_supplies_expense_id($supplies_expense_id) : null;
 
@@ -178,9 +177,11 @@ class Supplies_expenses extends MYTController
         $supplier_id           = $this->request->getVar('supplier_id') ? : null;
         $vendor_id             = $this->request->getVar('vendor_id') ? : null;
         $forwarder_id          = $this->request->getVar('forwarder_id') ? : null;
+        $expense_type_id       = $this->request->getVar('expense_type_id') ? : null;    
         $supplies_expense_date = $this->request->getVar('supplies_expense_date') ? : null;
         $delivery_date         = $this->request->getVar('delivery_date') ? : null;
         $delivery_address      = $this->request->getVar('delivery_address') ? : null;
+        $branch_name           = $this->request->getVar('branch_name') ? : null;
         $remarks               = $this->request->getVar('remarks') ? : null;
         $purpose               = $this->request->getVar('purpose') ? : null;
         $requisitioner         = $this->request->getVar('requisitioner') ? : null;
@@ -193,7 +194,7 @@ class Supplies_expenses extends MYTController
         $limit_by              = $this->request->getVar('limit_by') ? : null;
         $anything              = $this->request->getVar('anything') ? : null;
 
-        if (!$supplies_expenses = $this->suppliesExpenseModel->search($supplier_id, $vendor_id, $forwarder_id, $supplies_expense_date, $delivery_date, $delivery_address, $remarks, $purpose, $requisitioner, $status, $order_status, $se_date_from, $se_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)) {
+        if (!$supplies_expenses = $this->suppliesExpenseModel->search($supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $supplies_expense_date, $delivery_date, $delivery_address, $branch_name, $remarks, $purpose, $requisitioner, $status, $order_status, $se_date_from, $se_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)) {
             $response = $this->failNotFound('No supplies_expense found');
         } else {
            
@@ -327,7 +328,7 @@ class Supplies_expenses extends MYTController
             // 'delivery_date'         => $this->request->getVar('delivery_date') ? : null,
             // 'doc_no'                => $this->request->getVar('doc_no') ? : null,
             'remarks'               => $this->request->getVar('remarks') ? : null,
-            'requisitioner'         => $this->request->getVar('requester') ? : null,
+            'requisitioner'         => $this->request->getVar('requisitioner') ? : null,
             // 'status'                => $this->request->getVar('is_save') ? 'pending' : 'for_approval',
             'prepared_by'           => $this->requested_by,
             'added_by'              => $this->requested_by,
@@ -396,15 +397,12 @@ class Supplies_expenses extends MYTController
     protected function _attempt_update_supplies_expense($supplies_expense_id)
     {
         $values = [
-            'branch_id'             => $this->request->getVar('branch_id') ? : null,
             'supplier_id'           => $this->request->getVar('supplier_id') ? : null,
-            'vendor_id'             => $this->request->getVar('vendor_id') ? : null,
+            'branch_name'           => $this->request->getVar('branch_name') ? : null,
             'forwarder_id'          => $this->request->getVar('forwarder_id'),
             'supplies_expense_date' => $this->request->getVar('supplies_expense_date') ? : null,
-            'type'                  => $this->request->getVar('type'),
+            'type'                  => $this->request->getVar('expense_type_id'),
             'delivery_address'      => $this->request->getVar('delivery_address') ? : null,
-            'delivery_date'         => $this->request->getVar('delivery_date') ? : null,
-            'doc_no'                => $this->request->getVar('doc_no') ? : null,
             'remarks'               => $this->request->getVar('remarks') ? : null,
             'requisitioner'         => $this->request->getVar('requisitioner') ? : null,
             'prepared_by'           => $this->requested_by,

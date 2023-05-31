@@ -1,0 +1,193 @@
+<?php
+
+namespace App\Models;
+
+class Project_invoice extends MYTModel
+{
+    protected $primaryKey = 'id';
+    protected $useAutoIncrement = true;
+    protected $allowedFields = [
+        'project_id',
+        'invoice_date',
+        'address',
+        'company',
+        'remarks',
+        'subtotal',
+        'service_fee',
+        'delivery_fee',
+        'grand_total',
+        'balance',
+        'paid_amount',
+        'payment_status',
+        'fs_status',
+        'fully_paid_on',
+        'is_closed',
+        'added_by',
+        'added_on',
+        'updated_by',
+        'updated_on',
+        'is_deleted'
+    ];
+
+    public function __construct()
+    {
+        $this->table = 'project_invoice';
+    }
+
+    /**
+     * Get project_invoice by ID
+     */
+    public function get_details_by_id($project_invoice_id = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT *,
+    (SELECT name FROM project WHERE project.id = project_invoice.project_id) AS project_name,
+    (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = project_invoice.added_by) AS added_by_name
+FROM project_invoice
+WHERE project_invoice.is_deleted = 0
+    AND project_invoice.id = ?
+EOT;
+        $binds = [$project_invoice_id];
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Get all project_invoice
+     */
+    public function get_all()
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT *,
+    (SELECT name FROM project WHERE project.id = project_invoice.project_id) AS project_name,
+    (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE employee.id = project_invoice.added_by) AS added_by_name
+FROM project_invoice
+WHERE is_deleted = 0
+EOT;
+
+        $query = $database->query($sql);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Search
+     */
+    public function search($project_invoice_id = null, $project_id = null, $invoice_date = null, $address = null, $company = null, $remarks = null, $payment_status = null, $status = null, $fully_paid_on = null, $anything = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT project_invoice.*,
+    project.name AS project_name,
+    CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name,
+    IF (project_invoice.is_closed = 1, 'closed_bill', IF (project_invoice.paid_amount > project_invoice.grand_total, 'overpaid', project_invoice.payment_status)) AS payment_status
+FROM project_invoice
+LEFT JOIN project ON project.id = project_invoice.project_id
+LEFT JOIN employee AS adder ON adder.id = project_invoice.added_by
+WHERE project_invoice.is_deleted = 0
+EOT;
+        $binds = [];
+
+        if ($project_invoice_id) {
+            $sql .= ' AND project_invoice.id = ?';
+            $binds[] = $project_invoice_id;
+        }
+
+        if ($project_id) {
+            $sql .= ' AND project_invoice.project_id = ?';
+            $binds[] = $project_id;
+        }
+
+        if ($payment_status == 'overpaid') {
+            $sql .= ' AND project_invoice.paid_amount > project_invoice.grand_total';
+            $sql .= ' AND (project_invoice.is_closed = 0 OR project_invoice.is_closed IS NULL)'; 
+        } else if ($payment_status) {
+            $sql .= ' AND project_invoice.payment_status = ?';
+            $binds[] = $payment_status;
+        }
+
+        if ($status) {
+            $sql .= ' AND project_invoice.fs_status = ?';
+            $binds[] = $status;
+        }
+
+        if ($fully_paid_on) {
+            $sql .= ' AND project_invoice.fully_paid_on = ?';
+            $binds[] = $fully_paid_on;
+        }
+
+        // if ($anything) {
+        //     $sql .= ' AND (project_invoice.id LIKE ? OR project_invoice.sales_invoice_no LIKE ? OR project_invoice.dr_no LIKE ? OR project_invoice.charge_invoice_no LIKE ? OR project_invoice.collection_invoice_no LIKE ? OR project_invoice.address LIKE ? OR project_invoice.remarks LIKE ? OR project_invoice.sales_staff LIKE ? OR project_invoice.fs_status LIKE ? OR project_invoice.fully_paid_on LIKE ? OR project.name LIKE ? OR buyer_branch.name LIKE ? OR seller_branch.name LIKE ? OR sales_staff.first_name LIKE ? OR sales_staff.last_name LIKE ? OR adder.first_name LIKE ? OR adder.last_name LIKE ?)';
+        //     $new_binds = [];
+        //     for ($i = 0; $i < 17; $i++) {
+        //         $new_binds[] = '%' . $anything . '%';
+        //     }
+        //     $binds = array_merge($binds, $new_binds);
+        // }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+
+    /*
+     *search_project_invoice_item
+    */
+    public function search_project_invoice_item($project_name, $item_id, $sales_date_from, $sales_date_to)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT  item.name AS item_name,
+        project_invoice_item.item_id,
+        project_invoice_item.item_unit_id,
+        item_unit.inventory_unit,
+        item_unit.breakdown_unit,
+        project_invoice.id AS project_invoice_id,
+        project_invoice.sales_date,
+        project_invoice.sales_invoice_no AS invoice_no,
+        project.name AS project_name,
+        seller_branch.name AS seller_branch_name,
+        buyer_branch.name AS buyer_branch_name,
+        project_invoice_item.qty AS total_quantity,
+        project_invoice_item.subtotal AS total_subtotal,
+        project_invoice_item.price AS average_price,
+        project_invoice_item.discount AS total_discount
+FROM project_invoice_item
+LEFT JOIN project_invoice ON project_invoice.id = project_invoice_item.project_invoice_id
+LEFT JOIN project ON project.id = project_invoice.project_id
+LEFT JOIN branch AS seller_branch ON seller_branch.id = project_invoice.seller_branch_id
+LEFT JOIN branch AS buyer_branch ON buyer_branch.id = project_invoice.buyer_branch_id
+LEFT JOIN item ON item.id = project_invoice_item.item_id
+LEFT JOIN item_unit ON item_unit.id = project_invoice_item.item_unit_id
+WHERE project_invoice_item.is_deleted = 0
+EOT;
+        $binds = [];
+
+        if ($project_name) {
+            $sql .= '  AND project.name LIKE ?';
+            $binds[] = '%' . $project_name . '%';
+        }
+
+        if ($item_id) {
+            $sql .= ' AND project_invoice_item.item_id = ?';
+            $binds[] = $item_id;
+        }
+
+        if ($sales_date_from) {
+            $sql .= ' AND project_invoice.sales_date >= ?';
+            $binds[] = $sales_date_from;
+        }
+
+        if ($sales_date_to) {
+            $sql .= ' AND project_invoice.sales_date <= ?';
+            $binds[] = $sales_date_to;
+        }
+
+        // $sql .= ' GROUP BY project_invoice_item.item_id, project_invoice_item.item_unit_id';
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+}

@@ -12,7 +12,6 @@ class Franchisee_sale_payment extends MYTModel
         'payment_type',
         'payment_date',
         'remarks',
-        'branch',
         'from_bank_id',
         'to_bank_id',
         'to_bank_name',
@@ -180,7 +179,7 @@ EOT;
         }
 
         if ($branch_name) {
-            $sql .= ' AND (SELECT name FROM branch WHERE branch.id = (SELECT project_id FROM franchisee WHERE franchisee.id = franchisee_sale_payment.franchisee_id)) LIKE ?';
+            $sql .= ' AND (SELECT name FROM branch WHERE branch.id = (SELECT branch_id FROM franchisee WHERE franchisee.id = franchisee_sale_payment.franchisee_id)) LIKE ?';
             $binds[] = '%' . $branch_name . '%';
         }
 
@@ -191,7 +190,7 @@ EOT;
     /**
      * Get payments with franchise sale details
      */
-    public function get_payment_with_sale_details($franchisee_id, $franchisee_name, $project_id, $date_from, $date_to, $payment_status)
+    public function get_payment_with_sale_details($franchisee_id, $franchisee_name, $branch_id, $date_from, $date_to, $payment_status)
     {
         $database = \Config\Database::connect();
 
@@ -212,7 +211,7 @@ LEFT JOIN franchisee_sale_payment
 LEFT JOIN franchisee
     ON franchisee.id = franchisee_sale.franchisee_id
 LEFT JOIN branch
-    ON branch.id = franchisee_sale.buyer_project_id
+    ON branch.id = franchisee_sale.buyer_branch_id
 LEFT JOIN bank
     ON bank.id = franchisee_sale_payment.to_bank_id
 WHERE franchisee_sale.is_deleted = 0
@@ -230,9 +229,9 @@ EOT;
             $binds[] = "%" . $franchisee_name . "%";
         }
 
-        if ($project_id) {
-            $sql .= ' AND franchisee_sale.buyer_project_id = ?';
-            $binds[] = $project_id;
+        if ($branch_id) {
+            $sql .= ' AND franchisee_sale.buyer_branch_id = ?';
+            $binds[] = $branch_id;
         }
 
         if ($date_from) {
