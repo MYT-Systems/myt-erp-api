@@ -132,7 +132,7 @@ class Se_bank_payments extends MYTController
      */
     public function create()
     {
-        if (($response = $this->_api_verification('bank_payements', 'create')) !== true)
+        if (($response = $this->_api_verification('SE_bank_payments', 'create')) !== true)
             return $response;
 
         $db = \Config\Database::connect();

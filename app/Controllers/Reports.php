@@ -168,6 +168,30 @@ class Reports extends MYTController
     }
 
     /**
+     * Get payables aging
+     */
+    public function get_payables_aging()
+    {
+        if (($response = $this->_api_verification('reports', 'get_payables_aging')) !== true)
+            return $response;
+
+        $supplier_id    = $this->request->getVar('supplier_id');
+        $expense_type   = $this->request->getVar('expense_type') ? : null;
+
+        if (!$payables_aging = $this->reportModel->get_payables_aging($supplier_id, $expense_type)) {
+            $response = $this->failNotFound('No report Found');
+        } else {
+            $response = $this->respond([
+                'payables_aging' => $payables_aging,
+                'status'                  => 'success'
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Get Franchised Branch Payments
      */
     public function get_franchisee_branch_payments()

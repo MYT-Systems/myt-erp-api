@@ -92,7 +92,7 @@ class Supplies_receives extends MYTController
         $this->db->transBegin();
 
         $se_id             = $this->request->getVar('se_id');
-        $branch_id         = $this->request->getVar('branch_id');
+        $branch_name         = $this->request->getVar('branch_name');
         $supplies_expense  = $this->suppliesExpenseModel->get_details_by_id($se_id);
         if ($supplies_expense && $supplies_expense[0]['order_status'] == 'complete') {
             $response = $this->fail(['response' => 'Supplies Expense is already complete.', 'status' => 'error']);
@@ -106,7 +106,7 @@ class Supplies_receives extends MYTController
             $this->db->transCommit();
             $response = $this->respond([
                 'supplies_receive_id' => $supplies_receive_id,
-                'branch_id'           => $branch_id,
+                'branch_name'         => $branch_name,
                 'response'            => 'Receive created successfully.',
                 'status'              => 'success'
             ]);
@@ -143,7 +143,7 @@ class Supplies_receives extends MYTController
             return $response;
 
         $supplies_receive_id = $this->request->getVar('supplies_receive_id');
-        $branch_id = $this->request->getVar('branch_id');
+        $branch_name = $this->request->getVar('branch_name');
         $where      = ['id' => $supplies_receive_id, 'is_deleted' => 0];
 
         $this->db = \Config\Database::connect();
@@ -158,7 +158,7 @@ class Supplies_receives extends MYTController
             $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
-            $response = $this->respond(['response' => 'Supplies_receive updated successfully.', 'branch_id' => $branch_id,]);
+            $response = $this->respond(['response' => 'Supplies_receive updated successfully.', 'branch_name' => $branch_name,]);
         }
 
         $this->db->close();
@@ -208,7 +208,7 @@ class Supplies_receives extends MYTController
             return $response;
         
         $se_id                 = $this->request->getVar('se_id') ? : null;
-        $branch_id             = $this->request->getVar('branch_id') ? : null;
+        $branch_name             = $this->request->getVar('branch_name') ? : null;
         $supplier_id           = $this->request->getVar('supplier_id') ? : null;
         $vendor_id             = $this->request->getVar('vendor_id') ? : null;
         $supplies_receive_date = $this->request->getVar('supplies_receive_date') ? : null;
@@ -222,7 +222,7 @@ class Supplies_receives extends MYTController
         $se_receive_date_to    = $this->request->getVar('se_receive_date_to') ? : null;
         $bill_type   = $this->request->getVar('bill_type') ? : null;
 
-        if (!$receives = $this->suppliesReceiveModel->search($branch_id, $se_id, $supplier_id, $vendor_id, $supplies_receive_date, $waybill_no, $invoice_no, $dr_no, $remarks, $purchase_date_from, $purchase_date_to, $se_receive_date_from, $se_receive_date_to, $bill_type)) {
+        if (!$receives = $this->suppliesReceiveModel->search($branch_name, $se_id, $supplier_id, $vendor_id, $supplies_receive_date, $waybill_no, $invoice_no, $dr_no, $remarks, $purchase_date_from, $purchase_date_to, $se_receive_date_from, $se_receive_date_to, $bill_type)) {
             $response = $this->failNotFound('No receive found');
         } else {
             $summary = [
@@ -281,7 +281,7 @@ class Supplies_receives extends MYTController
         if (($response = $this->_api_verification('receive', 'get_bills')) !== true)
             return $response;
 
-        $type = $this->request->getVar('type');
+        $type = $this->request->getVar('supplies_expense_type');
         if (!$supplies_receives = $this->suppliesReceiveModel->get_bills($type)) {
             $response = $this->failNotFound('No receive found');
         } else {
@@ -304,13 +304,13 @@ class Supplies_receives extends MYTController
     private function _attempt_create()
     {
         $values = [
-            'branch_id'              => $this->request->getVar('branch_id') ? : null,
+            'branch_name'            => $this->request->getVar('branch_name') ? : null,
             'se_id'                  => $this->request->getVar('se_id'),
             'supplier_id'            => $this->request->getVar('supplier_id'),
             'vendor_id'              => $this->request->getVar('vendor_id'),
             'purchase_date'          => $this->request->getVar('purchase_date'),
             'supplies_receive_date'  => $this->request->getVar('supplies_receive_date'),
-            'type'                   => $this->request->getVar('type'),
+            'type'                   => $this->request->getVar('supplies_expense_type'),
             'purpose'                => $this->request->getVar('purpose'),
             'forwarder_id'           => $this->request->getVar('forwarder_id'),
             'expense_type_id'        => $this->request->getVar('expense_type_id'),
@@ -434,13 +434,13 @@ class Supplies_receives extends MYTController
     function _attempt_update_receive($supplies_receive_id)
     {
         $values = [
-            'branch_id'              => $this->request->getVar('branch_id'),
+            'branch_name'            => $this->request->getVar('branch_name'),
             'se_id'                  => $this->request->getVar('se_id'),
             'supplier_id'            => $this->request->getVar('supplier_id'),
             'vendor_id'              => $this->request->getVar('vendor_id'),
             'purchase_date'          => $this->request->getVar('purchase_date'),
             'supplies_receive_date'  => $this->request->getVar('supplies_receive_date'),
-            'type'                   => $this->request->getVar('type'),
+            'type'                   => $this->request->getVar('supplies_expense_type'),
             'purpose'                => $this->request->getVar('purpose'),
             'forwarder_id'           => $this->request->getVar('forwarder_id'),
             'expense_type_id'        => $this->request->getVar('expense_type_id'),
