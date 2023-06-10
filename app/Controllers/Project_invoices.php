@@ -241,7 +241,6 @@ class Project_invoices extends MYTController
         $fully_paid_on = $this->request->getVar('fully_paid_on');
         $anything = $this->request->getVar('anything') ?? null;
 
-
         if (!$project_invoices = $this->projectInvoiceModel->search($project_invoice_id, $project_id, $invoice_date, $address, $company, $remarks, $payment_status, $status, $fully_paid_on, $anything)) {
             $response = $this->failNotFound('No project_invoice found');
         } else {
@@ -434,7 +433,6 @@ class Project_invoices extends MYTController
     protected function _attempt_update($project_invoice_id)
     {
 
-
         $values = [
             'project_id' => $this->request->getVar('project_id'),
             'invoice_date' => $this->request->getVar('invoice_date'),
@@ -446,6 +444,27 @@ class Project_invoices extends MYTController
             'service_fee' => $this->request->getVar('service_fee'),
             'delivery_fee' => $this->request->getVar('delivery_fee'),
             'grand_total' => $this->request->getVar('grand_total'),
+
+        // $values = [
+        //     'project_id'         => $this->request->getVar('project_id'),
+        //     'sales_date'            => $this->request->getVar('sales_date'),
+        //     'delivery_date'         => $this->request->getVar('delivery_date'),
+        //     'delivery_fee'          => $this->request->getVar('delivery_fee'),
+        //     'service_fee'           => $this->request->getVar('service_fee'),
+        //     'project_order_no'    => $this->request->getVar('project_order_no'),
+        //     'transfer_slip_no'      => $this->request->getVar('transfer_slip_no'),
+        //     'order_request_date'    => $this->request->getVar('order_request_date'),
+        //     'seller_branch_id'      => $this->request->getVar('seller_branch_id'),
+        //     'buyer_branch_id'       => $this->request->getVar('buyer_branch_id'),
+        //     'sales_invoice_no'      => $this->request->getVar('sales_invoice_no'),
+        //     'dr_no'                 => $this->request->getVar('dr_no'),
+        //     'ship_via'              => $this->request->getVar('ship_via'),
+        //     'charge_invoice_no'     => $this->request->getVar('charge_invoice_no'),
+        //     'collection_invoice_no' => $this->request->getVar('collection_invoice_no'),
+        //     'address'               => $this->request->getVar('address'),
+        //     'remarks'               => $this->request->getVar('remarks'),
+        //     'sales_staff'           => $this->request->getVar('sales_staff'),
+        //     'grand_total'           => $this->request->getVar('grand_total'),
             'updated_by'            => $this->requested_by,
             'updated_on'            => date('Y-m-d H:i:s')
         ];
@@ -746,7 +765,6 @@ class Project_invoices extends MYTController
             case 'processing':
                 $values['fs_status'] = 'processing';
                 if ($project_invoice['fs_status'] == 'invoiced') {
-
                     if (!$this->_revert_project_item($project_invoice['id'])) {
                         var_dump("failed to revert and delete");
                         return false;
