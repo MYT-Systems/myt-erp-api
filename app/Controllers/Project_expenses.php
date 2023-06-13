@@ -1,0 +1,259 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Models\Project_expense;
+use App\Models\Webapp_response;
+
+class Project_expenses extends MYTController
+{
+    
+    public function __construct()
+    {
+        // Headers
+        $this->api_key = $_SERVER['HTTP_API_KEY'];
+        $this->user_key = $_SERVER['HTTP_USER_KEY'];
+
+        $this->_load_essentials();
+    }
+
+    /**
+     * Get project_expense
+     */
+    public function get_project_expense()
+    {
+        if (($response = $this->_api_verification('project_expense', 'get_project_expense')) !== true)
+            return $response;
+
+        $project_expense_id         = $this->request->getVar('project_expense_id') ? : null;
+        $project_expense            = $project_expense_id ? $this->projectExpenseModel->get_details_by_id($project_expense_id) : null;
+        $project_expense_attachment = $project_expense_id ? $this->projectExpenseAttachmentModel->get_details_by_project_expense_id($project_expense_id) : null;
+
+        if (!$project_expense) {
+            $response = $this->failNotFound('No project_expense found');
+        } else {
+            $project_expense[0]['attachment'] = $project_expense_attachment;
+
+            $response           = [];
+            $response['data']   = $project_expense;
+            $response['status'] = 'success';
+            $response           = $this->respond($response);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Get all project_expense
+     */
+    public function get_all_project_expense()
+    {
+        if (($response = $this->_api_verification('project_expense', 'get_all_project_expense')) !== true)
+            return $response;
+
+        $project_expenses = $this->projectExpenseModel->get_all_project_expense();
+
+        if (!$project_expenses) {
+            $response = $this->failNotFound('No project_expense found');
+        } else {
+            foreach ($project_expenses as $key => $project_expense) {
+                $project_expense_attachment = $this->projectExpenseAttachmentModel->get_details_by_project_expense_id($project_expense['id']);
+                $project_expenses[$key]['attachment'] = $project_expense_attachment;
+            }
+
+            $response           = [];
+            $response['data']   = $project_expenses;
+            $response['status'] = 'success';
+            $response           = $this->respond($response);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Create project_expense
+     */
+    public function create()
+    {
+        if (($response = $this->_api_verification('project_expense', 'create')) !== true)
+            return $response;
+
+        
+            $values = [
+                'project_id' => $this->request->getVar('project_id'),
+                'expense_type_id' => $this->request->getVar('expense_type_id'),
+                'partner_id' => $this->request->getVar('partner_id'),
+                'remarks' => $this->request->getVar('remarks'),
+                'amount' => $this->request->getVar('amount'),
+                'other_fees' => $this->request->getVar('other_fees'),
+                'grand_total' => $this->request->getVar('grand_total'),
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s'),
+            ];
+
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
+            if (!$project_expense_id = $this->projectExpenseModel->insert($values)) {
+                $db->transRollback();
+                $response = $this->fail('Server error');
+            } elseif ($this->request->getFile('file') AND !$response = $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
+                   $response === false) {
+                $this->db->transRollback();
+            } else {
+                $db->transCommit();
+                $response = $this->respond(['response' => 'project_expense created successfully']);
+            }
+            
+            $db->close();
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Update project_expense
+     */
+    public function update($id = null)
+    {
+        if (($response = $this->_api_verification('project_expense', 'update')) !== true)
+            return $response;
+
+        $project_expense_id = $this->request->getVar('project_expense_id');
+        $where = ['id' => $project_expense_id, 'is_deleted' => 0];
+
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        if (!$project_expense = $this->projectExpenseModel->select('', $where, 1)) {
+            $response = $this->failNotFound('project_expense not found');
+        } elseif (!$this->_attempt_update($project_expense_id)) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Fail to update project_expense', 'status' => 'error']);
+        } else {
+            $db->transCommit();
+            $response = $this->respond(['response' => 'project_expense updated successfully']);
+        }
+
+        $db->close();
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Delete project_expense
+     */
+    public function delete($id = '')
+    {
+        if (($response = $this->_api_verification('project_expense', 'delete')) !== true)
+            return $response;
+
+        $project_expense_id = $this->request->getVar('project_expense_id');
+
+        $where = ['id' => $project_expense_id, 'is_deleted' => 0];
+
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        if (!$project_expense = $this->projectExpenseModel->select('', $where, 1)) {
+            $response = $this->failNotFound('project_expense not found');
+        } elseif (!$this->_attempt_delete($project_expense_id)) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Fail to delete project_expense', 'status' => 'error']);
+        } else {
+            $db->transCommit();
+            $response = $this->respond(['response' => 'project_expense deleted successfully']);
+        }
+
+        $db->close();
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Search project_expense based on parameters passed
+     */
+    public function search()
+    {
+        if (($response = $this->_api_verification('project_expense', 'search')) !== true)
+            return $response;
+
+        $name          = $this->request->getVar('name');
+
+        if (!$project_expense = $this->projectExpenseModel->search($name)) {
+            $response = $this->failNotFound('No project_expense found');
+        } else {
+            $response = [];
+            $response['data'] = $project_expense;
+            $response = $this->respond($response);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    // ------------------------------------------------------------------------
+    // Private Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Attempt update
+     */
+    protected function _attempt_update($project_expense_id)
+    {
+        $values = [
+            'project_id' => $this->request->getVar('project_id'),
+            'expense_type_id' => $this->request->getVar('expense_type_id'),
+            'partner_id' => $this->request->getVar('partner_id'),
+            'remarks' => $this->request->getVar('remarks'),
+            'amount' => $this->request->getVar('amount'),
+            'other_fees' => $this->request->getVar('other_fees'),
+            'grand_total' => $this->request->getVar('grand_total'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
+        ];
+
+        if (!$this->projectExpenseModel->update($project_expense_id, $values))
+            return false;
+
+        if (!$this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense['id'], $this->requested_by)) {
+            return false;
+        } elseif ($this->request->getFile('file') AND
+                  $this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense['id'], $this->requested_by)
+        ) {
+            // $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['expense_id' => $expense_id]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Attempt delete
+     */
+    protected function _attempt_delete($project_expense_id)
+    {
+        $values = [
+            'is_deleted' => 1,
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
+        ];
+
+        if (!$this->projectExpenseModel->update($project_expense_id, $values)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Load all essential models and helpers
+     */
+    protected function _load_essentials()
+    {
+        $this->projectExpenseAttachmentModel = model('App\Models\Project_expense_attachment');
+        $this->projectExpenseModel = new Project_expense();
+        $this->webappResponseModel  = new Webapp_response();
+    }
+}
