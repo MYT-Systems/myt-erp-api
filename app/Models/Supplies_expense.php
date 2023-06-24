@@ -67,7 +67,7 @@ SELECT supplies_expense.*,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requisitioner_name,
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_expense.supplier_id) AS supplier_trade_name,
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_expense.forwarder_id) AS forwarder_name,
-    (SELECT expense_type.name FROM expense_type WHERE expense_type.id = supplies_expense.type) AS expense_name,
+    (SELECT expense_type.name FROM expense_type WHERE expense_type.id = supplies_expense.expense_type_id) AS expense_name,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_trade_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requisitioner_name,
     (SELECT supplier.email FROM supplier WHERE supplier.id = supplies_expense.supplier_id) AS supplier_email,
@@ -99,7 +99,7 @@ SELECT supplies_expense.*,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requester_name,
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_expense.supplier_id) AS supplier_trade_name,
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_expense.forwarder_id) AS forwarder_name,
-    (SELECT expense_type.name FROM expense_type WHERE expense_type.id = supplies_expense.type) AS expense_name,
+    (SELECT expense_type.name FROM expense_type WHERE expense_type.id = supplies_expense.expense_type_id) AS expense_name,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_trade_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requisitioner_name
 FROM supplies_expense
@@ -141,7 +141,7 @@ FROM supplies_expense
     LEFT JOIN user AS requester ON requester.id = supplies_expense.requisitioner
     LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
     LEFT JOIN forwarder ON forwarder.id = supplies_expense.forwarder_id
-    LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+    LEFT JOIN expense_type ON expense_type.id = supplies_expense.expense_type_id
     LEFT JOIN vendor ON vendor.id = supplies_expense.vendor_id
     LEFT JOIN user AS requisitioner ON requisitioner.id = supplies_expense.requisitioner
     LEFT JOIN supplies_expense_payment ON supplies_expense_payment.supplies_expense_id = supplies_expense.id

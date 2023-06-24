@@ -446,41 +446,6 @@ EOT;
     }
 
     /**
-     * Get payables aging
-     */
-    public function get_payables_aging($supplier_id = null, $expense_type = null)
-    {
-        $database = \Config\Database::connect();
-
-        $sql = <<<EOT
-SELECT customer, GROUP_CONCAT(cur) AS cur, GROUP_CONCAT(one_to_thirthy) AS one_to_thirthy, GROUP_CONCAT(thirtyone_to_sixty) AS thirtyone_to_sixty, GROUP_CONCAT(above_ninety) AS above_ninety, SUM(Total)
-FROM (
-  SELECT customer.id AS customer_id, project_invoice.id, customer.name AS customer, 
-    CASE
-    WHEN (project_invoice.payment_status = 'open_bill' AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 30) THEN GROUP_CONCAT(CONCAT("Invoice ",project_invoice.id,'-',project_invoice.grand_total))END AS cur,
-    CASE
-    WHEN project_invoice.payment_status = 'open_bill' AND DATEDIFF(CURDATE(), project_invoice.due_date) > 30 AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 60  THEN CONCAT("Invoice ",project_invoice.id,'-',project_invoice.grand_total) END AS one_to_thirthy,
-    CASE
-    WHEN project_invoice.payment_status = 'open_bill' AND DATEDIFF(CURDATE(), project_invoice.due_date) > 60 AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 90  THEN CONCAT("Invoice ",project_invoice.id,'-',project_invoice.grand_total) END AS thirtyone_to_sixty,
-    CASE
-    WHEN project_invoice.payment_status = 'open_bill' AND DATEDIFF(CURDATE(), project_invoice.due_date) > 90 THEN CONCAT("Invoice ",project_invoice.id,'-',project_invoice.grand_total) END AS above_ninety,
-    project_invoice.grand_total as total
-  FROM project_invoice
-  LEFT JOIN project ON project.id = project_invoice.project_id
-  LEFT JOIN customer ON customer.id = project.customer_id
-  WHERE project_invoice.is_deleted = 0
-    AND customer.is_deleted = 0
-    AND project.is_deleted = 0
-  GROUP BY customer.name, project_invoice.id
-) AS data
-GROUP BY data.customer_id;
-EOT;
-
-        $query = $database->query($sql);
-        return $query ? $query->getResultArray() : [];
-    }
-
-    /**
      * Get all pending requests
      */
     public function get_all_pending_requests()
