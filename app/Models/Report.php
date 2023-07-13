@@ -195,6 +195,100 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
+    /**
+     * Get expense
+     */
+    public function get_expense($expense_type = null, $date_from = null, $date_to = null, $payment_status = null)
+    {
+        $database = \Config\Database::connect();
+    
+        $binds = [];
+
+        $sql = <<<EOT
+SELECT expense.expense_date AS expense_date, expense.particulars AS particulars, expense.doc_no AS doc_no, expense.total AS expense_total, expense.type AS expense_type, expense.payment_status AS payment_status, expense.reference_no AS reference_no, expense.paid_amount AS paid_amount
+FROM (
+    SELECT supplies_expense.supplies_expense_date AS expense_date, 'Supplies Expense' AS particulars, supplies_expense.id AS doc_no, supplies_expense.grand_total AS total, expense_type.name AS type, CASE WHEN supplies_expense.grand_total = supplies_expense.paid_amount THEN 'fully paid' WHEN supplies_expense.grand_total < supplies_expense.paid_amount THEN 'over paid' WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_expense.paid_amount THEN 'partially paid' ELSE 'unpaid' END AS payment_status, supplies_expense.doc_no AS reference_no, supplies_expense.paid_amount AS paid_amount
+    FROM supplies_expense
+    LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+
+    UNION
+
+    SELECT project_expense.project_expense_date AS expense_date, 'Project Expense' AS particulars, project_expense.id AS doc_no, project_expense.grand_total AS total, expense_type.name AS type, CASE WHEN project_expense.grand_total = project_expense.paid_amount THEN 'fully paid' WHEN project_expense.grand_total < project_expense.paid_amount THEN 'over paid' WHEN project_expense.paid_amount > 0 AND project_expense.grand_total > project_expense.paid_amount THEN 'partially paid' ELSE 'unpaid' END AS payment_status, project_expense.id AS reference_no, project_expense.paid_amount AS paid_amount
+    FROM project_expense
+    LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
+) expense
+EOT;
+
+        $sql .= " WHERE expense.type IS NOT NULL AND expense.expense_date IS NOT NULL ";
+
+        if ($expense_type) {
+            $sql .= " AND expense.type = ?";
+            $binds[] = $expense_type;
+        }
+
+        if ($date_from) {
+            $sql .= " AND expense.expense_date >= ?";
+            $binds[] = $date_from;
+        }
+
+        if ($date_to) {
+            $sql .= " AND expense.expense_date <= ?";
+            $binds[] = $date_to;
+        }
+
+        if ($payment_status) {
+            $sql .= " AND expense.payment_status = ?";
+            $binds[] = $payment_status;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
+
+    /**
+     * Get expense
+     */
+    public function get_project_sales($project_id = null, $date_from = null, $date_to = null, $customer_id = null)
+    {
+        $database = \Config\Database::connect();
+    
+        $binds = [];
+
+        $sql = <<<EOT
+SELECT project.name AS name, project.start_date AS start_date, customer.name AS customer_name, project.grand_total AS amount, project.paid_amount AS paid_amount, project.grand_total - project.paid_amount AS receivable, SUM(IFNULL(project_expense.grand_total, 0)) AS project_expense, project.paid_amount - SUM(IFNULL(project_expense.grand_total, 0)) AS total_sales
+FROM project
+LEFT JOIN customer ON customer.id = project.customer_id
+LEFT JOIN project_expense ON project_expense.project_id = project.id
+EOT;
+
+        $sql .= " WHERE 1 ";
+
+        if ($project_id) {
+            $sql .= " AND project.id = ?";
+            $binds[] = $project_id;
+        }
+
+        if ($date_from) {
+            $sql .= " AND project.added_on >= ?";
+            $binds[] = $date_from;
+        }
+
+        if ($date_to) {
+            $sql .= " AND project.added_on <= ?";
+            $binds[] = $date_to;
+        }
+
+        if ($customer_id) {
+            $sql .= " AND project.customer_id = ?";
+            $binds[] = $customer_id;
+        }
+
+        $sql .= " GROUP BY project.id";
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
+
     /*
     * Get all payments done by franchisee, filterable by franchisee, branch, date from, date to, and payment type
     */
@@ -442,6 +536,148 @@ GROUP BY branch.id
 EOT;
 
         $query = $database->query($sql);
+        return $query ? $query->getResultArray() : [];
+    }
+
+    /**
+     * Get payables aging
+     */
+    public function get_payables_aging($supplier_id = null, $expense_type = null)
+    {
+        $database = \Config\Database::connect();
+
+        $sql = <<<EOT
+SELECT supplier_id, supplier_name, GROUP_CONCAT(cur) AS cur, GROUP_CONCAT(one_to_thirthy) AS one_to_thirthy, GROUP_CONCAT(thirtyone_to_sixty) AS thirtyone_to_sixty, GROUP_CONCAT(sixty_to_ninety) AS sixty_to_ninety, GROUP_CONCAT(above_ninety) AS above_ninety, SUM(total) AS total, SUM(total_paid) AS total_paid
+FROM (
+  SELECT supplier.id AS supplier_id, supplies_expense.id, supplier.trade_name AS supplier_name,
+    CASE
+    WHEN (supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), supplies_expense.due_date) <= 30) THEN GROUP_CONCAT(CONCAT("Supplies Expense ",supplies_expense.id,'-',supplies_expense.grand_total))END AS cur,
+    CASE
+    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), supplies_expense.due_date) > 30 AND DATEDIFF(CURDATE(), supplies_expense.due_date) <= 60  THEN CONCAT("Supplies Expense ",supplies_expense.id,'-',supplies_expense.grand_total) END AS one_to_thirthy,
+    CASE
+    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), supplies_expense.due_date) > 60 AND DATEDIFF(CURDATE(), supplies_expense.due_date) <= 90  THEN CONCAT("Supplies Expense ",supplies_expense.id,'-',supplies_expense.grand_total) END AS thirtyone_to_sixty,
+    CASE
+    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), supplies_expense.due_date) > 90 AND DATEDIFF(CURDATE(), supplies_expense.due_date) <= 120  THEN CONCAT("Supplies Expense ",supplies_expense.id,'-',supplies_expense.grand_total) END AS sixty_to_ninety,
+    CASE
+    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), supplies_expense.due_date) > 120 THEN CONCAT("Supplies Expense ",supplies_expense.id,'-',supplies_expense.grand_total) END AS above_ninety,
+    supplies_expense.grand_total as total,
+    supplies_expense.paid_amount as total_paid,
+    expense_type.id AS expense_type
+  FROM supplies_expense
+  LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
+  LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+  WHERE supplies_expense.is_deleted = 0
+    AND supplier.is_deleted = 0
+  GROUP BY supplier.trade_name, supplies_expense.id
+) AS data
+WHERE data.total > data.total_paid
+EOT;
+
+        $binds = [];
+    
+        if ($supplier_id) {
+            $sql .= " AND data.supplier_id = ?";
+            $binds[] = $supplier_id;
+        }
+
+        if ($expense_type) {
+            $sql .= " AND data.$expense_type = ?";
+            $binds[] = $expense_type;
+        }
+        $sql .= <<<EOT
+
+GROUP BY data.supplier_id;
+EOT;
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
+
+    /**
+     * Get receivables aging
+     */
+    public function get_receivables_aging($customer_id = null, $project_id = null)
+    {
+        $database = \Config\Database::connect();
+
+        $sql = <<<EOT
+SELECT customer_id, customer_name, GROUP_CONCAT(cur) AS cur, GROUP_CONCAT(one_to_thirthy) AS one_to_thirthy, GROUP_CONCAT(thirtyone_to_sixty) AS thirtyone_to_sixty, GROUP_CONCAT(sixty_to_ninety) AS sixty_to_ninety, GROUP_CONCAT(above_ninety) AS above_ninety, SUM(total) AS total, SUM(total_paid) AS total_paid
+FROM (
+  SELECT customer.id AS customer_id, project_invoice.id, customer.name AS customer_name,
+    CASE
+    WHEN (project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 30) THEN GROUP_CONCAT(CONCAT("Supplies Expense ",project_invoice.id,'-',project_invoice.grand_total))END AS cur,
+    CASE
+    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), project_invoice.due_date) > 30 AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 60  THEN CONCAT("Supplies Expense ",project_invoice.id,'-',project_invoice.grand_total) END AS one_to_thirthy,
+    CASE
+    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), project_invoice.due_date) > 60 AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 90  THEN CONCAT("Supplies Expense ",project_invoice.id,'-',project_invoice.grand_total) END AS thirtyone_to_sixty,
+    CASE
+    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), project_invoice.due_date) > 90 AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 120  THEN CONCAT("Supplies Expense ",project_invoice.id,'-',project_invoice.grand_total) END AS sixty_to_ninety,
+    CASE
+    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), project_invoice.due_date) > 120 THEN CONCAT("Supplies Expense ",project_invoice.id,'-',project_invoice.grand_total) END AS above_ninety,
+    project_invoice.grand_total as total,
+    project_invoice.paid_amount as total_paid,
+    project.id AS project_id
+  FROM project_invoice
+  LEFT JOIN project ON project.id = project_invoice.project_id
+  LEFT JOIN customer ON customer.id = project.customer_id
+  WHERE project_invoice.is_deleted = 0
+    AND customer.is_deleted = 0
+    AND project.is_deleted = 0
+    AND project.grand_total > project.paid_amount
+  GROUP BY customer.name, project_invoice.id
+) AS data
+WHERE data.total > data.total_paid
+EOT;
+
+        $binds = [];
+    
+        if ($customer_id) {
+            $sql .= " AND data.customer_id = ?";
+            $binds[] = $customer_id;
+        }
+
+        if ($project_id) {
+            $sql .= " AND data.project_id = ?";
+            $binds[] = $project_id;
+        }
+
+        $sql .= <<<EOT
+
+GROUP BY data.customer_id;
+EOT;
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
+
+    /**
+     * Get statement of account
+     */
+    public function get_statement_of_account($customer_id = null)
+    {
+        $database = \Config\Database::connect();
+
+        $sql = <<<EOT
+SELECT project.id AS project_id, project_invoice.invoice_date AS invoice_date, project_invoice.id AS project_invoice_id, project_invoice.grand_total AS total_amount, project_invoice.paid_amount AS total_paid, project_invoice.grand_total - project_invoice.paid_amount AS remaining_balance
+FROM project_invoice
+LEFT JOIN project ON project.id = project_invoice.project_id
+LEFT JOIN customer ON customer.id = project.customer_id
+WHERE project_invoice.grand_total > project_invoice.paid_amount
+EOT;
+
+        $binds = [];
+    
+        if ($customer_id) {
+            $sql .= " AND project.customer_id = ?";
+            $binds[] = $customer_id;
+        }
+
+        $sql .= <<<EOT
+
+GROUP BY project_invoice.id;
+EOT;
+
+        $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
     }
 
