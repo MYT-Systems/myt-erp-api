@@ -134,7 +134,11 @@ class Project_invoices extends MYTController
 
         // Refetch the updated project_invoice
         $project_invoice = $project_invoice ? $this->projectInvoiceModel->get_details_by_id($project_invoice['id'])[0] : null;
-        if ($project_invoice && $this->request->getVar('payment_type') && $payment_id = $this->_attempt_add_payment($project_invoice)) {
+        if (!$this->projectInvoicePaymentModel->delete_by_project_invoice_id($project_invoice['id'], $this->requested_by, $db)) {
+            var_dump("failed to delete project invoice payments");      
+            $response = $this->fail(['response' => 'Failed to update project_invoice payments.', 'status' => 'error']);
+            $db->transRollback();
+        } else if ($project_invoice && $this->request->getVar('payment_type') && $payment_id = $this->_attempt_add_payment($project_invoice)) {
             $response = $this->respond([
                 'status'             => 'success',
                 'project_invoice_id' => $project_invoice['id'],
@@ -152,11 +156,11 @@ class Project_invoices extends MYTController
         {
             // Check if credit limit is not exceeded
             $project = $this->projectModel->get_details_by_id($project_invoice['project_id'])[0];
-            $remaining_credit = $this->projectModel->get_remaining_credit_by_project_name($project['name']);
-            if ($remaining_credit[0]['remaining_credit'] < $project_invoice['grand_total']) {
-                var_dump("Credit limit exceeded");
-                $db->transRollback();
-            }
+            // $remaining_credit = $this->projectModel->get_remaining_credit_by_project_name($project['name']);
+            // if ($remaining_credit[0]['remaining_credit'] < $project_invoice['grand_total']) {
+            //     var_dump("Credit limit exceeded");
+            //     $db->transRollback();
+            // }
 
             $values = [
                 'fs_status'  => 'processing',
@@ -240,6 +244,7 @@ class Project_invoices extends MYTController
         $status = $this->request->getVar('status');
         $fully_paid_on = $this->request->getVar('fully_paid_on');
         $anything = $this->request->getVar('anything') ?? null;
+
 
         if (!$project_invoices = $this->projectInvoiceModel->search($project_invoice_id, $project_id, $invoice_date, $address, $company, $remarks, $payment_status, $status, $fully_paid_on, $anything)) {
             $response = $this->failNotFound('No project_invoice found');
@@ -330,7 +335,9 @@ class Project_invoices extends MYTController
         $values = [
             'project_id' => $this->request->getVar('project_id'),
             'invoice_date' => $this->request->getVar('invoice_date'),
+            'invoice_no' => $this->request->getVar('invoice_no'),
             'project_date' => $this->request->getVar('project_date'),
+            'due_date' => $this->request->getVar('due_date'),
             'address' => $this->request->getVar('address'),
             'company' => $this->request->getVar('company'),
             'remarks' => $this->request->getVar('remarks'),
@@ -433,10 +440,13 @@ class Project_invoices extends MYTController
     protected function _attempt_update($project_invoice_id)
     {
 
+
         $values = [
             'project_id' => $this->request->getVar('project_id'),
             'invoice_date' => $this->request->getVar('invoice_date'),
+            'invoice_no' => $this->request->getVar('invoice_no'),
             'project_date' => $this->request->getVar('project_date'),
+            'due_date' => $this->request->getVar('due_date'),
             'address' => $this->request->getVar('address'),
             'company' => $this->request->getVar('company'),
             'remarks' => $this->request->getVar('remarks'),
@@ -444,27 +454,6 @@ class Project_invoices extends MYTController
             'service_fee' => $this->request->getVar('service_fee'),
             'delivery_fee' => $this->request->getVar('delivery_fee'),
             'grand_total' => $this->request->getVar('grand_total'),
-
-        // $values = [
-        //     'project_id'         => $this->request->getVar('project_id'),
-        //     'sales_date'            => $this->request->getVar('sales_date'),
-        //     'delivery_date'         => $this->request->getVar('delivery_date'),
-        //     'delivery_fee'          => $this->request->getVar('delivery_fee'),
-        //     'service_fee'           => $this->request->getVar('service_fee'),
-        //     'project_order_no'    => $this->request->getVar('project_order_no'),
-        //     'transfer_slip_no'      => $this->request->getVar('transfer_slip_no'),
-        //     'order_request_date'    => $this->request->getVar('order_request_date'),
-        //     'seller_branch_id'      => $this->request->getVar('seller_branch_id'),
-        //     'buyer_branch_id'       => $this->request->getVar('buyer_branch_id'),
-        //     'sales_invoice_no'      => $this->request->getVar('sales_invoice_no'),
-        //     'dr_no'                 => $this->request->getVar('dr_no'),
-        //     'ship_via'              => $this->request->getVar('ship_via'),
-        //     'charge_invoice_no'     => $this->request->getVar('charge_invoice_no'),
-        //     'collection_invoice_no' => $this->request->getVar('collection_invoice_no'),
-        //     'address'               => $this->request->getVar('address'),
-        //     'remarks'               => $this->request->getVar('remarks'),
-        //     'sales_staff'           => $this->request->getVar('sales_staff'),
-        //     'grand_total'           => $this->request->getVar('grand_total'),
             'updated_by'            => $this->requested_by,
             'updated_on'            => date('Y-m-d H:i:s')
         ];
@@ -478,13 +467,13 @@ class Project_invoices extends MYTController
     /**
      * Attempt to revert and delete project invoice items
      */
-    protected function _revert_project_item($project_invoice_id, $seller_branch_id, $buyer_branch_id)
+    protected function _revert_project_item($project_invoice_id)
     {
         // revert the balance and grand total
         $project_invoice_items = $this->projectInvoiceItemModel->get_details_by_project_invoices_id($project_invoice_id);
 
         foreach ($project_invoice_items as $project_invoice_item) {
-            if ($item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($seller_branch_id, $project_invoice_item['item_name'], $project_invoice_item['unit'])) {
+            if ($item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($project_invoice_item['item_name'], $project_invoice_item['unit'])) {
                 if ($seller_inventory = $this->inventoryModel->get_inventory_detail($project_invoice_item['item_name'], $seller_branch_id, $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $seller_inventory[0]['current_qty'] + $project_invoice_item['qty'],
@@ -523,10 +512,10 @@ class Project_invoices extends MYTController
     {
         $old_grand_total  = $project_invoice['grand_total'];
 
-        if ($project_invoice['fs_status'] == 'invoiced') {
-            var_dump("failed to revert and delete");
-            return false;
-        }
+        // if (!$this->_revert_project_item($project_invoice['id'])) {
+        //     var_dump("failed to revert and delete");
+        //     return false;
+        // }
 
         if (!$this->projectInvoiceItemModel->delete_by_project_invoice_id($project_invoice['id'], $this->requested_by, $db)) {
             var_dump("failed to delete project invoice item model");      
@@ -552,10 +541,10 @@ class Project_invoices extends MYTController
         // }
 
         // Record the new credit limit
-        if ($project_invoice['fs_status'] != 'quoted' && !$this->_record_credit_limit($project_invoice['project_id'], $grand_total)) {
-            var_dump("record credit limit failed");
-            return false;
-        }
+        // if ($project_invoice['fs_status'] != 'quoted' && !$this->_record_credit_limit($project_invoice['project_id'], $grand_total)) {
+        //     var_dump("record credit limit failed");
+        //     return false;
+        // }
 
         return true;
     }
@@ -566,10 +555,12 @@ class Project_invoices extends MYTController
     protected function _attempt_delete($project_invoice, $db)
     {
 
-        if ($project_invoice['fs_status'] == 'invoiced' && !$this->_revert_project_item($project_invoice['id'])) {
-            var_dump("failed to revert and delete");
-            return false;
-        } elseif (!$this->projectInvoiceItemModel->delete_by_project_invoice_id($project_invoice['id'], $this->requested_by, $db)) {
+        // if (!$this->_revert_project_item($project_invoice['id'])) {
+        //     var_dump("failed to revert and delete");
+        //     return false;
+        // } else
+        
+        if (!$this->projectInvoiceItemModel->delete_by_project_invoice_id($project_invoice['id'], $this->requested_by, $db)) {
             var_dump("failed to delete project invoice item model");
             return false;
         }
@@ -649,19 +640,19 @@ class Project_invoices extends MYTController
         ];
 
         // Check if the project can create the order request based on the credit limit and paid amount
-        $project = $this->projectModel->get_details_by_id($values['project_id'])[0];
-        $remaining_credit = $this->projectModel->get_remaining_credit_by_project_name($project['name']);
+        $project = $this->projectModel->get_details_by_id($values['project_id']);
+        // $remaining_credit = $this->projectModel->get_remaining_credit_by_project_name($project['name']);
         // $current_credit_limit = $remaining_credit[0]['remaining_credit'];
         $paid_amount = $values['paid_amount'];
         $grand_total = $values['grand_total'];
 
         // Check if the project can create the order request based on the credit limit and paid amount
-        if (((float)$paid_amount) < (float)$grand_total && (float)$paid_amount != (float)$grand_total) {
-            $db->close();
-            var_dump("Exceed credit limit, grand total: $grand_total, paid amount: $paid_amount");
-            var_dump("Need to pay: " . ((float)$grand_total - ((float)$paid_amount)));
-            return false;
-        }
+        // if (((float)$paid_amount) < (float)$grand_total && (float)$paid_amount != (float)$grand_total) {
+        //     $db->close();
+        //     var_dump("Exceed credit limit, grand total: $grand_total, paid amount: $paid_amount");
+        //     var_dump("Need to pay: " . ((float)$grand_total - ((float)$paid_amount)));
+        //     return false;
+        // }
 
         if (!$project_invoice_payment_id = $this->projectInvoicePaymentModel->insert($values)) {
             $db->transRollback();
@@ -672,14 +663,14 @@ class Project_invoices extends MYTController
     
         // check if project invoice fs status is invoiced or processing
         // don't record anymore since it's already recorded during item update
-        if ($project_invoice['fs_status'] != 'invoiced' && $project_invoice['fs_status'] != 'processing') {
-            if (!$this->_record_credit_limit($values['project_id'], $grand_total)) {
-                $db->transRollback();
-                $db->close();
-                var_dump("record credit limit failed");
-                return false;
-            }
-        }
+        // if ($project_invoice['fs_status'] != 'invoiced' && $project_invoice['fs_status'] != 'processing') {
+        //     if (!$this->_record_credit_limit($values['project_id'], $grand_total)) {
+        //         $db->transRollback();
+        //         $db->close();
+        //         var_dump("record credit limit failed");
+        //         return false;
+        //     }
+        // }
         
         // Record the payment
         if (!$this->_record_sale_payment($project_invoice, $values)) {
@@ -729,10 +720,10 @@ class Project_invoices extends MYTController
         if (!$this->projectInvoiceModel->update($project_invoice['id'], $update_values))
             return false;
 
-        if (!$this->_record_credit_limit($project_invoice['project_id'], (float)$values['paid_amount'] * -1)) {
-            var_dump("Failed to increase credit limit.");
-            return false;
-        }
+        // if (!$this->_record_credit_limit($project_invoice['project_id'], (float)$values['paid_amount'] * -1)) {
+        //     var_dump("Failed to increase credit limit.");
+        //     return false;
+        // }
 
         return true;
     }
@@ -765,10 +756,11 @@ class Project_invoices extends MYTController
             case 'processing':
                 $values['fs_status'] = 'processing';
                 if ($project_invoice['fs_status'] == 'invoiced') {
-                    if (!$this->_revert_project_item($project_invoice['id'])) {
-                        var_dump("failed to revert and delete");
-                        return false;
-                    }
+
+                    // if (!$this->_revert_project_item($project_invoice['id'])) {
+                    //     var_dump("failed to revert and delete");
+                    //     return false;
+                    // }
                 }
                 break;
             default:

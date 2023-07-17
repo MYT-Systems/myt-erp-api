@@ -9,7 +9,9 @@ class Project_invoice extends MYTModel
     protected $allowedFields = [
         'project_id',
         'invoice_date',
+        'invoice_no',
         'project_date',
+        'due_date',
         'address',
         'company',
         'remarks',
@@ -49,6 +51,7 @@ FROM project_invoice
 LEFT JOIN project_invoice_payment ON project_invoice_payment.project_invoice_id = project_invoice.id
 WHERE project_invoice.is_deleted = 0
     AND project_invoice.id = ?
+GROUP BY project_invoice.id
 EOT;
         $binds = [$project_invoice_id];
 
@@ -64,10 +67,16 @@ EOT;
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT *,
-    (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = project_invoice.added_by) AS added_by_name
+    (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = project_invoice.added_by) AS added_by_name, project_invoice_item_name.name AS project_invoice_item_name
 FROM project_invoice
 LEFT JOIN project ON project.id = project_invoice.project_id
 LEFT JOIN project_invoice_payment ON project_invoice_payment.project_invoice_id = project_invoice.id
+LEFT JOIN (
+SELECT GROUP_CONCAT(DISTINCT project_invoice_item.item_name ORDER BY project_invoice_item.id ASC SEPARATOR ', ') AS name, project_invoice_item.project_invoice_id AS project_invoice_id
+FROM project_invoice_item
+WHERE project_invoice_item.is_deleted = 0
+GROUP BY project_invoice_item.project_invoice_id
+) AS project_invoice_item_name ON project_invoice_item_name.project_invoice_id = project_invoice.id
 WHERE project_invoice.is_deleted = 0
     AND project.id = ?
 EOT;
