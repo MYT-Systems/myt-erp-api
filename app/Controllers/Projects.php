@@ -393,12 +393,12 @@ class Projects extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->projectModel               = model('App\Models\Project');
-        $this->projectInvoiceModel               = model('App\Models\Project_invoice');
-        $this->projectAttachmentModel     = model('App\Models\Project_attachment');
+        $this->projectModel = model('App\Models\Project');
+        $this->projectInvoiceModel = model('App\Models\Project_invoice');
+        $this->projectAttachmentModel = model('App\Models\Project_attachment');
         $this->inventoryGroupDetailModel = model('App\Models\Inventory_group_detail');
-        $this->projectGroupDetailModel    = model('App\Models\Project_group_detail');
-        $this->franchiseeModel           = model('App\Models\Franchisee');
-        $this->webappResponseModel       = model('App\Models\Webapp_response');
+        $this->projectGroupDetailModel = model('App\Models\Project_group_detail');
+        $this->franchiseeModel = model('App\Models\Franchisee');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

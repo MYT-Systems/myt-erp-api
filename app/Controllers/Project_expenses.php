@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Project_expense;
+use App\Models\Partner;
 use App\Models\Webapp_response;
 
 class Project_expenses extends MYTController
@@ -80,28 +81,50 @@ class Project_expenses extends MYTController
         if (($response = $this->_api_verification('project_expense', 'create')) !== true)
             return $response;
 
-        
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
+            $where = [
+                'name' => $this->request->getVar('partner_name'),
+                'is_deleted' => 0
+            ];
+
+            $partner = $this->partnerModel->select('', $where, 1);
+
+            if(!$partner) {
+                $values = [
+                    'name'     => $this->request->getVar('partner_name'),
+                    'added_by' => $this->requested_by,
+                    'added_on' => date('Y-m-d H:i:s'),
+                ];
+                if(!$partner_id = $this->partnerModel->insert($values)) {
+                    $db->transRollback();
+                    $response = $this->fail('Server error');
+                }
+            } else {
+                $partner_id = $partner['id'];
+            }
+
             $values = [
                 'project_id' => $this->request->getVar('project_id'),
                 'expense_type_id' => $this->request->getVar('expense_type_id'),
-                'partner_id' => $this->request->getVar('partner_id'),
+                'partner_id' => $partner_id,
                 'remarks' => $this->request->getVar('remarks'),
                 'amount' => $this->request->getVar('amount'),
                 'other_fees' => $this->request->getVar('other_fees'),
                 'grand_total' => $this->request->getVar('grand_total'),
+                'project_expense_date' => $this->request->getVar('project_expense_date'),
                 'added_by' => $this->requested_by,
                 'added_on' => date('Y-m-d H:i:s'),
             ];
 
-            $db = \Config\Database::connect();
-            $db->transBegin();
-
             if (!$project_expense_id = $this->projectExpenseModel->insert($values)) {
                 $db->transRollback();
                 $response = $this->fail('Server error');
-            } elseif ($this->request->getFile('file') AND !$response = $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
+            } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
                    $response === false) {
-                $this->db->transRollback();
+                $db->transRollback();
+                $response = $this->respond(['response' => 'project_expense file upload failed']);
             } else {
                 $db->transCommit();
                 $response = $this->respond(['response' => 'project_expense created successfully']);
@@ -180,9 +203,15 @@ class Project_expenses extends MYTController
         if (($response = $this->_api_verification('project_expense', 'search')) !== true)
             return $response;
 
-        $name          = $this->request->getVar('name');
+            $project_id = $this->request->getVar('project_id');
+            $expense_type_id = $this->request->getVar('expense_type_id');
+            $partner_id = $this->request->getVar('partner_id');
+            $remarks = $this->request->getVar('remarks');
+            $amount = $this->request->getVar('amount');
+            $other_fees = $this->request->getVar('other_fees');
+            $grand_total = $this->request->getVar('grand_total');
 
-        if (!$project_expense = $this->projectExpenseModel->search($name)) {
+        if (!$project_expense = $this->projectExpenseModel->search($project_id, $expense_type_id, $partner_id, $remarks, $amount, $other_fees, $grand_total)) {
             $response = $this->failNotFound('No project_expense found');
         } else {
             $response = [];
@@ -211,6 +240,7 @@ class Project_expenses extends MYTController
             'amount' => $this->request->getVar('amount'),
             'other_fees' => $this->request->getVar('other_fees'),
             'grand_total' => $this->request->getVar('grand_total'),
+            'project_expense_date' => $this->request->getVar('project_expense_date'),
             'updated_by' => $this->requested_by,
             'updated_on' => date('Y-m-d H:i:s')
         ];
@@ -218,12 +248,16 @@ class Project_expenses extends MYTController
         if (!$this->projectExpenseModel->update($project_expense_id, $values))
             return false;
 
-        if (!$this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense['id'], $this->requested_by)) {
+        if (!$this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense_id, $this->requested_by)) {
             return false;
         } elseif ($this->request->getFile('file') AND
-                  $this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense['id'], $this->requested_by)
+                  $this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense_id, $this->requested_by)
         ) {
+            return false;
             // $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['expense_id' => $expense_id]);
+        } elseif(($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
+                   $response === false) {
+            return false;
         }
 
         return true;
@@ -254,6 +288,7 @@ class Project_expenses extends MYTController
     {
         $this->projectExpenseAttachmentModel = model('App\Models\Project_expense_attachment');
         $this->projectExpenseModel = new Project_expense();
+        $this->partnerModel = new Partner();
         $this->webappResponseModel  = new Webapp_response();
     }
 }

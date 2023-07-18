@@ -89,6 +89,10 @@ class Project_invoices extends MYTController
         } elseif (!$this->_attempt_generate_project_invoice_items($project_invoice_id, $db)) {
             $db->transRollback();
             $response = $this->fail($this->errorMessage);
+        } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectInvoiceAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
+                   $response === false) {
+                $db->transRollback();
+                $response = $this->respond(['response' => 'project_expense file upload failed']);
         } else {
             $db->transCommit();
             $response = $this->respond([
@@ -444,7 +448,6 @@ class Project_invoices extends MYTController
         $values = [
             'project_id' => $this->request->getVar('project_id'),
             'invoice_date' => $this->request->getVar('invoice_date'),
-            'invoice_no' => $this->request->getVar('invoice_no'),
             'project_date' => $this->request->getVar('project_date'),
             'due_date' => $this->request->getVar('due_date'),
             'address' => $this->request->getVar('address'),
@@ -460,6 +463,18 @@ class Project_invoices extends MYTController
 
         if (!$this->projectInvoiceModel->update($project_invoice_id, $values))
             return false;
+
+        if (!$this->projectInvoiceAttachmentModel->delete_attachments_by_project_invoice_id($project_expense_id, $this->requested_by)) {
+            return false;
+        } elseif ($this->request->getFile('file') AND
+                  $this->projectInvoiceAttachmentModel->delete_attachments_by_project_invoice_id($project_expense_id, $this->requested_by)
+        ) {
+            return false;
+            // $this->_attempt_upload_file_base64($this->projectInvoiceAttachmentModel, ['expense_id' => $expense_id]);
+        } elseif(($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectInvoiceAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
+                   $response === false) {
+            return false;
+        }
 
         return true;
     }
@@ -903,6 +918,7 @@ class Project_invoices extends MYTController
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
         $this->projectInvoiceItemModel    = model('App\Models\Project_invoice_item');
         $this->projectInvoicePaymentModel = model('App\Models\Project_invoice_payment');
+        $this->projectInvoiceAttachmentModel = model('App\Models\Project_invoice_payment');
         $this->projectModel               = model('App\Models\Project');
         $this->itemUnitModel              = model('App\Models\Item_unit');
         $this->inventoryModel             = model('App\Models\Inventory');
