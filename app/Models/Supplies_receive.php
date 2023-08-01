@@ -8,6 +8,7 @@ class Supplies_receive extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'branch_id',
+        'branch_name',
         'se_id',
         'supplier_id',
         'vendor_id',
@@ -45,23 +46,25 @@ class Supplies_receive extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *, 
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_receive.branch_id) AS branch_name,
+SELECT supplies_receive.*, 
     IF(supplies_receive.balance > 0, 'open', 'closed') as payment_status, 
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_receive.forwarder_id) AS forwarder_name, 
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS supplier_name,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_receive.vendor_id) AS vendor_name,
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_receive.branch_id) AS branch_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_receive.added_by) AS prepared_by,
     (SELECT supplier.contact_person FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS contact_person,
     (SELECT supplier.phone_no FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS phone_no,
-    CONCAT('Invoice No. ', supplies_receive.invoice_no, ' - ', supplies_receive.grand_total) AS invoice_label 
+    CONCAT('Invoice No. ', supplies_receive.invoice_no, ' - ', supplies_receive.grand_total) AS invoice_label,
+    supplies_expense.branch_name AS branch_name,
+    expense_type.name AS expense_type_name
 FROM supplies_receive
-WHERE is_deleted = 0
+LEFT JOIN supplies_expense ON supplies_expense.id = supplies_receive.se_id
+LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+WHERE supplies_receive.is_deleted = 0
 EOT;
         $binds = [];
         if (isset($supplies_receive_id)) {
-            $sql .= " AND id = ?";
+            $sql .= " AND supplies_receive.id = ?";
             $binds[] = $supplies_receive_id;
         }
 
@@ -77,12 +80,10 @@ EOT;
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT *, 
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_receive.branch_id) AS branch_name,
     IF(supplies_receive.balance > 0, 'open', 'closed') as payment_status, 
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_receive.forwarder_id) AS forwarder_name, 
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS supplier_name,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_receive.vendor_id) AS vendor_name,
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_receive.branch_id) AS branch_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_receive.added_by) AS prepared_by,
     (SELECT supplier.contact_person FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS contact_person,
     (SELECT supplier.phone_no FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS phone_no,
@@ -108,12 +109,10 @@ EOT;
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT *, 
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_receive.branch_id) AS branch_name,
     IF(supplies_receive.balance > 0, 'open', 'closed') as payment_status, 
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_receive.forwarder_id) AS forwarder_name, 
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS supplier_name,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_receive.vendor_id) AS vendor_name,
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_receive.branch_id) AS branch_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_receive.added_by) AS prepared_by,
     (SELECT supplier.contact_person FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS contact_person,
     (SELECT supplier.phone_no FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS phone_no,
@@ -155,12 +154,10 @@ EOT;
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT *, 
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_receive.branch_id) AS branch_name,
     IF(supplies_receive.balance > 0, 'open', 'closed') as payment_status, 
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_receive.forwarder_id) AS forwarder_name, 
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS supplier_name,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_receive.vendor_id) AS vendor_name,
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_receive.branch_id) AS branch_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_receive.added_by) AS prepared_by,
     (SELECT supplier.contact_person FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS contact_person,
     (SELECT supplier.phone_no FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS phone_no,
@@ -184,17 +181,15 @@ EOT;
     /**
      * Get supplies_receives based on supplies_receive name, contact_person, phone_no, tin_no, bir_no, email
      */
-   public function search($branch_id, $se_id, $supplier_id, $vendor_id, $supplies_receive_date, $waybill_no, $invoice_no, $dr_no, $remarks, $purchase_date_from, $purchase_date_to, $se_receive_date_from, $se_receive_date_to, $bill_type)
+   public function search($branch_name, $se_id, $supplier_id, $vendor_id, $supplies_receive_date, $waybill_no, $invoice_no, $dr_no, $remarks, $purchase_date_from, $purchase_date_to, $se_receive_date_from, $se_receive_date_to, $bill_type)
    {
        $database = \Config\Database::connect();
        $sql = <<<EOT
 SELECT *, supplies_receive.se_id AS se_receive_id,
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_receive.branch_id) AS branch_name,
     IF(supplies_receive.balance > 0, 'open', 'closed') as payment_status, 
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_receive.forwarder_id) AS forwarder_name, 
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS supplier_name,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_receive.vendor_id) AS vendor_name,
-    (SELECT branch.name FROM branch WHERE branch.id = supplies_receive.branch_id) AS branch_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_receive.added_by) AS prepared_by,
     (SELECT supplier.contact_person FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS contact_person,
     (SELECT supplier.phone_no FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS phone_no,
@@ -205,9 +200,9 @@ WHERE is_deleted = 0
 EOT;
 
         $binds = [];
-        if ($branch_id) {
-            $sql .= " AND branch_id = ?";
-            $binds[] = $branch_id;
+        if ($branch_name) {
+            $sql .= " AND branch_name = ?";
+            $binds[] = $branch_name;
         }
 
         if ($se_id) {

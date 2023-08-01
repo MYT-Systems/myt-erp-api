@@ -205,7 +205,6 @@ class Project_invoice_payments extends MYTController
     private function _record_inventory($project_invoice)
     {
         $project_invoice_items = $this->projectInvoiceItemModel->get_details_by_project_invoices_id($project_invoice['id']);
-
         foreach ($project_invoice_items as $project_invoice_item) {
             if ($item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($project_invoice['seller_project_id'], $project_invoice_item['item_id'], $project_invoice_item['unit'])) {
                 if ($seller_inventory = $this->inventoryModel->get_inventory_detail($project_invoice_item['item_id'], $project_invoice['seller_project_id'], $item_unit[0]['id'])) {

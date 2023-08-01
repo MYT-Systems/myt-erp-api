@@ -246,41 +246,77 @@ class MYTController extends ResourceController
      */
     protected function _attempt_upload_file_base64($model = null, $extra_data = [])
     {
-        $file = $this->request->getFile('file');
+        if($files = $this->request->getFileMultiple('file')) {
+            foreach($files AS $file) {
+                // file upload error
+                if (!$file || $file->getError() == 4) {
+                    return false;
+                }
+                
+                // convert the uploaded file into base64
+                $base64 = base64_encode(file_get_contents($file->getTempName()));
+                $base64_file = 'data:' . $file->getMimeType() . ';base64,' . $base64;
 
-        // file upload error
-        if (!$file || $file->getError() == 4) {
-            return false;
-        }
-        
-        // convert the uploaded file into base64
-        $base64 = base64_encode(file_get_contents($file->getTempName()));
-        $base64_file = 'data:' . $file->getMimeType() . ';base64,' . $base64;
+                $data = [
+                    'name'     => $file->getName(),
+                    'base_64'  => $base64_file,
+                    'added_by' => $this->requested_by,
+                    'added_on' => date('Y-m-d H:i:s'),
+                ];
 
-        $data = [
-            'name'     => $file->getName(),
-            'base_64'  => $base64_file,
-            'added_by' => $this->requested_by,
-            'added_on' => date('Y-m-d H:i:s'),
-        ];
+                $data = array_merge($data, $extra_data);
 
-        $data = array_merge($data, $extra_data);
-
-        if ($model->insert($data)) {
-            $response = $this->respond([
-                'status'  => 200,
-                'error'   => false,
-                'message' => 'File uploaded successfully'
-            ]);
+                if ($model->insert($data)) {
+                    $response = $this->respond([
+                        'status'  => 200,
+                        'error'   => false,
+                        'message' => 'File uploaded successfully'
+                    ]);
+                } else {
+                    $response = $this->respond([
+                        'status' => 500,
+                        'error'  => true,
+                        'message' => 'Failed to upload file',
+                        'data' => []
+                    ]);
+                }
+            }
         } else {
-            $response = $this->respond([
-                'status' => 500,
-                'error'  => true,
-                'message' => 'Failed to upload file',
-                'data' => []
-            ]);
-        }
+            $file = $this->request->getFile('file');
 
+            // file upload error
+            if (!$file || $file->getError() == 4) {
+                return false;
+            }
+            
+            // convert the uploaded file into base64
+            $base64 = base64_encode(file_get_contents($file->getTempName()));
+            $base64_file = 'data:' . $file->getMimeType() . ';base64,' . $base64;
+
+            $data = [
+                'name'     => $file->getName(),
+                'base_64'  => $base64_file,
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s'),
+            ];
+
+            $data = array_merge($data, $extra_data);
+
+            if ($model->insert($data)) {
+                $response = $this->respond([
+                    'status'  => 200,
+                    'error'   => false,
+                    'message' => 'File uploaded successfully'
+                ]);
+            } else {
+                $response = $this->respond([
+                    'status' => 500,
+                    'error'  => true,
+                    'message' => 'Failed to upload file',
+                    'data' => []
+                ]);
+            }
+        }
         return $response;
     }
 

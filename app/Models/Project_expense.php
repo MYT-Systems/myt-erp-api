@@ -9,6 +9,7 @@ class Project_expense extends MYTModel
     protected $allowedFields = [
         'project_id',
         'expense_type_id',
+        'project_expense_date',
         'partner_id',
         'remarks',
         'amount',
@@ -51,8 +52,10 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *
+SELECT project_expense.*, project.grand_total AS project_price, expense_type.name AS expense_type_name
 FROM project_expense
+LEFT JOIN project ON project.id = project_expense.project_id
+LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
 WHERE project_expense.is_deleted = 0
     AND project_expense.id = ?
 EOT;
@@ -81,21 +84,26 @@ EOT;
     /**
      * Get project_expenseess based on project_expense name, address, contact_person, contact_person_no, tin_no, bir_no
      */
-    public function search($name = null)
+    public function search($project_id = null, $expense_type_id = null, $partner_id = null, $remarks = null, $amount = null, $other_fees = null, $grand_total = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *
+SELECT project_expense.*, project.name, partner.name AS partner_name, CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name
 FROM project_expense
+LEFT JOIN project ON project.id = project_expense.project_id
+LEFT JOIN partner ON partner.id = project_expense.partner_id
+LEFT JOIN user AS adder ON adder.id = project_expense.added_by
 WHERE project_expense.is_deleted = 0
 EOT;
         $binds = [];
 
-        if ($name) {
-            $sql .= " AND project_expense.name REGEXP ?";
-            $name    = str_replace(' ', '|', $name);
-            $binds[] = $name;
-        }
+        if ($project_id) { $sql .= " AND project_expense.project_id = ?"; $binds[] = $project_id;}
+        if ($expense_type_id) { $sql .= " AND project_expense.expense_type_id = ?"; $binds[] = $expense_type_id;}
+        if ($partner_id) { $sql .= " AND project_expense.partner_id = ?"; $binds[] = $partner_id;}
+        if ($remarks) { $sql .= " AND project_expense.remarks = ?"; $binds[] = $remarks;}
+        if ($amount) { $sql .= " AND project_expense.amount = ?"; $binds[] = $amount;}
+        if ($other_fees) { $sql .= " AND project_expense.other_fees = ?"; $binds[] = $other_fees;}
+        if ($grand_total) { $sql .= " AND project_expense.grand_total = ?"; $binds[] = $grand_total;}
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;

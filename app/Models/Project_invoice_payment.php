@@ -95,7 +95,7 @@ EOT;
         $sql = <<<EOT
 SELECT *,
     (SELECT name FROM project WHERE project.id = project_invoice_payment.project_id) AS project_name,
-    (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE employee.id = project_invoice_payment.added_by) AS added_by_name,
+    (SELECT CONCAT(first_name, ' ', last_name) FROM user AS employee WHERE employee.id = project_invoice_payment.added_by) AS added_by_name,
     (SELECT name FROM bank WHERE bank.id = project_invoice_payment.from_bank_id) AS from_bank_name,
     (SELECT name FROM bank WHERE bank.id = project_invoice_payment.to_bank_id) AS to_bank_name
 FROM project_invoice_payment
@@ -186,6 +186,26 @@ EOT;
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Delete project_invoice_payment by project_invoice_id
+     */
+    public function delete_by_project_invoice_id($project_invoice_id = null, $requested_by = null, $db = null)
+    {
+        $database = $db ? $db : \Config\Database::connect();
+
+        $date_now = date('Y-m-d H:i:s');
+
+        $sql = <<<EOT
+UPDATE project_invoice_payment
+SET is_deleted = 1, updated_by = ?, updated_on = ?
+WHERE project_invoice_payment.is_deleted = 0
+    AND project_invoice_payment.project_invoice_id = ?
+EOT;
+        $binds = [$requested_by, $date_now, $project_invoice_id];
+
+        return $database->query($sql, $binds);
     }
 
     /**

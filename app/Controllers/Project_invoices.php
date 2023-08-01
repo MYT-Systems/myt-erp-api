@@ -382,6 +382,7 @@ class Project_invoices extends MYTController
         $seller_branch_id = $this->request->getVar('seller_branch_id');
         $buyer_branch_id  = $this->request->getVar('buyer_branch_id');
         $grand_total = 0;
+
         foreach ($item_names as $key => $item_name) {
             $subtotal = $prices[$key] * $quantities[$key];
 
@@ -409,6 +410,8 @@ class Project_invoices extends MYTController
                 return false;
             }
         }
+
+
 
         $grand_total = $grand_total + (float)$this->request->getVar('service_fee') + (float)$this->request->getVar('delivery_fee');
         $values = [
@@ -464,10 +467,10 @@ class Project_invoices extends MYTController
         if (!$this->projectInvoiceModel->update($project_invoice_id, $values))
             return false;
 
-        if (!$this->projectInvoiceAttachmentModel->delete_attachments_by_project_invoice_id($project_expense_id, $this->requested_by)) {
+        if (!$this->projectInvoiceAttachmentModel->delete_attachments_by_project_invoice_id($project_invoice_id, $this->requested_by)) {
             return false;
         } elseif ($this->request->getFile('file') AND
-                  $this->projectInvoiceAttachmentModel->delete_attachments_by_project_invoice_id($project_expense_id, $this->requested_by)
+                  $this->projectInvoiceAttachmentModel->delete_attachments_by_project_invoice_id($project_invoice_id, $this->requested_by)
         ) {
             return false;
             // $this->_attempt_upload_file_base64($this->projectInvoiceAttachmentModel, ['expense_id' => $expense_id]);
@@ -918,7 +921,7 @@ class Project_invoices extends MYTController
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
         $this->projectInvoiceItemModel    = model('App\Models\Project_invoice_item');
         $this->projectInvoicePaymentModel = model('App\Models\Project_invoice_payment');
-        $this->projectInvoiceAttachmentModel = model('App\Models\Project_invoice_payment');
+        $this->projectInvoiceAttachmentModel = model('App\Models\Project_invoice_attachment');
         $this->projectModel               = model('App\Models\Project');
         $this->itemUnitModel              = model('App\Models\Item_unit');
         $this->inventoryModel             = model('App\Models\Inventory');
