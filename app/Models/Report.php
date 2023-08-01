@@ -551,15 +551,15 @@ SELECT supplier_id, supplier_name, GROUP_CONCAT(cur) AS cur, GROUP_CONCAT(one_to
 FROM (
   SELECT supplier.id AS supplier_id, supplies_expense.id, supplier.trade_name AS supplier_name,
     CASE
-    WHEN (supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) + supplier.terms <= 30) THEN GROUP_CONCAT(CONCAT("Supplies Expense ",supplies_expense.id,' - ',supplies_expense.grand_total))END AS cur,
+    WHEN (supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date))- supplier.terms <= 0) THEN GROUP_CONCAT(CONCAT("Supplies Expense ",supplies_expense.id,' - ',supplies_expense.grand_total))END AS cur,
     CASE
-    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) + supplier.terms > 30 AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) + supplier.terms <= 60  THEN CONCAT("Supplies Expense ",supplies_expense.id,'-',supplies_expense.grand_total) END AS one_to_thirthy,
+    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms > 0 AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms <= 30  THEN CONCAT("Supplies Expense ",supplies_expense.id,' - ',supplies_expense.grand_total) END AS one_to_thirthy,
     CASE
-    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) + supplier.terms > 60 AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) + supplier.terms <= 90  THEN CONCAT("Supplies Expense ",supplies_expense.id,'-',supplies_expense.grand_total) END AS thirtyone_to_sixty,
+    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms > 30 AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms <= 60  THEN CONCAT("Supplies Expense ",supplies_expense.id,' - ',supplies_expense.grand_total) END AS thirtyone_to_sixty,
     CASE
-    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) + supplier.terms > 90 AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) + supplier.terms <= 120  THEN CONCAT("Supplies Expense ",supplies_expense.id,'-',supplies_expense.grand_total) END AS sixty_to_ninety,
+    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms > 60 AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms <= 90  THEN CONCAT("Supplies Expense ",supplies_expense.id,' - ',supplies_expense.grand_total) END AS sixty_to_ninety,
     CASE
-    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) + supplier.terms > 120 THEN CONCAT("Supplies Expense ",supplies_expense.id,'-',supplies_expense.grand_total) END AS above_ninety,
+    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms > 90 THEN CONCAT("Supplies Expense ",supplies_expense.id,' - ',supplies_expense.grand_total) END AS above_ninety,
     supplies_expense.grand_total as total,
     supplies_expense.paid_amount as total_paid,
     expense_type.id AS expense_type
@@ -605,15 +605,15 @@ SELECT customer_id, customer_name, GROUP_CONCAT(cur) AS cur, GROUP_CONCAT(one_to
 FROM (
   SELECT customer.id AS customer_id, project_invoice.id, customer.name AS customer_name,
     CASE
-    WHEN (project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 30) THEN GROUP_CONCAT(CONCAT("Supplies Expense ",project_invoice.id,'-',project_invoice.grand_total))END AS cur,
+    WHEN (project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date))- customer.terms <= 0) THEN GROUP_CONCAT(CONCAT("Project Invoice ",project_invoice.id,' - ',project_invoice.grand_total))END AS cur,
     CASE
-    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), project_invoice.due_date) > 30 AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 60  THEN CONCAT("Supplies Expense ",project_invoice.id,'-',project_invoice.grand_total) END AS one_to_thirthy,
+    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 0 AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms <= 30  THEN CONCAT("Project Invoice ",project_invoice.id,' - ',project_invoice.grand_total) END AS one_to_thirthy,
     CASE
-    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), project_invoice.due_date) > 60 AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 90  THEN CONCAT("Supplies Expense ",project_invoice.id,'-',project_invoice.grand_total) END AS thirtyone_to_sixty,
+    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 30 AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms <= 60  THEN CONCAT("Project Invoice ",project_invoice.id,' - ',project_invoice.grand_total) END AS thirtyone_to_sixty,
     CASE
-    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), project_invoice.due_date) > 90 AND DATEDIFF(CURDATE(), project_invoice.due_date) <= 120  THEN CONCAT("Supplies Expense ",project_invoice.id,'-',project_invoice.grand_total) END AS sixty_to_ninety,
+    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 60 AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms <= 90  THEN CONCAT("Project Invoice ",project_invoice.id,' - ',project_invoice.grand_total) END AS sixty_to_ninety,
     CASE
-    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), project_invoice.due_date) > 120 THEN CONCAT("Supplies Expense ",project_invoice.id,'-',project_invoice.grand_total) END AS above_ninety,
+    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 90 THEN CONCAT("Project Invoice ",project_invoice.id,' - ',project_invoice.grand_total) END AS above_ninety,
     project_invoice.grand_total as total,
     project_invoice.paid_amount as total_paid,
     project.id AS project_id

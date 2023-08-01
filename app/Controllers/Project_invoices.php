@@ -123,6 +123,7 @@ class Project_invoices extends MYTController
         $db = \Config\Database::connect();
         $db->transBegin();
 
+        $project_invoice = $this->projectInvoiceModel->select('', $where, 1);
         if (!$project_invoice = $this->projectInvoiceModel->select('', $where, 1)) {
             $response = $this->failNotFound('project_invoice not found');
         } elseif (!$this->_attempt_update($project_invoice['id'])) {
@@ -383,6 +384,13 @@ class Project_invoices extends MYTController
         $buyer_branch_id  = $this->request->getVar('buyer_branch_id');
         $grand_total = 0;
 
+        if(is_string($prices)) {
+            $prices = explode(',', $prices);
+            $quantities = explode(',', $quantities);
+            $item_names = explode(',', $item_names);
+            $units = explode(',', $units);            
+        }
+
         foreach ($item_names as $key => $item_name) {
             $subtotal = $prices[$key] * $quantities[$key];
 
@@ -401,7 +409,7 @@ class Project_invoices extends MYTController
             $values['unit']         = $units[$key];
             $values['price']        = $prices[$key];
             $values['qty']          = $quantities[$key];
-            $values['subtotal']       = $subtotal;
+            $values['subtotal']     = $subtotal;
 
             $grand_total += $values['subtotal'];
 
@@ -451,6 +459,7 @@ class Project_invoices extends MYTController
         $values = [
             'project_id' => $this->request->getVar('project_id'),
             'invoice_date' => $this->request->getVar('invoice_date'),
+            'invoice_no' => $this->request->getVar('invoice_no'),
             'project_date' => $this->request->getVar('project_date'),
             'due_date' => $this->request->getVar('due_date'),
             'address' => $this->request->getVar('address'),
@@ -464,18 +473,24 @@ class Project_invoices extends MYTController
             'updated_on'            => date('Y-m-d H:i:s')
         ];
 
-        if (!$this->projectInvoiceModel->update($project_invoice_id, $values))
-            return false;
+        if (!$this->projectInvoiceModel->update($project_invoice_id, $values)) {
+            var_dump("JKJK");
+            return false;            
+        }
+
 
         if (!$this->projectInvoiceAttachmentModel->delete_attachments_by_project_invoice_id($project_invoice_id, $this->requested_by)) {
+            var_dump("DFDF");
             return false;
         } elseif ($this->request->getFile('file') AND
                   $this->projectInvoiceAttachmentModel->delete_attachments_by_project_invoice_id($project_invoice_id, $this->requested_by)
         ) {
+            var_dump("HEY");
             return false;
             // $this->_attempt_upload_file_base64($this->projectInvoiceAttachmentModel, ['expense_id' => $expense_id]);
         } elseif(($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectInvoiceAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
                    $response === false) {
+            var_dump("THIS");
             return false;
         }
 
