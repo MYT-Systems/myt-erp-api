@@ -22,7 +22,7 @@ class Project_invoice extends MYTModel
         'balance',
         'paid_amount',
         'payment_status',
-        'fs_status',
+        'status',
         'fully_paid_on',
         'is_closed',
         'added_by',
@@ -141,7 +141,7 @@ EOT;
         }
 
         if ($status) {
-            $sql .= ' AND project_invoice.fs_status = ?';
+            $sql .= ' AND project_invoice.status = ?';
             $binds[] = $status;
         }
 
@@ -151,7 +151,7 @@ EOT;
         }
 
         // if ($anything) {
-        //     $sql .= ' AND (project_invoice.id LIKE ? OR project_invoice.sales_invoice_no LIKE ? OR project_invoice.dr_no LIKE ? OR project_invoice.charge_invoice_no LIKE ? OR project_invoice.collection_invoice_no LIKE ? OR project_invoice.address LIKE ? OR project_invoice.remarks LIKE ? OR project_invoice.sales_staff LIKE ? OR project_invoice.fs_status LIKE ? OR project_invoice.fully_paid_on LIKE ? OR project.name LIKE ? OR buyer_branch.name LIKE ? OR seller_branch.name LIKE ? OR sales_staff.first_name LIKE ? OR sales_staff.last_name LIKE ? OR adder.first_name LIKE ? OR adder.last_name LIKE ?)';
+        //     $sql .= ' AND (project_invoice.id LIKE ? OR project_invoice.sales_invoice_no LIKE ? OR project_invoice.dr_no LIKE ? OR project_invoice.charge_invoice_no LIKE ? OR project_invoice.collection_invoice_no LIKE ? OR project_invoice.address LIKE ? OR project_invoice.remarks LIKE ? OR project_invoice.sales_staff LIKE ? OR project_invoice.status LIKE ? OR project_invoice.fully_paid_on LIKE ? OR project.name LIKE ? OR buyer_branch.name LIKE ? OR seller_branch.name LIKE ? OR sales_staff.first_name LIKE ? OR sales_staff.last_name LIKE ? OR adder.first_name LIKE ? OR adder.last_name LIKE ?)';
         //     $new_binds = [];
         //     for ($i = 0; $i < 17; $i++) {
         //         $new_binds[] = '%' . $anything . '%';

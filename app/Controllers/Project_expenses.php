@@ -46,6 +46,60 @@ class Project_expenses extends MYTController
     }
 
     /**
+     * Send project_expense to client
+     */
+    public function update_status($id = '')
+    {
+        if (($response = $this->_api_verification('project_expense', 'update_status')) !== true)
+            return $response;
+
+        $where = [
+            'id' => $this->request->getVar('project_expense_id'), 
+            'is_deleted' => 0
+        ];
+
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        $status = $this->request->getVar('status');
+
+        if (!$project_expense = $this->projectExpenseModel->select('', $where, 1)) {
+            $response = $this->failNotFound('Project expense not found.');
+        } elseif ($status === $project_expense['status']) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Project expense is already ' . $status, 'status' => 'error']);
+        } elseif (!$this->_attempt_update_status($project_expense, $db)) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to update project expense status.', 'status' => 'error']);
+        } else {
+            $db->transCommit();
+            $response = $this->respond(['response' => 'Project expense status updated successfully.', 'status' => 'success']);
+        }
+
+        $db->close();
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Attempt delete
+     */
+    protected function _attempt_update_status($project_expense, $db)
+    {
+        $status = $this->request->getVar('status');
+        $values = [
+            'status' => $status,
+            'sent_by' => $this->requested_by,
+            'sent_on' => date('Y-m-d H:i:s')
+        ];
+
+        if (!$this->projectExpenseModel->update($project_expense['id'], $values))
+            return false;
+
+        return true;
+    }
+
+    /**
      * Get all project_expense
      */
     public function get_all_project_expense()

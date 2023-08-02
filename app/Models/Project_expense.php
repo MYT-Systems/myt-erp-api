@@ -15,6 +15,7 @@ class Project_expense extends MYTModel
         'amount',
         'other_fees',
         'grand_total',
+        'status',
         'added_by',
         'added_on',
         'updated_by',

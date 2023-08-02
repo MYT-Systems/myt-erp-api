@@ -151,13 +151,13 @@ class Project_invoices extends MYTController
             ]);
         }
 
-        // Record the credit limit since there is no payment method but the fs_status is processing
-        // Only record if the original status is not processing
-        // Since it will be redundant when the user updtates it to processing
+        // Record the credit limit since there is no payment method but the status is pending
+        // Only record if the original status is not pending
+        // Since it will be redundant when the user updtates it to pending
         if ($project_invoice 
-            && $project_invoice['fs_status'] == 'quoted' 
+            && $project_invoice['status'] == 'quoted' 
             && !$this->request->getVar('payment_type') 
-            && $this->request->getVar('fs_status') == 'processing') 
+            && $this->request->getVar('status') == 'pending') 
         {
             // Check if credit limit is not exceeded
             $project = $this->projectModel->get_details_by_id($project_invoice['project_id'])[0];
@@ -168,7 +168,7 @@ class Project_invoices extends MYTController
             // }
 
             $values = [
-                'fs_status'  => 'processing',
+                'status'  => 'pending',
                 'updated_by' => $this->requested_by,
                 'updated_on' => date('Y-m-d H:i:s')
             ];
@@ -184,12 +184,12 @@ class Project_invoices extends MYTController
             } 
         }
 
-        // if ($project_invoice['fs_status'] == 'invoiced' && !$this->_record_inventory($project_invoice)) {
+        // if ($project_invoice['status'] == 'invoiced' && !$this->_record_inventory($project_invoice)) {
         //     $response = $this->fail(['response' => 'Failed to record inventory.', 'status' => 'error']);
         //     $db->transRollback();
         // }
 
-        // if ($project_invoice['fs_status'] == 'invoiced') {
+        // if ($project_invoice['status'] == 'invoiced') {
         //     $response = $this->fail(['response' => 'Failed to record inventory.', 'status' => 'error']);
         //     $db->transRollback();
         // }
@@ -224,6 +224,37 @@ class Project_invoices extends MYTController
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'project_invoice deleted successfully.', 'status' => 'success']);
+        }
+
+        $db->close();
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Send project_invoices to client
+     */
+    public function send_to_client($id = '')
+    {
+        if (($response = $this->_api_verification('project_invoices', 'send_to_client')) !== true)
+            return $response;
+
+        $where = [
+            'id' => $this->request->getVar('project_invoice_id'), 
+            'is_deleted' => 0
+        ];
+
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        if (!$project_invoice = $this->projectInvoiceModel->select('', $where, 1)) {
+            $response = $this->failNotFound('Project invoice not found.');
+        } elseif (!$this->_attempt_send_to_client($project_invoice, $db)) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to send project invoice.', 'status' => 'error']);
+        } else {
+            $db->transCommit();
+            $response = $this->respond(['response' => 'Project invoice sent successfully.', 'status' => 'success']);
         }
 
         $db->close();
@@ -352,7 +383,7 @@ class Project_invoices extends MYTController
             'grand_total' => $this->request->getVar('grand_total'),
             'balance'               => 0,
             'paid_amount'           => 0,
-            'payment_status'        => 'processing',
+            'payment_status'        => 'pending',
             'added_by'              => $this->requested_by,
             'added_on'              => date('Y-m-d H:i:s'),
         ];
@@ -546,7 +577,7 @@ class Project_invoices extends MYTController
         }
 
         // Reset the credit limit
-        // if ($project_invoice['fs_status'] != 'quoted') {
+        // if ($project_invoice['status'] != 'quoted') {
         //     var_dump("failed to restore credit limit");
         //     return false;
         // }
@@ -558,16 +589,34 @@ class Project_invoices extends MYTController
         }
 
         // Check if new grand total is under credit limit
-        // if ($project_invoice['fs_status'] != 'quoted') {
+        // if ($project_invoice['status'] != 'quoted') {
         //     var_dump("New grand total is over the credit limit");
         //     return false;
         // }
 
         // Record the new credit limit
-        // if ($project_invoice['fs_status'] != 'quoted' && !$this->_record_credit_limit($project_invoice['project_id'], $grand_total)) {
+        // if ($project_invoice['status'] != 'quoted' && !$this->_record_credit_limit($project_invoice['project_id'], $grand_total)) {
         //     var_dump("record credit limit failed");
         //     return false;
         // }
+
+        return true;
+    }
+
+    /**
+     * Attempt delete
+     */
+    protected function _attempt_send_to_client($project_invoice, $db)
+    {        
+        $values = [
+            'status' => 'sent',
+            'is_sent' => 1,
+            'sent_by' => $this->requested_by,
+            'sent_on' => date('Y-m-d H:i:s')
+        ];
+
+        if (!$this->projectInvoiceModel->update($project_invoice['id'], $values))
+            return false;
 
         return true;
     }
@@ -684,9 +733,9 @@ class Project_invoices extends MYTController
             return false;
         }
     
-        // check if project invoice fs status is invoiced or processing
+        // check if project invoice fs status is invoiced or pending
         // don't record anymore since it's already recorded during item update
-        // if ($project_invoice['fs_status'] != 'invoiced' && $project_invoice['fs_status'] != 'processing') {
+        // if ($project_invoice['status'] != 'invoiced' && $project_invoice['status'] != 'pending') {
         //     if (!$this->_record_credit_limit($values['project_id'], $grand_total)) {
         //         $db->transRollback();
         //         $db->close();
@@ -704,7 +753,7 @@ class Project_invoices extends MYTController
         }
 
         $values = [
-            'fs_status' => 'processing',
+            'status' => 'pending',
             'updated_by' => $this->requested_by,
             'updated_on' => date('Y-m-d H:i:s')
         ];
@@ -766,19 +815,19 @@ class Project_invoices extends MYTController
 
         switch ($status) {
             case 'invoiced':
-                $values['fs_status'] = 'invoiced';
-                // if ($project_invoice['fs_status'] != 'invoiced' && !$this->_record_inventory($project_invoice)) {
+                $values['status'] = 'invoiced';
+                // if ($project_invoice['status'] != 'invoiced' && !$this->_record_inventory($project_invoice)) {
                 //     var_dump("Failed to record inventory.");
                 //     return false;
                 // }
-                // if ($project_invoice['fs_status'] != 'invoiced') {
+                // if ($project_invoice['status'] != 'invoiced') {
                 //     var_dump("Failed to record inventory.");
                 //     return false;
                 // }
                 break;
-            case 'processing':
-                $values['fs_status'] = 'processing';
-                if ($project_invoice['fs_status'] == 'invoiced') {
+            case 'pending':
+                $values['status'] = 'pending';
+                if ($project_invoice['status'] == 'invoiced') {
 
                     // if (!$this->_revert_project_item($project_invoice['id'])) {
                     //     var_dump("failed to revert and delete");
