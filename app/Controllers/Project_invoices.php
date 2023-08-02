@@ -369,7 +369,6 @@ class Project_invoices extends MYTController
     protected function _attempt_generate_project_invoice_items($project_invoice_id, $db)
     {
         $item_names   = $this->request->getVar('item_names') ?? [];
-
         $units      = $this->request->getVar('units') ?? [];
         $prices     = $this->request->getVar('prices') ?? [];
         $quantities = $this->request->getVar('quantities') ?? [];
@@ -380,16 +379,7 @@ class Project_invoices extends MYTController
             'added_on'           => date('Y-m-d H:i:s'),
         ];
 
-        $seller_branch_id = $this->request->getVar('seller_branch_id');
-        $buyer_branch_id  = $this->request->getVar('buyer_branch_id');
         $grand_total = 0;
-
-        if(is_string($prices)) {
-            $prices = explode(',', $prices);
-            $quantities = explode(',', $quantities);
-            $item_names = explode(',', $item_names);
-            $units = explode(',', $units);            
-        }
 
         foreach ($item_names as $key => $item_name) {
             $subtotal = $prices[$key] * $quantities[$key];
