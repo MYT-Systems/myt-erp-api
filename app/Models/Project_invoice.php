@@ -46,6 +46,7 @@ class Project_invoice extends MYTModel
         $sql = <<<EOT
 SELECT project_invoice.*,
     (SELECT name FROM project WHERE project.id = project_invoice.project_id) AS project_name,
+    (SELECT grand_total FROM project WHERE project.id = project_invoice.project_id) AS project_amount,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = project_invoice.added_by) AS added_by_name
 FROM project_invoice
 LEFT JOIN project_invoice_payment ON project_invoice_payment.project_invoice_id = project_invoice.id
@@ -114,7 +115,8 @@ EOT;
 SELECT project_invoice.*,
     project.name AS project_name,
     CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name,
-    IF (project_invoice.is_closed = 1, 'closed_bill', IF (project_invoice.paid_amount > project_invoice.grand_total, 'overpaid', project_invoice.payment_status)) AS payment_status
+    IF (project_invoice.is_closed = 1, 'closed_bill', IF (project_invoice.paid_amount > project_invoice.grand_total, 'overpaid', project_invoice.payment_status)) AS payment_status,
+    project.grand_total AS project_amount
 FROM project_invoice
 LEFT JOIN project ON project.id = project_invoice.project_id
 LEFT JOIN employee AS adder ON adder.id = project_invoice.added_by

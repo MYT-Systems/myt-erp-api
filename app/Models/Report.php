@@ -210,12 +210,16 @@ FROM (
     SELECT supplies_expense.supplies_expense_date AS expense_date, 'Supplies Expense' AS particulars, supplies_expense.id AS doc_no, supplies_expense.grand_total AS total, expense_type.name AS type, CASE WHEN supplies_expense.grand_total = supplies_expense.paid_amount THEN 'fully paid' WHEN supplies_expense.grand_total < supplies_expense.paid_amount THEN 'over paid' WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_expense.paid_amount THEN 'partially paid' ELSE 'unpaid' END AS payment_status, supplies_expense.doc_no AS reference_no, supplies_expense.paid_amount AS paid_amount
     FROM supplies_expense
     LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+    WHERE supplies_expense.is_deleted = 0
+    AND supplies_expense.status = 'approved'
 
     UNION
 
     SELECT project_expense.project_expense_date AS expense_date, 'Project Expense' AS particulars, project_expense.id AS doc_no, project_expense.grand_total AS total, expense_type.name AS type, CASE WHEN project_expense.grand_total = project_expense.paid_amount THEN 'fully paid' WHEN project_expense.grand_total < project_expense.paid_amount THEN 'over paid' WHEN project_expense.paid_amount > 0 AND project_expense.grand_total > project_expense.paid_amount THEN 'partially paid' ELSE 'unpaid' END AS payment_status, project_expense.id AS reference_no, project_expense.paid_amount AS paid_amount
     FROM project_expense
     LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
+    WHERE project_expense.is_deleted = 0
+    AND project_expense.status = 'approved'
 ) expense
 EOT;
 
@@ -259,9 +263,11 @@ SELECT project.name AS name, project.start_date AS start_date, customer.name AS 
 FROM project
 LEFT JOIN customer ON customer.id = project.customer_id
 LEFT JOIN project_expense ON project_expense.project_id = project.id
+WHERE project_expense.is_deleted = 0
+AND customer.is_deleted = 0
+AND project.is_deleted = 0
+AND project_expense.status = 'approved' 
 EOT;
-
-        $sql .= " WHERE 1 ";
 
         if ($project_id) {
             $sql .= " AND project.id = ?";
