@@ -53,10 +53,11 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT project_expense.*, project.grand_total AS project_price, expense_type.name AS expense_type_name
+SELECT project_expense.*, project.grand_total AS project_price, expense_type.name AS expense_type_name, project.name AS project_name, partner.name AS partner_name
 FROM project_expense
 LEFT JOIN project ON project.id = project_expense.project_id
 LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
+LEFT JOIN partner ON partner.id = project_expense.partner_id
 WHERE project_expense.is_deleted = 0
     AND project_expense.id = ?
 EOT;
