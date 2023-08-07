@@ -68,7 +68,7 @@ EOT;
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT *,
-    (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = project_invoice.added_by) AS added_by_name, project_invoice_item_name.name AS project_invoice_item_name
+    (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = project_invoice.added_by) AS added_by_name, project_invoice_item_name.name AS project_invoice_item_name, SUM(project_invoice_payment.paid_amount) AS paid_amount, project.invoice_amount - IF(SUM(project_invoice_payment.paid_amount) IS NULL, 0, SUM(project_invoice_payment.paid_amount)) AS balance
 FROM project_invoice
 LEFT JOIN project ON project.id = project_invoice.project_id
 LEFT JOIN project_invoice_payment ON project_invoice_payment.project_invoice_id = project_invoice.id
@@ -80,6 +80,8 @@ GROUP BY project_invoice_item.project_invoice_id
 ) AS project_invoice_item_name ON project_invoice_item_name.project_invoice_id = project_invoice.id
 WHERE project_invoice.is_deleted = 0
     AND project.id = ?
+GROUP BY project_invoice.id
+ORDER BY project_invoice.id ASC
 EOT;
         $binds = [$project_id];
 
