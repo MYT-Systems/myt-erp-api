@@ -561,44 +561,59 @@ class Reports extends MYTController
      */
     public function get_dashboard_reports()
     {
-        if (($response = $this->_api_verification('reports', 'get_dashboard_reports')) !== true)
-            return $response;
+        // if (($response = $this->_api_verification('reports', 'get_dashboard_reports')) !== true)
+        //     return $response;
         
-        if (!$reports = $this->reportModel->get_dash_reports()) {
-            $response = $this->failNotFound('No report Found');
-        } else {
-            $for_approval_adjustments = $this->reportModel->get_adjustments_for_approval();
-            $report_for_approval_adjustments = [];
-            foreach ($for_approval_adjustments AS $for_approval_adjustment) {
-                // check if the index exists
-                $user_type = $for_approval_adjustment['user_type'];
-                $user_type = $user_type == 'branch' ? 'branch' : 'office';
-                $index = $for_approval_adjustment['branch_name'] . '-' . $user_type;
-                if (!isset($report_for_approval_adjustments[$index])) {
-                    $report_for_approval_adjustments[$index] = [
-                        'count' => 0,
-                        'branch_name' => $for_approval_adjustment['branch_name'],
-                        'account_type' => $user_type
-                    ];
-                }
-                $report_for_approval_adjustments[$index]['count'] += $for_approval_adjustment['count'];
-            }
-
-            $low_stocks_per_branch          = $this->reportModel->get_low_stocks_per_branch();
-            $all_pending_requests           = $this->reportModel->get_all_pending_requests();
-            $all_unprocess_franchisee_sales = $this->reportModel->get_all_unprocess_franchisee_sales();
-            $all_for_approval_transfer      = $this->reportModel->get_all_for_approval_transfers();
+        // if (!$reports = $this->reportModel->get_dashboard_reports()) {
+        //     $response = $this->failNotFound('No report Found');
+        // } else {
             
-            $reports['for_approval_adjustments'] = $report_for_approval_adjustments;
-            $reports['low_stocks_per_branch'] = $low_stocks_per_branch;
-            $reports['all_pending_requests'] = $all_pending_requests;
-            $reports['all_unprocess_franchisee_sales'] = $all_unprocess_franchisee_sales;
-            $reports['all_for_approval_transfer'] = $all_for_approval_transfer;
-            $response = $this->respond([
-                'dashboard_reports' => $reports,
-                'status'            => 'success'
-            ]);
-        }
+            // $for_approval_adjustments = $this->reportModel->get_adjustments_for_approval();
+            // $report_for_approval_adjustments = [];
+            // foreach ($for_approval_adjustments AS $for_approval_adjustment) {
+            //     // check if the index exists
+            //     $user_type = $for_approval_adjustment['user_type'];
+            //     $user_type = $user_type == 'branch' ? 'branch' : 'office';
+            //     $index = $for_approval_adjustment['branch_name'] . '-' . $user_type;
+            //     if (!isset($report_for_approval_adjustments[$index])) {
+            //         $report_for_approval_adjustments[$index] = [
+            //             'count' => 0,
+            //             'branch_name' => $for_approval_adjustment['branch_name'],
+            //             'account_type' => $user_type
+            //         ];
+            //     }
+            //     $report_for_approval_adjustments[$index]['count'] += $for_approval_adjustment['count'];
+            // }
+
+            // $low_stocks_per_branch          = $this->reportModel->get_low_stocks_per_branch();
+            // $all_pending_requests           = $this->reportModel->get_all_pending_requests();
+            // $all_unprocess_franchisee_sales = $this->reportModel->get_all_unprocess_franchisee_sales();
+            // $all_for_approval_transfer      = $this->reportModel->get_all_for_approval_transfers();
+            
+            // $reports['for_approval_adjustments'] = $report_for_approval_adjustments;
+            // $reports['low_stocks_per_branch'] = $low_stocks_per_branch;
+            // $reports['all_pending_requests'] = $all_pending_requests;
+            // $reports['all_unprocess_franchisee_sales'] = $all_unprocess_franchisee_sales;
+            // $reports['all_for_approval_transfer'] = $all_for_approval_transfer;
+
+            // $response = $this->respond([
+            //     'dashboard_reports' => $reports,
+            //     'status'            => 'success'
+            // ]);
+        // }
+
+        $data = [];
+        $data['sales'] = number_format($this->reportModel->get_sales(), 2, '.', "");
+        $data['expenses'] = number_format($this->reportModel->get_expenses(), 2, '.', "");
+        $data['net_sales'] = number_format($data['sales'] - $data['expenses'], 2, '.', "");
+        $data['receivables'] = number_format($this->reportModel->get_receivables(), 2, '.', "");
+        $data['pending_invoice'] = count($this->projectInvoiceModel->select('', ['status' => 'pending', 'is_deleted' => 0]));
+        $data['pending_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0]));
+
+        $response = $this->respond([
+            'data'   => $data,
+            'status' => 'success'
+        ]);
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
@@ -758,7 +773,9 @@ class Reports extends MYTController
     protected function _load_essentials()
     {
         $this->reportModel                = model('App\Models\Report');
-        $this->customerModel                = model('App\Models\Customer');
+        $this->projectInvoiceModel        = model('App\Models\Project_invoice');
+        $this->projectExpenseModel        = model('App\Models\Project_expense');
+        $this->customerModel              = model('App\Models\Customer');
         $this->branchModel                = model('App\Models\Branch');
         $this->transferModel              = model('App\Models\Transfer');
         $this->transferItemModel          = model('App\Models\Transfer_item');
