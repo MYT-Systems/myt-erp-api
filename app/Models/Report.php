@@ -259,14 +259,13 @@ EOT;
         $binds = [];
 
         $sql = <<<EOT
-SELECT project.name AS name, project.start_date AS start_date, customer.name AS customer_name, project.grand_total AS amount, project.paid_amount AS paid_amount, project.grand_total - project.paid_amount AS receivable, SUM(IFNULL(project_expense.grand_total, 0)) AS project_expense, project.paid_amount - SUM(IFNULL(project_expense.grand_total, 0)) AS total_sales
+SELECT project.name AS name, project.start_date AS start_date, customer.name AS customer_name, project.grand_total AS amount, project.paid_amount AS paid_amount, project.grand_total - project.paid_amount AS receivable, SUM(IFNULL(project_expense.grand_total, 0)) AS project_expense, project.paid_amount - SUM(IF(project_expense.status = 'approved', IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
 FROM project
 LEFT JOIN customer ON customer.id = project.customer_id
 LEFT JOIN project_expense ON project_expense.project_id = project.id
 WHERE project_expense.is_deleted = 0
 AND customer.is_deleted = 0
 AND project.is_deleted = 0
-AND project_expense.status = 'approved' 
 EOT;
 
         if ($project_id) {
