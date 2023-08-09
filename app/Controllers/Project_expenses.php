@@ -181,7 +181,10 @@ class Project_expenses extends MYTController
                 $response = $this->respond(['response' => 'project_expense file upload failed']);
             } else {
                 $db->transCommit();
-                $response = $this->respond(['response' => 'project_expense created successfully']);
+                $response = $this->respond([
+                        'project_expense_id' => $project_expense_id,
+                        'response' => 'project_expense created successfully'
+                    ]);
             }
             
             $db->close();
@@ -265,8 +268,9 @@ class Project_expenses extends MYTController
             $other_fees = $this->request->getVar('other_fees');
             $grand_total = $this->request->getVar('grand_total');
             $status = $this->request->getVar('status');
+            $project_name = $this->request->getVar('project_name');
 
-        if (!$project_expense = $this->projectExpenseModel->search($project_id, $expense_type_id, $partner_id, $remarks, $amount, $other_fees, $grand_total, $status)) {
+        if (!$project_expense = $this->projectExpenseModel->search($project_id, $expense_type_id, $partner_id, $remarks, $amount, $other_fees, $grand_total, $status, $project_name)) {
             $response = $this->failNotFound('No project_expense found');
         } else {
             $response = [];

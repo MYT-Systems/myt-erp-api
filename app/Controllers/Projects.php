@@ -189,10 +189,6 @@ class Projects extends MYTController
         $contact_number = $this->request->getVar('contact_number');
         $project_type = $this->request->getVar('project_type');
 
-        // var_dump($project_id, $name, $address, $phone_no, $contact_person, $contact_person_no, $franchisee_name, $franchisee_contact_no, $tin_no, $bir_no, $contract_start, $contract_end, $opening_date, $is_open, $is_franchise, $no_project_group, $no_inventory_group);
-        // var_dump($this->projectModel->search($project_id, $name, $address, $phone_no, $contact_person, $contact_person_no, $franchisee_name, $franchisee_contact_no, $tin_no, $bir_no, $contract_start, $contract_end, $opening_date, $is_open, $is_franchise, $no_project_group, $no_inventory_group));
-        // die();
-
         if (!$projects = $this->projectModel->search($project_id, $name, $project_date, $start_date, $customer_id, $address, $company, $contact_person, $contact_number, $project_type)) {
             $response = $this->failNotFound('No project found');
         } else {
@@ -225,7 +221,7 @@ class Projects extends MYTController
             'vat_type' => $this->request->getVar('vat_type'),
             'vat_twelve' => $this->request->getVar('vat_twelve'),
             'vat_net' => $this->request->getVar('vat_net'),
-            'witholding_tax' => $this->request->getVar('witholding_tax'),
+            'withholding_tax' => $this->request->getVar('withholding_tax'),
             'grand_total' => $this->request->getVar('grand_total'),
             'balance' => $this->request->getVar('grand_total'),
             'added_by'              => $this->requested_by,
@@ -284,7 +280,7 @@ class Projects extends MYTController
             'vat_type' => $this->request->getVar('vat_type'),
             'vat_twelve' => $this->request->getVar('vat_twelve'),
             'vat_net' => $this->request->getVar('vat_net'),
-            'witholding_tax' => $this->request->getVar('witholding_tax'),
+            'withholding_tax' => $this->request->getVar('withholding_tax'),
             'grand_total' => $this->request->getVar('grand_total'),
             'balance' => $this->request->getVar('grand_total'),
             'updated_by'            => $this->requested_by,

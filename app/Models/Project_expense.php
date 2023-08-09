@@ -86,7 +86,7 @@ EOT;
     /**
      * Get project_expenseess based on project_expense name, address, contact_person, contact_person_no, tin_no, bir_no
      */
-    public function search($project_id = null, $expense_type_id = null, $partner_id = null, $remarks = null, $amount = null, $other_fees = null, $grand_total = null, $status = null)
+    public function search($project_id = null, $expense_type_id = null, $partner_id = null, $remarks = null, $amount = null, $other_fees = null, $grand_total = null, $status = null, $project_name = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -107,6 +107,7 @@ EOT;
         if ($other_fees) { $sql .= " AND project_expense.other_fees = ?"; $binds[] = $other_fees;}
         if ($grand_total) { $sql .= " AND project_expense.grand_total = ?"; $binds[] = $grand_total;}
         if ($status) { $sql .= " AND project_expense.status = ?"; $binds[] = $status;}
+        if ($project_name) { $sql .= " AND project.name = ?"; $binds[] = $project_name;}
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;

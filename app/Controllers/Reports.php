@@ -607,8 +607,8 @@ class Reports extends MYTController
         $data['expenses'] = number_format($this->reportModel->get_expenses(), 2, '.', "");
         $data['net_sales'] = number_format($data['sales'] - $data['expenses'], 2, '.', "");
         $data['receivables'] = number_format($this->reportModel->get_receivables(), 2, '.', "");
-        $data['pending_invoice'] = count($this->projectInvoiceModel->select('', ['status' => 'pending', 'is_deleted' => 0]));
-        $data['pending_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0]));
+        $data['pending_invoice'] = count($this->projectInvoiceModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
+        $data['pending_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
 
         $response = $this->respond([
             'data'   => $data,

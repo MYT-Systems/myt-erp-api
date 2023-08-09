@@ -20,7 +20,7 @@ class Project extends MYTModel
         'vat_type',
         'vat_twelve',
         'vat_net',
-        'witholding_tax',
+        'withholding_tax',
         'grand_total',
         'balance',
         'added_by',

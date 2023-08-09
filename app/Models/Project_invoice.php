@@ -131,6 +131,11 @@ EOT;
             $binds[] = $project_invoice_id;
         }
 
+        if ($company) {
+            $sql .= ' AND project_invoice.company = ?';
+            $binds[] = $company;
+        }
+
         if ($project_id) {
             $sql .= ' AND project_invoice.project_id = ?';
             $binds[] = $project_id;

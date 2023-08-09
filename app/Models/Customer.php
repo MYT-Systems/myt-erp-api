@@ -55,6 +55,7 @@ SELECT *
 FROM customer
 WHERE customer.is_deleted = 0
     AND customer.id = ?
+ORDER BY customer.name ASC
 EOT;
         $binds = [$customer_id];
 
@@ -73,6 +74,7 @@ EOT;
 SELECT customer.*
 FROM customer
 WHERE customer.is_deleted = 0
+ORDER BY customer.name ASC
 EOT;
         $query = $database->query($sql);
         return $query ? $query->getResultArray() : false;
@@ -127,6 +129,7 @@ EOT;
             $binds[] = $tin_no;
         }
 
+        $sql    .= " ORDER BY customer.name ASC";
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
