@@ -23,6 +23,7 @@ class Project extends MYTModel
         'withholding_tax',
         'grand_total',
         'balance',
+        'recurring_cost_total',
         'added_by',
         'added_on',
         'updated_by',

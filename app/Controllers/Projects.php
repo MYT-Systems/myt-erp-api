@@ -26,12 +26,24 @@ class Projects extends MYTController
         $project            = $project_id ? $this->projectModel->get_details_by_id($project_id) : null;
         $project_attachment = $project_id ? $this->projectAttachmentModel->get_details_by_project_id($project_id) : null;
         $project_invoice    = $project_id ? $this->projectInvoiceModel->get_details_by_project_id($project_id) : null;
+        $project_recurring_cost = $project_id ? $this->projectRecurringCostModel->get_details_by_project_id($project_id) : null;
+
+        if($project_recurring_cost) {
+            foreach($project_recurring_cost AS $index => $project_recurring_cost_item) {
+                $project_recurring_cost[$index]['descriptions'] = $project_recurring_cost[$index]['description'];
+                $project_recurring_cost[$index]['types'] = $project_recurring_cost[$index]['type'];
+                $project_recurring_cost[$index]['periods'] = $project_recurring_cost[$index]['period'];
+                $project_recurring_cost[$index]['prices'] = $project_recurring_cost[$index]['price'];
+            }
+        }
 
         if (!$project) {
             $response = $this->failNotFound('No project found');
         } else {
             $project[0]['attachment'] = $project_attachment;
             $project[0]['invoice'] = $project_invoice;
+            $project[0]['recurring_cost'] = $project_recurring_cost;
+
 
             $response = $this->respond([
                 'status' => 'success',
@@ -79,7 +91,7 @@ class Projects extends MYTController
         if (($response = $this->_api_verification('projects', 'create')) !== true)
             return $response;
 
-        $where = ['name' => $this->request->getVar('name')];
+        $where = ['name' => $this->request->getVar('name'), 'is_deleted' => 0];
         if ($this->projectModel->select('', $where, 1)) {
             $response = $this->fail('project already exists.');
             $this->webappResponseModel->record_response($this->webapp_log_id, $response);
@@ -92,6 +104,9 @@ class Projects extends MYTController
         if (!$project_id = $this->_attempt_create()) {
             $this->db->transRollback();
             $response = $this->fail('Failed to create project.');
+        } elseif (!$this->_attempt_generate_project_recurring_costs($project_id)) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
         } elseif ($this->request->getFile('file') AND !$response = $this->_attempt_upload_file_base64($this->projectAttachmentModel, ['project_id' => $project_id]) AND
                    $response === false) {
             $this->db->transRollback();
@@ -107,6 +122,45 @@ class Projects extends MYTController
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
+
+    /**
+     * Update project_invoices
+     */
+    protected function _attempt_generate_project_recurring_costs($project_id)
+    {
+        $descriptions = $this->request->getVar('descriptions') ?? [];
+        $types = $this->request->getVar('types') ?? [];
+        $periods = $this->request->getVar('periods') ?? [];
+        $prices = $this->request->getVar('prices') ?? [];
+
+        $values = [
+            'project_id'         => $project_id,
+            'added_by'           => $this->requested_by,
+            'added_on'           => date('Y-m-d H:i:s'),
+        ];
+
+        $grand_total = 0;
+
+        foreach ($descriptions as $key => $description) {
+            // checks if it is an item in case an item_name was passed
+            $description = $descriptions[$key];
+            $type = $types[$key];
+            $period = $periods[$key];
+            $price = $prices[$key];
+
+            $values['description']  = $description;
+            $values['type']         = $type;
+            $values['period']          = $period;
+            $values['price']     = $price;
+
+            if (!$this->projectRecurringCostModel->insert($values)) {
+                $this->errorMessage = $db->error()['message'];
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     /**
      * Update project
@@ -129,6 +183,12 @@ class Projects extends MYTController
         } elseif (!$this->_attempt_update($project)) {
             $this->db->transRollback();
             $response = $this->fail(['response' => 'Failed to update project.', 'status' => 'error']);
+        } elseif (!$this->_attempt_delete_recurring_costs($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
+        } elseif (!$this->_attempt_generate_project_recurring_costs($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
             $response = $this->respond(['response' => 'Project updated successfully.', 'status' => 'success']);
@@ -137,6 +197,19 @@ class Projects extends MYTController
         $this->db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
+    }
+
+    /**
+     * Attempt delete
+     */
+    protected function _attempt_delete_recurring_costs($project_id)
+    {
+        if (!$this->projectRecurringCostModel->delete_recurring_costs_by_project_id($project_id, $this->requested_by)) {
+            var_dump("failed to delete project recurring cost");
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -186,7 +259,7 @@ class Projects extends MYTController
         $address = $this->request->getVar('address');
         $company = $this->request->getVar('company');
         $contact_person = $this->request->getVar('contact_person');
-        $contact_number = $this->request->getVar('contact_number');
+        $contact_number = $this->request->getVar('contact_number') ?: null;
         $project_type = $this->request->getVar('project_type');
 
         if (!$projects = $this->projectModel->search($project_id, $name, $project_date, $start_date, $customer_id, $address, $company, $contact_person, $contact_number, $project_type)) {
@@ -215,7 +288,7 @@ class Projects extends MYTController
             'address' => $this->request->getVar('address'),
             'company' => $this->request->getVar('company'),
             'contact_person' => $this->request->getVar('contact_person'),
-            'contact_number' => $this->request->getVar('contact_number'),
+            'contact_number' => $this->request->getVar('contact_number') ?: null,
             'project_type' => $this->request->getVar('project_type'),
             'project_price' => $this->request->getVar('project_price'),
             'vat_type' => $this->request->getVar('vat_type'),
@@ -224,6 +297,7 @@ class Projects extends MYTController
             'withholding_tax' => $this->request->getVar('withholding_tax'),
             'grand_total' => $this->request->getVar('grand_total'),
             'balance' => $this->request->getVar('grand_total'),
+            'recurring_cost_total' => $this->request->getVar('recurring_cost_total'),
             'added_by'              => $this->requested_by,
             'added_on'              => date('Y-m-d H:i:s'),
         ];
@@ -274,7 +348,7 @@ class Projects extends MYTController
             'address' => $this->request->getVar('address'),
             'company' => $this->request->getVar('company'),
             'contact_person' => $this->request->getVar('contact_person'),
-            'contact_number' => $this->request->getVar('contact_number'),
+            'contact_number' => $this->request->getVar('contact_number') ?: null,
             'project_type' => $this->request->getVar('project_type'),
             'project_price' => $this->request->getVar('project_price'),
             'vat_type' => $this->request->getVar('vat_type'),
@@ -283,12 +357,10 @@ class Projects extends MYTController
             'withholding_tax' => $this->request->getVar('withholding_tax'),
             'grand_total' => $this->request->getVar('grand_total'),
             'balance' => $this->request->getVar('grand_total'),
+            'recurring_cost_total' => $this->request->getVar('recurring_cost_total'),
             'updated_by'            => $this->requested_by,
             'updated_on'            => date('Y-m-d H:i:s')
         ];
-
-        // var_dump($this->inventoryGroupDetailModel->get_details_by_project_id_and_project_group_id($project['id'], $project['inventory_group_id']));
-        // die();
 
         if (!$this->projectModel->update($project['id'], $values)) {
             return false;
@@ -363,7 +435,6 @@ class Projects extends MYTController
         //     ];
 
         //     if (!$this->franchiseeModel->update_schedule_by_project_id($project['id'], $values, $this->db)) {
-        //         var_dump($this->db->error()['message']);
         //         return false;
         //     }
         // }
@@ -395,6 +466,7 @@ class Projects extends MYTController
     {
         $this->projectModel               = model('App\Models\Project');
         $this->projectInvoiceModel               = model('App\Models\Project_invoice');
+        $this->projectRecurringCostModel               = model('App\Models\Project_recurring_cost');
         $this->projectAttachmentModel     = model('App\Models\Project_attachment');
         $this->inventoryGroupDetailModel = model('App\Models\Inventory_group_detail');
         $this->projectGroupDetailModel    = model('App\Models\Project_group_detail');
