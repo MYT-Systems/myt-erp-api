@@ -19,7 +19,7 @@
                 <img src="https://mangomagic.myt-pos.com/static/media/logo_2.33299458199ff7b38f7b.png"/>
             </div>
             <div style="text-align: center; margin-bottom: 20px;">
-                MYT SOFTDEV SOLUTIONS.
+                TRIPLE K EXPRESSFOODS/ 3K EXPRESSFOODS/ CHK BUSINESS VENTURES CORP.
             </div>
             <div>
                 <div style="display: flex; justify-content: space-between; margin-top: 10px;">
@@ -33,10 +33,6 @@
                 <div style="display: flex; justify-content: space-between; margin-top: 10px;">
                     <div style="font-weight: bold;">Forwarder:</div>
                     <div><?= $purchase['forwarder_name'] ?></div>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-                    <div style="font-weight: bold;">Type:</div>
-                    <div><?= $purchase['expense_name'] ?></div>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-top: 10px;">
                     <div style="font-weight: bold;">Delivery Address:</div>

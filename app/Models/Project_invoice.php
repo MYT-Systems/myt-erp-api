@@ -50,8 +50,10 @@ SELECT project_invoice.*,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = project_invoice.added_by) AS added_by_name
 FROM project_invoice
 LEFT JOIN project_invoice_payment ON project_invoice_payment.project_invoice_id = project_invoice.id
+LEFT JOIN project ON project.id = project_invoice.project_id
 WHERE project_invoice.is_deleted = 0
     AND project_invoice.id = ?
+    AND project.is_deleted = 0
 GROUP BY project_invoice.id
 EOT;
         $binds = [$project_invoice_id];
@@ -80,6 +82,7 @@ GROUP BY project_invoice_item.project_invoice_id
 ) AS project_invoice_item_name ON project_invoice_item_name.project_invoice_id = project_invoice.id
 WHERE project_invoice.is_deleted = 0
     AND project.id = ?
+    AND porject.is_deleted = 0
 GROUP BY project_invoice.id
 ORDER BY project_invoice.id ASC
 EOT;
@@ -100,7 +103,9 @@ SELECT *,
     (SELECT name FROM project WHERE project.id = project_invoice.project_id) AS project_name,
     (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE employee.id = project_invoice.added_by) AS added_by_name
 FROM project_invoice
-WHERE is_deleted = 0
+LEFT JOIN project ON project.id = project_invoice.project_id
+WHERE project_invoice.is_deleted = 0
+AND project.is_deleted = 0
 EOT;
 
         $query = $database->query($sql);
@@ -123,6 +128,7 @@ FROM project_invoice
 LEFT JOIN project ON project.id = project_invoice.project_id
 LEFT JOIN employee AS adder ON adder.id = project_invoice.added_by
 WHERE project_invoice.is_deleted = 0
+AND project.is_deleted = 0
 EOT;
         $binds = [];
 

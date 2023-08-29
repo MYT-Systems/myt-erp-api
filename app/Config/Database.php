@@ -31,11 +31,11 @@ class Database extends Config
      * @var array
      */
     public $default = [
-        'DSN'      => 'mysql:host=localhost;port=3306;dbname=stadaevents_erp',
+        'DSN'      => 'mysql:host=localhost;port=3306;dbname=myt_erp_db',
         'hostname' => 'localhost',
         'username' => 'root',
         'password' => '',
-        'database' => 'stadaevents_erp',
+        'database' => 'myt_erp_db',
          'DBDriver' => 'MySQLi',
         'DBPrefix' => '',
         'pConnect' => false,

@@ -211,7 +211,10 @@ FROM (
     FROM supplies_expense
     LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
     WHERE supplies_expense.is_deleted = 0
-    AND supplies_expense.status = 'approved'
+    AND supplies_expense.status <> "pending"
+    AND supplies_expense.status <> "for_approval"
+    AND supplies_expense.status <> "disapproved"
+    AND supplies_expense.status <> "deleted"
 
     UNION
 
@@ -625,7 +628,6 @@ FROM (
   LEFT JOIN project ON project.id = project_invoice.project_id
   LEFT JOIN customer ON customer.id = project.customer_id
   WHERE project_invoice.is_deleted = 0
-    AND customer.is_deleted = 0
     AND project.is_deleted = 0
     AND project.grand_total > project.paid_amount
   GROUP BY customer.name, project_invoice.id
@@ -750,10 +752,12 @@ EOT;
         $database = \Config\Database::connect();
 
         $sql = <<<EOT
-SELECT SUM(grand_total - paid_amount) AS receivables
+SELECT SUM(project_invoice.grand_total - project_invoice.paid_amount) AS receivables
 FROM project_invoice
-WHERE is_deleted = 0
-AND status = 'sent';
+LEFT JOIN project ON project.id = project_invoice.project_id
+WHERE project_invoice.is_deleted = 0
+AND project.is_deleted = 0
+AND project_invoice.status = 'sent';
 EOT;
 
         $query = $database->query($sql);
