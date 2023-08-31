@@ -476,23 +476,17 @@ class Supplies_expenses extends MYTController
         }
         
         $supplies_expense_items = $this->suppliesExpenseItemModel->get_se_items_by_se_id($supplies_expense['id']);
-        // Always in warehouse
-        if (!$branch = $this->branchModel->get_details_by_id(1)) {
-            var_dump("no branch found");
-            return false;
-        }
 
         $data = [
             'supplies_expense'      => $supplies_expense,
             'supplies_expense_items'=> $supplies_expense_items,
             'supplier'              => $supplier ? $supplier[0] : $vendor[0],
-            'branch'                => $branch[0]
         ];
 
         $email = \Config\Services::email();
-        $email->setFrom('triplekexpressfoods@gmail.com', 'Triple K Expressfoods');
+        $email->setFrom('mytdevcorp.com@gmail.com', 'MYT');
         $email->setTo($supplier_email);
-        $email->setCC('triplekexpressfoods@gmail.com');
+        $email->setCC('mytdevcorp.com@gmail.com');
         $email->setSubject('SUPPLIES EXPENSE ORDER #'.$supplies_expense['id']);
 
         // Create an html message

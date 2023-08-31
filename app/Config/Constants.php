@@ -95,7 +95,7 @@ define('EVENT_PRIORITY_HIGH', 10);
 defined('daccfc89-ff47-4ce1-99bf-5ad2d8f57282') || define('daccfc89-ff47-4ce1-99bf-5ad2d8f57282', 'century_superbods_api');
 define('site_name', 'Mango Magic');
 define('site_url', 'https://mangomagic.myt-pos.com/');
-define('admin_email', 'triplekexpressfoods@gmail.com');
+define('admin_email', 'mytdevcorp.com@gmail.com');
 
 // SYSTEM USER ID
 defined('SYSTEM_ID') || define('SYSTEM_ID', '0');

@@ -39,7 +39,40 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
-    
+
+    /**
+     * Get distributor that are in need of billing for a certain date
+     * If no billing in the past 30 days then client must show
+     */
+    public function get_clients_to_bill($distributor_id = null, $billing_date = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT distributor_client.*, customer.name AS customer_name, project.name AS project_name
+FROM distributor
+    LEFT JOIN distributor_client ON distributor_client.distributor_id = distributor.id
+    LEFT JOIN distributor_billing_entry ON distributor_billing_entry.distributor_client_id = distributor_client.id
+    LEFT JOIN distributor_billing ON distributor_billing.id = distributor_billing_entry.distributor_billing_id
+    LEFT JOIN project ON project.id = distributor_client.project_id
+    LEFT JOIN customer ON customer.id = distributor_client.customer_id
+WHERE distributor.id = ?
+    AND (distributor_billing.billing_date IS NULL OR distributor_billing.billing_date < DATE_SUB(?, INTERVAL 30 DAY))
+    AND (project.start_date < DATE_SUB(?, INTERVAL 30 DAY))
+    AND (distributor_client.distributor_client_date < DATE_SUB(?, INTERVAL 30 DAY))
+    AND distributor.is_deleted = 0
+    AND distributor_client.is_deleted = 0
+    AND (distributor_billing_entry.is_deleted = 0 OR distributor_billing_entry.is_deleted IS NULL)
+    AND (distributor_billing.is_deleted = 0 OR distributor_billing.is_deleted IS NULL)
+GROUP BY distributor_client.id
+EOT;
+
+        // 2023-08-31
+        $binds = [$distributor_id, $billing_date, $billing_date, $billing_date];
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
     /**
      * Get distributor details by ID
      */

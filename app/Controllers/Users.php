@@ -110,12 +110,15 @@ class Users extends MYTController
         if (($response = $this->_api_verification('users', 'update')) !== true)
             return $response;
 
-        $pin = $this->request->getVar('pin');
-        $where = ['pin' => $pin, 'is_deleted' => 0];
+        // $pin = $this->request->getVar('pin');
+        // $where = ['pin' => $pin, 'is_deleted' => 0];
+
+        $user_id = $this->request->getVar('user_id');
+        $where = ['id' => $user_id, 'is_deleted' => 0];
         
         if (!$user = $this->userModel->select('', $where, 1))
             $response = $this->failNotFound('User not found');
-        elseif ($this->userModel->select('', ['username' => $this->request->getVar('username'), 'pin !=' => $pin], 1))
+        elseif ($this->userModel->select('', ['username' => $this->request->getVar('username'), 'id !=' => $user_id], 1))
             $response = $this->fail('Username already exists');
         elseif (!$this->_attempt_update($user))
             $response = $this->fail($this->errorMessage);
@@ -312,10 +315,10 @@ class Users extends MYTController
         $previous_user_assignment = $this->userAssignmentModel->select('', ['user_id' => $user_id], 1, 'id DESC');
         $end_values = ['ended_on' => $current_datetime];
 
-        if (!$this->userAssignmentModel->update($previous_user_assignment['id'], $end_values)) return false;
+        // if (!$this->userAssignmentModel->update($previous_user_assignment['id'], $end_values)) return false;
 
         $values = [
-            'employee_id' => $this->request->getVar('employee_id'),
+            // 'employee_id' => $this->request->getVar('employee_id'),
             'user_id' => $user_id,
             'assigned_on' => $current_datetime
         ];

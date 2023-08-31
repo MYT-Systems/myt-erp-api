@@ -133,7 +133,7 @@ class Distributors extends MYTController
             $response = $this->fail('Server error');
         } else if (!$this->_attempt_generate_distributor_clients($distributor_id, $db)) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to generate PO items.', 'status' => 'error']);
+            $response = $this->fail(['response' => 'Failed to generate distributor billing.', 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond([
