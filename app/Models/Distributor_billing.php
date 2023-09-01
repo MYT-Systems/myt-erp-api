@@ -100,19 +100,20 @@ EOT;
      * Get distributor_billings based on distributor_billing name, contact_person, phone_no, tin_no, bir_no, email
      * can_be_paid - used by add payment function, this avoid overpaying
      */
-    public function search($name, $limit_by, $anything)
+    public function search($distributor_id, $limit_by = null, $anything = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT distributor_billing.*, 
+SELECT distributor_billing.*, distributor.name AS distributor_name
 FROM distributor_billing
+LEFT JOIN distributor ON distributor.id = distributor_billing.distributor_id
 WHERE distributor_billing.is_deleted = 0
 EOT;
         $binds = [];
 
-        if ($name) {
-            $sql .= ' AND distributor_billing.name = ?';
-            $binds[] = $branch_id;
+        if ($distributor_id) {
+            $sql .= ' AND distributor_billing.distributor_id = ?';
+            $binds[] = $distributor_id;
         }
 
         $sql .= ' ORDER BY distributor_billing.added_on DESC';

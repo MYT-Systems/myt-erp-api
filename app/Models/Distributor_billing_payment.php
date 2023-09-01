@@ -32,12 +32,10 @@ class Distributor_billing_payment extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT distributor_billing_payment.*, distributor.name AS distributor_name
+SELECT distributor_billing_payment.*
 FROM distributor_billing_payment
-LEFT JOIN distributor ON distributor.id = distributor_billing_payment.distributor_id
 WHERE distributor_billing_payment.id = ?
     AND distributor_billing_payment.is_deleted = 0
-    AND distributor.is_deleted = 0
 EOT;
         $binds = [$distributor_billing_payment_id];
         $query = $database->query($sql, $binds);

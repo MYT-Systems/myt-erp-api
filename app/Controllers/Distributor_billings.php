@@ -161,11 +161,20 @@ class Distributor_billings extends MYTController
         $distributor_id = $this->request->getVar('distributor_id');
         $billing_date = $this->request->getVar('billing_date');
 
+        $distributor_billing_entries = $this->distributorModel->get_clients_to_bill($distributor_id, $billing_date);
+
+        foreach($distributor_billing_entries AS $index => $distributor_billing_entry) {
+            $where = [
+                'id' => $distributor_billing_entries[$index]['distributor_id']
+            ];
+            $distributor = $this->distributorModel->select('', $where, 1);
+            $distributor_billing_entries[$index]['distributor'] = $distributor;
+        }
+
         $where = [
-            'id' => $distributor_id
+            'id' => $this->request->getVar('distributor_id')
         ];
         $distributor = $this->distributorModel->select('', $where, 1);
-        $distributor_billing_entries = $this->distributorModel->get_clients_to_bill($distributor_id, $billing_date);
 
         $response = $this->respond([
             'distributor' => $distributor,
@@ -247,11 +256,15 @@ class Distributor_billings extends MYTController
         if (($response = $this->_api_verification('distributor_billings', 'search')) !== true) 
             return $response;
 
-        $name          = $this->request->getVar('name') ? : null;
+        $distributor_id          = $this->request->getVar('distributor_id') ? : null;
 
-        if (!$distributor_billings = $this->distributorBillingModel->search($name, $limit_by, $anything)) {
+        if (!$distributor_billings = $this->distributorBillingModel->search($distributor_id)) {
             $response = $this->failNotFound('No distributor_billing found');
         } else {
+
+            foreach ($distributor_billings as $key => $distributor_billing) {
+                $distributor_billings[$key]['distributor_billing_entries'] = $this->distributorBillingEntryModel->get_details_by_distributor_billing_id($distributor_billing['id']);
+            }
 
             $response = $this->respond([
                 'data' => $distributor_billings

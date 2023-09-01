@@ -25,8 +25,7 @@ class Distributor_billing_payments extends MYTController
 
         $distributor_billing_payment_id    = $this->request->getVar('distributor_billing_payment_id') ? : null;
         $distributor_billing_payment       = $distributor_billing_payment_id ? $this->distributorBillingPaymentModel->get_details_by_id($distributor_billing_payment_id) : null;
-        $distributor_billing_payment_entries = $distributor_billing_payment_id ? $this->distributorBillingEntryModel->get_details_by_distributor_billing_payment_id($distributor_billing_payment_id) : null;
-
+        $distributor_billing_payment_entries = $distributor_billing_payment_id ? $this->distributorBillingPaymentEntryModel->get_details_by_distributor_billing_payment_id($distributor_billing_payment_id) : null;
         if (!$distributor_billing_payment) {
             $response = $this->failNotFound('No distributor_billing_payment found');
         } else {
@@ -104,7 +103,7 @@ class Distributor_billing_payments extends MYTController
             $response = $this->failNotFound('No distributor_billing_payment found');
         } else {
             foreach ($distributor_billing_payments as $key => $distributor_billing_payment) {
-                $distributor_billing_payments[$key]['distributor_billing_payment_entries'] = $this->distributorBillingEntryModel->get_details_by_distributor_billing_payment_id($distributor_billing_payment['id']);
+                $distributor_billing_payments[$key]['distributor_billing_payment_entries'] = $this->distributorBillingPaymentEntryModel->get_details_by_distributor_billing_payment_id($distributor_billing_payment['id']);
             }
 
             $response = $this->respond([
@@ -353,7 +352,7 @@ class Distributor_billing_payments extends MYTController
             ];
 
 
-            if (!$this->distributorBillingEntryModel->insert($data)) {
+            if (!$this->distributorBillingPaymentEntryModel->insert($data)) {
                 return false;
             }
         }
@@ -367,7 +366,7 @@ class Distributor_billing_payments extends MYTController
     protected function _attempt_update_distributor_billing_payment_entries($distributor_billing_payment, $db)
     {
         // // delete all items first
-        if (!$this->distributorBillingEntryModel->delete_by_distributor_billing_payment_id($distributor_billing_payment['id'], $this->requested_by, $db)) {
+        if (!$this->distributorBillingPaymentEntryModel->delete_by_distributor_billing_payment_id($distributor_billing_payment['id'], $this->requested_by, $db)) {
             return false;
         }
 
@@ -384,7 +383,7 @@ class Distributor_billing_payments extends MYTController
             ];
 
 
-            if (!$this->distributorBillingEntryModel->insert($data)) {
+            if (!$this->distributorBillingPaymentEntryModel->insert($data)) {
                 return false;
             }
         }
@@ -400,7 +399,7 @@ class Distributor_billing_payments extends MYTController
 
         $this->distributorModel               = model('App\Models\Distributor');
         $this->distributorBillingPaymentModel               = model('App\Models\Distributor_billing_payment');
-        $this->distributorBillingEntryModel           = model('App\Models\Distributor_billing_payment_entry');
+        $this->distributorBillingPaymentEntryModel           = model('App\Models\Distributor_billing_payment_entry');
         $this->webappResponseModel         = model('App\Models\Webapp_response');
         
     }

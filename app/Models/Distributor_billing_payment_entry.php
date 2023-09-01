@@ -25,21 +25,18 @@ class Distributor_billing_payment_entry extends MYTModel
     /**
      * Get distributor_billing details by ID
      */
-    public function get_details_by_distributor_billing_payment_id($distributor_billing_id = null)
+    public function get_details_by_distributor_billing_payment_id($distributor_billing_payment_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT distributor_billing_payment_entry.*, customer.name AS customer_name, project.name AS project_name
+SELECT distributor_billing_payment_entry.*
 FROM distributor_billing_payment_entry
-LEFT JOIN distributor_billing ON distributor_billing.id = distributor_billing_payment_entry.distributor_billing_id 
-LEFT JOIN customer ON customer.id = distributor_billing_payment_entry.customer_id
-LEFT JOIN project ON project.id = distributor_billing_payment_entry.project_id
-    AND distributor_billing.is_deleted = 0
-WHERE distributor_billing_id = ? 
+LEFT JOIN distributor_billing_payment ON distributor_billing_payment.id = distributor_billing_payment_entry.distributor_billing_payment_id  AND distributor_billing_payment.is_deleted = 0
+WHERE distributor_billing_payment.id = ? 
     AND distributor_billing_payment_entry.is_deleted = 0
 GROUP BY distributor_billing_payment_entry.id
 EOT;
-        $binds = [$distributor_billing_id];
+        $binds = [$distributor_billing_payment_id];
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
