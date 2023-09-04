@@ -101,7 +101,10 @@ class Distributor_billings extends MYTController
         if (($response = $this->_api_verification('distributor_billings', 'get_all_distributor_billing')) !== true) 
             return $response;
 
-        $distributor_billings = $this->distributorBillingModel->get_all_distributor_billing();
+        $status = $this->request->getVar('status') ? : null;
+        $distributor_name = $this->request->getVar('distributor_name') ? : null;
+
+        $distributor_billings = $this->distributorBillingModel->get_all_distributor_billing($status, $distributor_name);
 
         if (!$distributor_billings) {
             $response = $this->failNotFound('No distributor_billing found');
@@ -354,6 +357,7 @@ class Distributor_billings extends MYTController
         $project_ids = $this->request->getVar('project_ids');
         $amounts = $this->request->getVar('amounts');
         $distributor_billing_entry_dates      = $this->request->getVar('distributor_billing_entry_dates');
+        $due_dates      = $this->request->getVar('due_dates');
 
         $grand_total = 0;
 
@@ -363,6 +367,7 @@ class Distributor_billings extends MYTController
                 'distributor_client_id' => $distributor_client_id,
                 'project_id'     => $project_ids[$key],
                 'distributor_billing_entry_date' => $distributor_billing_entry_dates[$key],
+                'due_date'     => $due_dates[$key],
                 'amount'     => $amounts[$key],
                 'added_by'    => $this->requested_by,
                 'added_on'    => date('Y-m-d H:i:s')
@@ -392,6 +397,7 @@ class Distributor_billings extends MYTController
         $project_ids = $this->request->getVar('project_ids');
         $amounts = $this->request->getVar('amounts');
         $distributor_billing_entry_dates      = $this->request->getVar('distributor_billing_entry_dates');
+        $due_dates      = $this->request->getVar('due_dates');
 
         $grand_total = 0;
 
@@ -401,6 +407,7 @@ class Distributor_billings extends MYTController
                 'distributor_client_id' => $distributor_client_id,
                 'project_id'     => $project_ids[$key],
                 'distributor_billing_entry_date' => $distributor_billing_entry_dates[$key],
+                'due_date'     => $due_dates[$key],
                 'amount'     => $amounts[$key],
                 'added_by'    => $this->requested_by,
                 'added_on'    => date('Y-m-d H:i:s')

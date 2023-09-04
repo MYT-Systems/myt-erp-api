@@ -11,7 +11,9 @@ class Distributor_billing_entry extends MYTModel
         'distributor_client_id',
         'project_id',
         'distributor_billing_entry_date',
+        'due_date',
         'amount',
+        'paid_amount',
         'added_by',
         'added_on',
         'updated_by',
@@ -31,7 +33,7 @@ class Distributor_billing_entry extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT distributor_billing_entry.*, customer.name AS customer_name, project.name AS project_name, project.project_date AS project_date
+SELECT distributor_billing_entry.*, customer.name AS customer_name, project.name AS project_name, project.project_date AS project_date, distributor_billing_entry.amount - distributor_billing_entry.paid_amount AS balance
 FROM distributor_billing_entry
 LEFT JOIN distributor_billing ON distributor_billing.id = distributor_billing_entry.distributor_billing_id 
 LEFT JOIN distributor_client ON distributor_client.id = distributor_billing_entry.distributor_client_id
@@ -54,7 +56,7 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT distributor_billing_entry.*
+SELECT distributor_billing_entry.*, distributor_billing_entry.amount - distributor_billing_entry.paid_amount AS balance
 FROM distributor_billing_entry
 LEFT JOIN distributor_billing ON distributor_billing.id = distributor_billing_entry.distributor_billing_id 
     AND distributor_billing.is_deleted = 0

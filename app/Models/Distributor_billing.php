@@ -82,7 +82,7 @@ EOT;
     /**
      * Get all distributor_billings
      */
-    public function get_all_distributor_billing()
+    public function get_all_distributor_billing($status = null, $distributor_name = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -92,7 +92,25 @@ LEFT JOIN distributor ON distributor.id = distributor_billing.distributor_id
 WHERE distributor_billing.is_deleted = 0
 EOT;
 
-        $query = $database->query($sql);
+$binds = [];
+
+if($status) {
+    $sql .= <<<EOT
+
+AND distributor_billing.status = ?
+EOT;
+        $binds[] = $status;
+}
+
+if($distributor_name) {
+    $sql .= <<<EOT
+
+AND distributor.name LIKE ?
+EOT;
+        $binds[] = "%" . $distributor_name . "%";
+}
+
+        $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
 

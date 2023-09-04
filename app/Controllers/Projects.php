@@ -298,6 +298,7 @@ class Projects extends MYTController
             'grand_total' => $this->request->getVar('grand_total'),
             'balance' => $this->request->getVar('grand_total'),
             'recurring_cost_total' => $this->request->getVar('recurring_cost_total'),
+            'is_subscription' => $this->request->getVar('is_subscription'),
             'added_by'              => $this->requested_by,
             'added_on'              => date('Y-m-d H:i:s'),
         ];
@@ -358,6 +359,7 @@ class Projects extends MYTController
             'grand_total' => $this->request->getVar('grand_total'),
             'balance' => $this->request->getVar('grand_total'),
             'recurring_cost_total' => $this->request->getVar('recurring_cost_total'),
+            'is_subscription' => $this->request->getVar('is_subscription'),
             'updated_by'            => $this->requested_by,
             'updated_on'            => date('Y-m-d H:i:s')
         ];

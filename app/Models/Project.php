@@ -36,6 +36,60 @@ class Project extends MYTModel
         $this->table = 'project';
     }
 
+    /**
+     * Get project that are in need of billing for a certain date
+     * If no billing in the past 30 days then client must show
+     */
+    public function get_recurring_cost_to_bill($project_id = null, $billing_date = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT project_recurring_cost.*, customer.name AS customer_name, project.name AS project_name
+FROM project
+    LEFT JOIN project_recurring_cost ON project_recurring_cost.project_id = project.id
+    LEFT JOIN subscription_billing_entry ON subscription_billing_entry.project_recurring_cost_id = project_recurring_cost.id
+    LEFT JOIN subscription_billing ON subscription_billing.id = subscription_billing_entry.subscription_billing_id
+    LEFT JOIN customer ON customer.id = project.customer_id
+
+WHERE (subscription_billing.billing_date IS NULL OR subscription_billing.billing_date < ( 
+    CASE 
+        WHEN project_recurring_cost.type = 'yearly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period YEAR)
+        WHEN project_recurring_cost.type = 'monthly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period MONTH)
+        WHEN project_recurring_cost.type = 'weekly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period WEEK)
+    END)
+    )
+    AND (project.start_date < ( 
+    CASE 
+        WHEN project_recurring_cost.type = 'yearly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period YEAR)
+        WHEN project_recurring_cost.type = 'monthly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period MONTH)
+        WHEN project_recurring_cost.type = 'weekly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period WEEK)
+    END))
+    AND project.is_deleted = 0
+    AND project_recurring_cost.is_deleted = 0
+    AND (subscription_billing_entry.is_deleted = 0 OR subscription_billing_entry.is_deleted IS NULL)
+    AND (subscription_billing.is_deleted = 0 OR subscription_billing.is_deleted IS NULL)
+EOT;
+    $binds = [$billing_date, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date];
+
+if($project_id) {
+    $sql .= <<<EOT
+
+    AND project.id = ?    
+EOT;
+        $binds[] = $project_id;
+}
+
+    $sql .= <<<EOT
+
+GROUP BY project_recurring_cost.id
+EOT;
+
+        // 2023-08-31
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
     public function get_project_operations($project_type, $user_id, $project_id, $project_name, $status, $date)
     {
         $database = \Config\Database::connect();
