@@ -164,8 +164,7 @@ class Subscription_billings extends MYTController
         $project_id = $this->request->getVar('project_id');
         $billing_date = $this->request->getVar('billing_date');
 
-        $subscription_billing_entries = $this->projectModel->get_recurring_cost_to_bill($project_id, $billing_date);
-
+        $subscription_billing_entries = $this->projectModel->get_recurring_cost_to_bill($project_id, $billing_date)?:[];
         foreach($subscription_billing_entries AS $index => $subscription_billing_entry) {
             $where = [
                 'id' => $subscription_billing_entries[$index]['project_id']
@@ -354,7 +353,7 @@ class Subscription_billings extends MYTController
      */
     protected function _attempt_generate_subscription_billing_entries($subscription_billing_id, $db)
     {
-        $project_client_ids   = $this->request->getVar('project_client_ids');
+        $project_recurring_cost_ids   = $this->request->getVar('project_recurring_cost_ids');
         $project_ids = $this->request->getVar('project_ids');
         $amounts = $this->request->getVar('amounts');
         $subscription_billing_entry_dates      = $this->request->getVar('subscription_billing_entry_dates');
@@ -362,10 +361,10 @@ class Subscription_billings extends MYTController
 
         $grand_total = 0;
 
-        foreach ($project_client_ids as $key => $project_client_id) {
+        foreach ($project_recurring_cost_ids as $key => $project_recurring_cost_id) {
             $data = [
                 'subscription_billing_id' => $subscription_billing_id,
-                'project_client_id' => $project_client_id,
+                'project_recurring_cost_id' => $project_recurring_cost_id,
                 'project_id'     => $project_ids[$key],
                 'subscription_billing_entry_date' => $subscription_billing_entry_dates[$key],
                 'due_date'     => $due_dates[$key],
@@ -394,7 +393,7 @@ class Subscription_billings extends MYTController
             return false;
         }
 
-        $project_client_ids   = $this->request->getVar('project_client_ids');
+        $project_recurring_cost_ids   = $this->request->getVar('project_recurring_cost_ids');
         $project_ids = $this->request->getVar('project_ids');
         $amounts = $this->request->getVar('amounts');
         $subscription_billing_entry_dates      = $this->request->getVar('subscription_billing_entry_dates');
@@ -402,10 +401,10 @@ class Subscription_billings extends MYTController
 
         $grand_total = 0;
 
-        foreach ($project_client_ids as $key => $project_client_id) {
+        foreach ($project_recurring_cost_ids as $key => $project_recurring_cost_id) {
             $data = [
                 'subscription_billing_id' => $subscription_billing_id,
-                'project_client_id' => $project_client_id,
+                'project_recurring_cost_id' => $project_recurring_cost_id,
                 'project_id'     => $project_ids[$key],
                 'subscription_billing_entry_date' => $subscription_billing_entry_dates[$key],
                 'due_date'     => $due_dates[$key],
@@ -429,7 +428,7 @@ class Subscription_billings extends MYTController
     protected function _load_essentials()
     {
 
-        $this->projectModel               = model('App\Models\project');
+        $this->projectModel               = model('App\Models\Project');
         $this->subscriptionBillingModel               = model('App\Models\Subscription_billing');
         $this->subscriptionBillingEntryModel           = model('App\Models\Subscription_billing_entry');
         $this->webappResponseModel         = model('App\Models\Webapp_response');
