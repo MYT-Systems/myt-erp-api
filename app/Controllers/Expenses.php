@@ -15,7 +15,7 @@ class Expenses extends MYTController
     }
 
     /**
-     * Change status wastage item
+     * Change status expense item
      */
     public function change_status()
     {

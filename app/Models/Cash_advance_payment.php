@@ -7,7 +7,6 @@ class Cash_advance_payment extends MYTModel
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $allowedFields = [
-        "payroll_id",
         "cash_advance_id",
         "employee_id",
         "paid_amount",

@@ -33,7 +33,6 @@ class Branch extends MYTModel
         'closed_on',
         'operation_log_id',
         'inventory_group_id',
-        'branch_group_id',
         'added_by',
         'added_on',
         'updated_by',
@@ -170,15 +169,13 @@ EOT;
     /**
      * Search
      */
-    public function search($branch_id, $name, $address, $phone_no, $contact_person, $contact_person_no, $franchisee_name, $franchisee_contact_no, $tin_no, $bir_no, $contract_start, $contract_end, $opening_date, $is_open, $is_franchise, $no_branch_group, $no_inventory_group)
+    public function search($branch_id, $name, $address, $phone_no, $contact_person, $contact_person_no, $franchisee_name, $franchisee_contact_no, $tin_no, $bir_no, $contract_start, $contract_end, $opening_date, $is_open, $is_franchise, $no_inventory_group)
     {
         $database = \Config\Database::connect();
         
         $sql = <<<EOT
-SELECT branch.*, branch_group.name AS branch_group, inventory_group.name AS inventory_group, price_level.name AS price_level_name
+SELECT branch.*, inventory_group.name AS inventory_group, price_level.name AS price_level_name
 FROM branch
-LEFT JOIN branch_group_detail ON branch_group_detail.branch_id = branch.id AND branch_group_detail.is_deleted = 0
-LEFT JOIN branch_group ON branch_group.id = branch_group_detail.branch_group_id
 LEFT JOIN inventory_group_detail ON inventory_group_detail.branch_id = branch.id AND inventory_group_detail.is_deleted = 0
 LEFT JOIN inventory_group ON inventory_group.id = inventory_group_detail.inventory_group_id
 LEFT JOIN price_level ON price_level.id = branch.price_level
@@ -265,12 +262,6 @@ EOT;
             $is_franchise = explode(',', $is_franchise);
             $is_franchise = array_map('intval', $is_franchise);
             $sql .= ' AND is_franchise IN (' . implode(',', $is_franchise) . ')';
-        }
-
-        if ($no_branch_group) {
-            $sql .= ' AND branch.id NOT IN (SELECT branch_id FROM branch_group_detail WHERE is_deleted = 0)';
-        } elseif ($no_branch_group == '0') {
-            $sql .= ' AND branch.id IN (SELECT branch_id FROM branch_group_detail WHERE is_deleted = 0)';
         }
 
         if ($no_inventory_group) {

@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\SE_check_entry;
 use App\Models\SE_check_slip;
+use App\Models\SE_check_slip_attachment;
 use App\Models\Supplies_receive;
 use App\Models\Webapp_response;
 
@@ -56,11 +57,13 @@ class Se_check_payments extends MYTController
         $se_check_slip_id = $this->request->getVar('slip_id') ? : null;
         $se_check_slip    = $se_check_slip_id ? $this->checkSlipModel->get_details_by_id($se_check_slip_id) : null;
         $check_entries = $se_check_slip ? $this->checkEntryModel->get_details_by_slip_id($se_check_slip[0]['id']) : null;
+        $check_slip_attachments = $check_entries ? $this->checkSlipAttachmentModel->get_details_by_se_check_slip_id($se_check_slip[0]['id']) : null;
 
         if (!$se_check_slip) {
             $response = $this->failNotFound('No check invoice found');
         } else {
             $se_check_slip[0]['check_entries'] = $check_entries;
+            $se_check_slip[0]['check_slip_attachments'] = $check_slip_attachments ? $check_slip_attachments : [];
             $response = $this->respond([
                 'status' => 'success',
                 'data'   => $se_check_slip
@@ -70,6 +73,72 @@ class Se_check_payments extends MYTController
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
+
+    /**
+     * Delete receive attachment
+     */
+    public function delete_attachment()
+    {
+        if (($response = $this->_api_verification('receives', 'delete_attachment')) !== true)
+            return $response;
+
+        $se_check_slip_id = $this->request->getVar('se_check_slip_id');
+        $attachment_id = $this->request->getVar('attachment_id');
+        $where = ['id' => $se_check_slip_id, 'is_deleted' => 0];
+
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        if (!$attachment = $this->checkSlipAttachmentModel->select('', $where, 1)) {
+            $response = $this->failNotFound('check Slip attachment not found.');
+        } elseif (!$this->_attempt_delete_attachments($se_check_slip_id, $attachment)) {
+            $db->transRollback();
+            $response = $this->respond(['response' => 'Attachment not deleted successfully.']);
+        } else {
+            $db->transCommit();
+            $response = $this->respond(['response' => 'Attachment deleted successfully.']);
+        }
+
+        $db->close();
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /** 
+     * Attempt delete attachments
+     */
+    function _attempt_delete_attachments($se_check_slip_id, $attachment = null)
+    {
+        $where = [
+            'se_check_slip_id' => $se_check_slip_id,
+            'is_deleted' => 0
+        ];
+
+        if($attachment) {
+            $where['id'] = $attachment['id'];
+        }
+
+        $unique_name = substr("abcd", mt_rand(0, 4), 1).substr(md5(time()), 1);
+        $oldFileName = $attachment['file_path'] . '/' . $attachment['file_name'];
+        $newFileName = $attachment['file_path'] . '/' . 'deleted_' . $unique_name . '_' . $attachment['file_name'];
+        rename($oldFileName, $newFileName);
+
+        // unlink($attachment['file_path'] . '/' . $attachment['file_name'])
+        $values = [
+            'file_name'     => 'deleted_' . $unique_name . '_' . $attachment['file_name'],
+            'file_url'      => $newFileName,
+            'is_deleted'    => 1,
+            'updated_by'    => $this->requested_by,
+            'updated_on'    => date('Y-m-d H:i:s'),
+        ];
+
+        if (!$this->checkSlipAttachmentModel->custom_update($where, $values)) {
+            return false;
+        }
+
+        return true;
+    }
+
 
     /**
      * Get all se_check_entry
@@ -146,6 +215,9 @@ class Se_check_payments extends MYTController
         } elseif (!$this->_attempt_generate_entry($se_check_slip_id)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to generate check entry.', 'status' => 'error']);
+        } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_check_slip_id, 'assets/se_check_payments/')) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'Successfully created slip.', 'status' => 'success', 'slip_id' => $se_check_slip_id]);
@@ -154,6 +226,76 @@ class Se_check_payments extends MYTController
         $db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
+    }
+
+    /**
+     * Upload Attachments
+     */
+    public function _upload_attachments($se_check_slip_id, $path)
+    {
+        $files = $this->request->getFileMultiple('attachments');
+        $file_path = $path.$se_check_slip_id;
+        // Uncomment this to add randomize naming
+        // $unique_name = substr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", mt_rand(0, 51), 1).substr(md5(time()), 1);
+        $unique_name = "";
+
+        if (!empty($files)) {
+            $path = $file_path . '/';
+
+            if (!is_dir($path)) {
+                mkdir($path, 0755, true);
+                write_file($path . 'index.html', 'Directory access is forbidden.');
+            }
+
+            foreach ($files as $i => $file) {
+                $sourcePath = $file->getPath();
+                $destinationPath = $path;
+
+                if ($file->isValid() && !in_array($file->getExtension(), ['png', 'jpeg', 'jpg'])) {
+                    return false;
+                }
+
+                $file_name = $file->getName();
+                $max_file_size = 5 * 1024 * 1024; // 5 MB in bytes
+            
+                if ($file->getSize() > $max_file_size) {
+                    return false;
+                }
+
+                if ($file->isValid() && !$file->hasMoved()) {
+                    $file_name = $file->getName();
+                    $mime_type = $file->getMimeType();
+
+                    $where = [
+                        'se_check_slip_id' => $se_check_slip_id,
+                        'file_name' => $file_name,
+                        'is_deleted' => 0
+                    ];
+
+                    if(empty($this->checkSlipAttachmentModel->select('', $where))) {
+                        $file->move($path, $file_name);
+                        $data = [
+                            'se_check_slip_id' => $se_check_slip_id,
+                            'file_name' => $file_name,
+                            'file_path' => $file_path,
+                            'file_url' => base_url($file_path . '/' . $file_name),
+                            'mime' => $mime_type,
+                            'added_by' => $this->requested_by,
+                            'added_on' => date('Y-m-d H:i:s')
+                        ];
+
+                        if (!$this->checkSlipAttachmentModel->insert($data)) {
+                            return false;
+                        }
+                    }
+                }
+
+            }
+        } else {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -178,10 +320,13 @@ class Se_check_payments extends MYTController
         } elseif (!$this->_attempt_update_entry($se_check_slip_id)) {
             $db->transRollback();
             $response = $this->respond(['response' => 'Supplies expense check entry updated unsuccessfully']);
+        } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_check_slip_id, 'assets/se_check_payments/')) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'Supplies expense check entry updated successfully']);
-        }   
+        }
 
         $db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
@@ -381,7 +526,7 @@ class Se_check_payments extends MYTController
                     'updated_on'  => date('Y-m-d H:i:s'),
                     'updated_by'  => $this->requested_by
                 ];
-                
+
                 if (!$this->seReceiveModel->update($se_id, $receive_data)) {
                     var_dump("Failed to update se_receive");
                     return false;
@@ -471,14 +616,14 @@ class Se_check_payments extends MYTController
         ];
 
         if (!$this->checkSlipModel->update($se_check_slip['id'], $values)) {
-            $db->transRollback();   
+            $db->transRollback();
             $db->close();
             return false;
         }
 
         $db->transCommit();
         $db->close();
-        
+
         return true;
     }
 
@@ -527,7 +672,7 @@ class Se_check_payments extends MYTController
             case 'disapproved':
                 $values['disapproved_by'] = $this->requested_by;
                 $values['disapproved_on'] = date('Y-m-d H:i:s');
-                $values['status'] = 'disapproved'; 
+                $values['status'] = 'disapproved';
                 break;
             case 'print':
                 $values['printed_by'] = $this->requested_by;
@@ -557,6 +702,7 @@ class Se_check_payments extends MYTController
     {
         $this->checkEntryModel     = new SE_check_entry();
         $this->checkSlipModel      = new SE_check_slip();
+        $this->checkSlipAttachmentModel      = new SE_check_slip_attachment();
         $this->seReceiveModel      = new Supplies_receive();
         $this->webappResponseModel = new Webapp_response();
     }

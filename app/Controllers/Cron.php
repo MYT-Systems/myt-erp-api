@@ -9,7 +9,6 @@ class Cron extends MYTController
     {
         $this->userModel               = model('App\Models\User');
         $this->branchModel             = model('App\Models\Branch');
-        $this->operationLogModel       = model('App\Models\Branch_operation_log');
         $this->orderModel              = model('App\Models\Order');
         $this->orderDetailModel        = model('App\Models\Order_detail');
         $this->priceLevelModel         = model('App\Models\Price_level');
@@ -20,8 +19,6 @@ class Cron extends MYTController
         $this->paymentAttachmentModel  = model('App\Models\Payment_attachment');
         $this->productModel            = model('App\Models\Product');
         $this->productItemModel        = model('App\Models\Product_item');
-        $this->wastageModel            = model('App\Models\Wastage');
-        $this->wastageItemModel        = model('App\Models\Wastage_item');
         $this->orderProductDetailModel = model('App\Models\Order_product_detail');
         $this->orderDetailIngredModel  = model('App\Models\Order_detail_ingredient');
         $this->inventoryModel          = model('App\Models\Inventory');
@@ -35,7 +32,6 @@ class Cron extends MYTController
         $this->expenseAttachmentModel  = model('App\Models\Expense_attachment');
 
         $this->requested_by = 0;
-        $this->wastage = null;
         $this->orders_payload = null;
         $this->db = null;
     }
@@ -126,9 +122,6 @@ class Cron extends MYTController
             switch ($folder_name) {
                 case 'bulk_order':
                     $response = $this->_attempt_bulk_create_orders($files[0]);
-                    break;
-                case 'wastage_items':
-                    $response = $this->_attempt_bulk_create_wastages($files[0]);
                     break;
                 case 'expenses':
                     $response = $this->_attempt_bulk_create_expenses($files[0]);
@@ -275,117 +268,6 @@ class Cron extends MYTController
             return false;
         }
 
-        return true;
-    }
-
-    protected function _attempt_bulk_create_wastages($filename)
-    {
-        $upload_path = FCPATH . 'public/wastage_items/' . $filename;
-        $json = file_get_contents($upload_path);
-        $wastage_parent = json_decode($json);
-        $wastage_parent = (array) $wastage_parent;
-
-        $unsaved_wastage_items = [];
-
-        $current_date = date("Y-m-d");
-        $where = [
-            'branch_id' => $wastage_parent['branch_id'],
-            'wastage_date' => $current_date,
-            'is_deleted' => 0
-        ];
-
-        $wastage_id = null;
-
-        $this->db = \Config\Database::connect();
-
-        foreach ($wastage_parent['wastage_items'] as $wastage_item) {
-            $wastage_item = json_decode($wastage_item);
-            $wastage_item = (array) $wastage_item;
-            
-            $this->db->transBegin();
-
-            if (!$wastage_id AND
-                !$wastage = $this->wastageModel->select('', $where, 1) AND
-                !$wastage_id = $this->_attempt_create_from_sync($wastage_parent)
-            ) {
-                $this->errorMessage = $this->db->error()['message'];
-            }
-
-            $wastage_id = $wastage ? $wastage['id'] : $wastage_id;
-
-            if (!$this->_attempt_generate_wastage_item_from_sync($wastage_id, $wastage_item)) {
-                $this->db->transRollback();
-                $unsaved_wastage_items[] = $this->wastage;
-                continue;
-            }
-
-            $this->db->transCommit();
-            $this->wastage = null;
-        }
-
-        if ($unsaved_wastage_items) {
-            $wastage_parent['wastage_items'] = $unsaved_wastage_items;
-            $write_response = $this->_write_json('wastage_items', $wastage_parent);
-            
-            $old_file_path = FCPATH . 'public/wastage_items/' . $filename;
-            unlink($old_file_path);
-        
-            return false;
-        }
-        
-        $old_file_path = FCPATH . 'public/wastage_items/' . $filename;
-        unlink($old_file_path);
-
-        return true;
-    }
-
-    /**
-     * Attempt create wastage
-     */
-    private function _attempt_create_from_sync($wastage_parent)
-    {
-        $values = [
-            'branch_id'    => array_key_exists('branch_id', $wastage_parent) ? $wastage_parent['branch_id'] : null,
-            'wastage_date' => date("Y-m-d"),
-            'description'  => array_key_exists('description', $wastage_parent) ? $wastage_parent['description'] : null,
-            'remarks'      => array_key_exists('remarks', $wastage_parent) ? $wastage_parent['remarks'] : null,
-            'added_by'     => $this->requested_by,
-            'added_on'     => date('Y-m-d H:i:s')
-        ];
-
-        if (!$wastage_id = $this->wastageModel->insert($values))
-            return false;
-
-        return $wastage_id;
-    }
-
-    /**
-     * Attempt generate wastage item
-     */
-    protected function _attempt_generate_wastage_item_from_sync($wastage_id, $wastage_item)
-    {
-        $item_id = array_key_exists('item_id', $wastage_item) ? $wastage_item['item_id'] : null;
-        $values = [
-            'wastage_id' => $wastage_id,
-            'name' => array_key_exists('item_name', $wastage_item) ? $wastage_item['item_name'] : null,
-            'item_id' => $item_id,
-            'unit' => array_key_exists('unit', $wastage_item) ? $wastage_item['unit'] : null,
-            'qty' => array_key_exists('quantity', $wastage_item) ? $wastage_item['quantity'] : null,
-            'remarks' => array_key_exists('remark', $wastage_item) ? $wastage_item['remark'] : null,
-            'wasted_by' => array_key_exists('wasted_by', $wastage_item) ? $wastage_item['wasted_by'] : null,
-            'reason' => array_key_exists('reason', $wastage_item) ? $wastage_item['reason'] : null,
-            'status' => ($item_id === SAGO_ITEM_ID ? 'approved' : 'pending'),
-            'status_change_by' => ($item_id === SAGO_ITEM_ID ? $this->requested_by : null),
-            'status_change_on' => ($item_id === SAGO_ITEM_ID ? date("Y-m-d H:i:s") : null),
-            'added_by' => $this->requested_by,
-            'added_on' => date('Y-m-d H:i:s')
-        ];
-
-        if (!$this->wastageItemModel->insert($values)) {
-            $this->errorMessage = $this->db->error()['message'];
-            return false;
-        }
-        
         return true;
     }
 

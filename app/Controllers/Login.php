@@ -44,28 +44,11 @@ class Login extends MYTController
             unset($user->{'password'});
             $user[0]->{'api_key'} = $this->new_api_key;
             $user[0]->{'token'}   = $this->new_token;
-
-            // Update the branch that user has logged in to be open
-            // $branch = $this->userBranchModel->get_branches_by_user($user[0]->id);
-            // $branch_id = $branch ? $branch[0]['id'] : $user[0]->branch_id;
-            // $branch_details = $branch_id ? $this->branchModel->get_details_by_id($branch_id) : null;
             
             // check if user is a supervisor
-            $operation_log_id = null;
-            $branch_groups = null;
             $has_daily_sale = false;
             
-            $grab_discounts = null;
-            $foodpanda_discounts = null;
-            
             if ($user[0]->type == 'supervisor') {
-                $branch_groups = $this->branchGroupModel->search(null, null, $user[0]->id, null, null);
-                foreach ($branch_groups as $key => $branch_group) {
-                    $branch_group_id = $branch_group['id'];
-                    $branch_group_details = $this->branchGroupDetailModel->get_details_by_branch_group_id($branch_group_id);
-                    $branch_groups[$key]['branch_group_details'] = $branch_group_details;
-                }
-
                 $this->db = \Config\Database::connect();
                 $this->db->transBegin();
 
@@ -84,51 +67,15 @@ class Login extends MYTController
                 $this->db->transCommit();
 
             } elseif ($user[0]->type == 'branch') {
-                $branch_operation_log_data = [
-                    'branch_id' => $user[0]->branch_id,
-                    'user_id' => $user[0]->id,
-                    'time_in' => date("Y-m-d H:i:s")
-                ];
-
-                if (!$operation_log_id = $this->operationLogModel->insert($branch_operation_log_data)) {
-                    $response = $this->fail('Something went wrong');
-                    $this->webappResponseModel->record_response($this->webapp_log_id, $response);
-                    return $response;
-                }
-
-                $grab_discounts = $this->discountModel->search($user[0]->branch_id, null, null, null, "valid", "grab", null, null);
-                $foodpanda_discounts = $this->discountModel->search($user[0]->branch_id, null, null, null, "valid", "foodpanda", null, null);
 
                 $where = ["branch_id" => $user[0]->branch_id, "date" => date("Y-m-d"), "is_deleted" => 0];
-                $has_daily_sale = $this->dailySaleModel->select('', $where, 1) ? true : false;
             }
 
             $response = $this->respond([
                 'status' => 200,
                 'message' => 'Login successful',
-                'user' => $user[0],
-                'branch_group' => $branch_groups,
-                'grab_discounts' => $grab_discounts,
-                'foodpanda_discounts' => $foodpanda_discounts,
-                'has_daily_sale' => $has_daily_sale
+                'user' => $user[0]
             ]);
-
-            if ($operation_log_id) {
-                $values = [
-                    'is_open'    => 1,
-                    'operation_log_id' => $operation_log_id,
-                    'opened_on'  => date('Y-m-d H:i:s'),
-                    'closed_on'  => null,
-                    'updated_on' => date('Y-m-d H:i:s'),
-                    'updated_by' => $user[0]->id
-                ];
-
-                if (!$this->branchModel->update($user[0]->branch_id, $values)) {
-                    $response = $this->fail('Something went wrong');
-                    $this->webappResponseModel->record_response($this->webapp_log_id, $response);
-                    return $response;
-                }
-            }
         }
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
@@ -297,9 +244,6 @@ class Login extends MYTController
         $this->branchModel            = model('App\Models\Branch');
         $this->discountModel          = model('App\Models\Discount');
         $this->userBranchModel        = model('App\Models\User_branch');
-        $this->branchGroupModel       = model('App\Models\Branch_group');
-        $this->branchGroupDetailModel = model('App\Models\Branch_group_detail');
-        $this->operationLogModel      = model('App\Models\Branch_operation_log');
         $this->dailySaleModel         = model('App\Models\Daily_sale');
         $this->webappResponseModel    = model('App\Models\Webapp_response');
     }

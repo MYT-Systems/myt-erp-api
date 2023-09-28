@@ -200,19 +200,12 @@ class Logout extends MYTController
         if ($user[0]['type'] == 'branch' && $branch_details[0]['is_open'] == 1) {
             $values = [
                 'is_open' => 0,
-                'operation_log_id' => null,
                 'closed_on'  => date('Y-m-d H:i:s'),
                 'updated_on' => date('Y-m-d H:i:s'),
                 'updated_by' => $user[0]['id']
             ];
 
-            $operation_log_data = [
-                'time_out' => date("Y-m-d H:i:s"),
-                'is_automatic_logout' => 0
-            ];
-
-            if (!$this->branchModel->update($branch_id, $values) OR
-                !$this->operationLogModel->update($branch_details[0]['operation_log_id'], $operation_log_data)
+            if (!$this->branchModel->update($branch_id, $values)
             ) {
                 return false;
             }
@@ -252,7 +245,6 @@ class Logout extends MYTController
         $this->userModel   = new User();
         $this->branchModel = new Branch();
         $this->userBranchModel = new User_branch();
-        $this->operationLogModel = model('App\Models\Branch_operation_log');
         $this->webappResponseModel = new Webapp_response();
     }
 }

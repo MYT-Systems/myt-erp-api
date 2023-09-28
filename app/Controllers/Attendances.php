@@ -404,7 +404,6 @@ class Attendances extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->branchGroupModel     = model('App\Models\Branch_group');
         $this->attendanceModel      = model('App\Models\Attendance');
         $this->attendanceEntryModel = model('App\Models\Attendance_entry');
         $this->employeeModel        = model('App\Models\Employee');

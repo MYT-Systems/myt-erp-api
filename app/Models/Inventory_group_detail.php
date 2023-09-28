@@ -127,30 +127,4 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
     }
-
-    
-    /**
-     * Get branch group details by branch id, branch group id
-     */
-    public function get_details_by_branch_id_and_branch_group_id($branch_id = null, $inventory_group_id = null)
-    {
-        $database = \Config\Database::connect();
-        $sql = <<<EOT
-SELECT id
-FROM inventory_group_detail
-WHERE is_deleted = 0
-EOT;
-        $binds = [];
-        if ($branch_id) {
-            $sql .= " AND branch_id = ?";
-            $binds[] = $branch_id;
-        }
-        if ($inventory_group_id) {
-            $sql .= " AND inventory_group_id = ?";
-            $binds[] = $inventory_group_id;
-        }
-
-        $query = $database->query($sql, $binds);
-        return $query ? $query->getRowArray() : false;
-    }
 }

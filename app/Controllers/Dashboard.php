@@ -31,7 +31,6 @@ class Dashboard extends MYTController
         
         $adjustments = $this->adjustmentModel->search(null, $branches, null, null, null, 'pending', null, null, null, null, null, 'store');
         $requests = $this->requestModel->get_by_status('for_approval', $branches);
-        $wastage_items = $this->wastageItemModel->get_by_status('pending', $branches);
         $expenses = $this->expenseModel->get_by_status('pending', $branches);
         $transfers = $this->transferModel->get_by_status('on_hold', $branches);
         $branches = $this->branchModel->get_details_by_id($branches);
@@ -51,7 +50,6 @@ class Dashboard extends MYTController
             'adjustments' => $adjustments ? count($adjustments) : 0,
             'branches_open' => $branches_open,
             'branches_close' => $branches_close,
-            'wastages' => $wastage_items ? count($wastage_items) : 0,
             'expenses' => $expenses ? count($expenses) : 0
         ];
 
@@ -68,10 +66,8 @@ class Dashboard extends MYTController
     {
         $this->adjustmentModel = model('App\Models\Adjustment');
         $this->requestModel = model('App\Models\Request');
-        $this->wastageItemModel = model('App\Models\Wastage_item');
         $this->expenseModel = model('App\Models\Expense');
         $this->branchModel = model('App\Models\Branch');
-        $this->branchGroupModel = model('App\Models\Branch_group');
         $this->transferModel = model('App\Models\Transfer');
         $this->webappResponseModel = model('App\Models\Webapp_response');
     }

@@ -191,10 +191,9 @@ class Branches extends MYTController
         $opening_date          = $this->request->getVar('opening_date');
         $is_open               = $this->request->getVar('is_open');
         $is_franchise          = $this->request->getVar('is_franchise');
-        $no_branch_group       = $this->request->getVar('no_branch_group');
         $no_inventory_group    = $this->request->getVar('no_inventory_group');
 
-        if (!$branches = $this->branchModel->search($branch_id, $name, $address, $phone_no, $contact_person, $contact_person_no, $franchisee_name, $franchisee_contact_no, $tin_no, $bir_no, $contract_start, $contract_end, $opening_date, $is_open, $is_franchise, $no_branch_group, $no_inventory_group)) {
+        if (!$branches = $this->branchModel->search($branch_id, $name, $address, $phone_no, $contact_person, $contact_person_no, $franchisee_name, $franchisee_contact_no, $tin_no, $bir_no, $contract_start, $contract_end, $opening_date, $is_open, $is_franchise, $no_inventory_group)) {
             $response = $this->failNotFound('No branch found');
         } else {
             $response = [];
@@ -235,7 +234,6 @@ class Branches extends MYTController
             'price_level'           => $this->request->getVar('price_level'),
             'rental_monthly_fee'    => $this->request->getVar('rental_monthly_fee'),
             'inventory_group_id'    => $this->request->getVar('inventory_group_id'),
-            'branch_group_id'       => $this->request->getVar('branch_group_id'),
             'added_by'              => $this->requested_by,
             'added_on'              => date('Y-m-d H:i:s'),
         ];
@@ -253,19 +251,6 @@ class Branches extends MYTController
             ];
 
             if (!$this->inventoryGroupDetailModel->insert($values)) {
-                return false;
-            }
-        }
-
-        if ($this->request->getVar('branch_group_id')) {
-            $values = [
-                'branch_group_id' => $this->request->getVar('branch_group_id'),
-                'branch_id' => $branch_id,
-                'added_by'  => $this->requested_by,
-                'added_on'  => date('Y-m-d H:i:s'),
-            ];
-
-            if (!$this->branchGroupDetailModel->insert($values)) {
                 return false;
             }
         }
@@ -301,7 +286,6 @@ class Branches extends MYTController
             'price_level'           => $this->request->getVar('price_level'),
             'rental_monthly_fee'    => $this->request->getVar('rental_monthly_fee'),
             'inventory_group_id'    => $this->request->getVar('inventory_group_id'),
-            'branch_group_id'       => $this->request->getVar('branch_group_id'),
             'updated_by'            => $this->requested_by,
             'updated_on'            => date('Y-m-d H:i:s')
         ];
@@ -316,59 +300,6 @@ class Branches extends MYTController
                   $this->branchAttachmentModel->delete_attachments_by_branch_id($branch['id'], $this->requested_by)
         ) {
             // $this->_attempt_upload_file_base64($this->branchAttachmentModel, ['expense_id' => $expense_id]);
-        }
-        
-        /*
-        * automatically add to inventory group or branch group if not yet added
-        * if already added, update the branch group or inventory group
-        */
-
-        if ($branch['branch_group_id'] && $branch_group_detail = $this->branchGroupDetailModel->get_details_by_branch_id_and_branch_group_id($branch['id'], $branch['branch_group_id'])) {
-            $values = [
-                'branch_group_id' => $this->request->getVar('branch_group_id'),
-                'branch_id'       => $branch['id'],
-                'updated_by'      => $this->requested_by,
-                'updated_on'      => date('Y-m-d H:i:s'),
-            ];
-
-            if (!$this->branchGroupDetailModel->update($branch_group_detail['id'], $values)) {
-                return false;
-            }
-        } elseif ($this->request->getVar('branch_group_id')) {
-            $values = [
-                'branch_group_id' => $this->request->getVar('branch_group_id'),
-                'branch_id' => $branch['id'],
-                'added_by'  => $this->requested_by,
-                'added_on'  => date('Y-m-d H:i:s'),
-            ];
-
-            if (!$this->branchGroupDetailModel->insert($values)) {
-                return false;
-            }
-        }
-
-        if ($branch['inventory_group_id'] && $inventory_group_detail = $this->inventoryGroupDetailModel->get_details_by_branch_id_and_branch_group_id($branch['id'], $branch['inventory_group_id'])) {
-            $values = [
-                'inventory_group_id' => $this->request->getVar('inventory_group_id'),
-                'branch_id'          => $branch['id'],
-                'updated_by'         => $this->requested_by,
-                'updated_on'         => date('Y-m-d H:i:s'),
-            ];
-
-            if (!$this->inventoryGroupDetailModel->update($inventory_group_detail['id'], $values)) {
-                return false;
-            }
-        } elseif ($this->request->getVar('inventory_group_id')) {
-            $values = [
-                'inventory_group_id' => $this->request->getVar('inventory_group_id'),
-                'branch_id'          => $branch['id'],
-                'added_by'           => $this->requested_by,
-                'added_on'           => date('Y-m-d H:i:s'),
-            ];
-
-            if (!$this->inventoryGroupDetailModel->insert($values)) {
-                return false;
-            }
         }
 
         if ($this->request->getVar('opening_date') != $branch['opening_date']) {
@@ -412,7 +343,6 @@ class Branches extends MYTController
         $this->branchModel               = model('App\Models\Branch');
         $this->branchAttachmentModel     = model('App\Models\Branch_attachment');
         $this->inventoryGroupDetailModel = model('App\Models\Inventory_group_detail');
-        $this->branchGroupDetailModel    = model('App\Models\Branch_group_detail');
         $this->franchiseeModel           = model('App\Models\Franchisee');
         $this->webappResponseModel       = model('App\Models\Webapp_response');
     }

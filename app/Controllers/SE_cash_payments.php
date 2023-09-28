@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\SE_cash_entry;
 use App\Models\SE_cash_slip;
+use App\Models\SE_cash_slip_attachment;
 use App\Models\Supplies_receive;
 use App\Models\Webapp_response;
 
@@ -56,11 +57,13 @@ class Se_cash_payments extends MYTController
         $se_cash_slip_id = $this->request->getVar('slip_id') ? : null;
         $se_cash_slip    = $se_cash_slip_id ? $this->cashSlipModel->get_details_by_id($se_cash_slip_id) : null;
         $cash_entries = $se_cash_slip ? $this->cashEntryModel->get_details_by_slip_id($se_cash_slip[0]['id']) : null;
+        $cash_slip_attachments = $cash_entries ? $this->cashSlipAttachmentModel->get_details_by_se_cash_slip_id($se_cash_slip[0]['id']) : null;
 
         if (!$se_cash_slip) {
             $response = $this->failNotFound('No cash invoice found');
         } else {
             $se_cash_slip[0]['cash_entries'] = $cash_entries;
+            $se_cash_slip[0]['cash_slip_attachments'] = $cash_slip_attachments ? $cash_slip_attachments : [];
             $response = $this->respond([
                 'status' => 'success',
                 'data'   => $se_cash_slip
@@ -69,6 +72,71 @@ class Se_cash_payments extends MYTController
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
+    }
+
+    /**
+     * Delete receive attachment
+     */
+    public function delete_attachment()
+    {
+        if (($response = $this->_api_verification('receives', 'delete_attachment')) !== true)
+            return $response;
+
+        $se_cash_slip_id = $this->request->getVar('se_cash_slip_id');
+        $attachment_id = $this->request->getVar('attachment_id');
+        $where = ['id' => $se_cash_slip_id, 'is_deleted' => 0];
+
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        if (!$attachment = $this->cashSlipAttachmentModel->select('', $where, 1)) {
+            $response = $this->failNotFound('Cash Slip attachment not found.');
+        } elseif (!$this->_attempt_delete_attachments($se_cash_slip_id, $attachment)) {
+            $db->transRollback();
+            $response = $this->respond(['response' => 'Attachment not deleted successfully.']);
+        } else {
+            $db->transCommit();
+            $response = $this->respond(['response' => 'Attachment deleted successfully.']);
+        }
+
+        $db->close();
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /** 
+     * Attempt delete attachments
+     */
+    function _attempt_delete_attachments($se_cash_slip_id, $attachment = null)
+    {
+        $where = [
+            'se_cash_slip_id' => $se_cash_slip_id,
+            'is_deleted' => 0
+        ];
+
+        if($attachment) {
+            $where['id'] = $attachment['id'];
+        }
+
+        $unique_name = substr("abcd", mt_rand(0, 4), 1).substr(md5(time()), 1);
+        $oldFileName = $attachment['file_path'] . '/' . $attachment['file_name'];
+        $newFileName = $attachment['file_path'] . '/' . 'deleted_' . $unique_name . '_' . $attachment['file_name'];
+        rename($oldFileName, $newFileName);
+
+        // unlink($attachment['file_path'] . '/' . $attachment['file_name'])
+        $values = [
+            'file_name'     => 'deleted_' . $unique_name . '_' . $attachment['file_name'],
+            'file_url'      => $newFileName,
+            'is_deleted'    => 1,
+            'updated_by'    => $this->requested_by,
+            'updated_on'    => date('Y-m-d H:i:s'),
+        ];
+
+        if (!$this->cashSlipAttachmentModel->custom_update($where, $values)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -144,6 +212,9 @@ class Se_cash_payments extends MYTController
         } elseif (!$this->_attempt_generate_entry($se_cash_slip_id)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to generate cash entry.', 'status' => 'error']);
+        } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_cash_slip_id, 'assets/se_cash_payments/')) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'Successfully created slip.', 'status' => 'success', 'slip_id' => $se_cash_slip_id]);
@@ -176,14 +247,87 @@ class Se_cash_payments extends MYTController
         } elseif (!$this->_attempt_update_entry($se_cash_slip_id)) {
             $db->transRollback();
             $response = $this->respond(['response' => 'Supplies expense cash entry updated unsuccessfully']);
+        } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_cash_slip_id, 'assets/se_cash_payments/')) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'Supplies expense cash entry updated successfully']);
-        }   
+        }
 
         $db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
+    }
+
+    /**
+     * Upload Attachments
+     */
+    public function _upload_attachments($se_cash_slip_id, $path)
+    {
+        $files = $this->request->getFileMultiple('attachments');
+        $file_path = $path.$se_cash_slip_id;
+        // Uncomment this to add randomize naming
+        // $unique_name = substr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", mt_rand(0, 51), 1).substr(md5(time()), 1);
+        $unique_name = "";
+
+        if (!empty($files)) {
+            $path = $file_path . '/';
+
+            if (!is_dir($path)) {
+                mkdir($path, 0755, true);
+                write_file($path . 'index.html', 'Directory access is forbidden.');
+            }
+
+            foreach ($files as $i => $file) {
+                $sourcePath = $file->getPath();
+                $destinationPath = $path;
+
+                if ($file->isValid() && !in_array($file->getExtension(), ['png', 'jpeg', 'jpg'])) {
+                    return false;
+                }
+
+                $file_name = $file->getName();
+                $max_file_size = 5 * 1024 * 1024; // 5 MB in bytes
+            
+                if ($file->getSize() > $max_file_size) {
+                    return false;
+                }
+
+                if ($file->isValid() && !$file->hasMoved()) {
+                    $file_name = $file->getName();
+                    $mime_type = $file->getMimeType();
+
+                    $where = [
+                        'se_cash_slip_id' => $se_cash_slip_id,
+                        'file_name' => $file_name,
+                        'is_deleted' => 0
+                    ];
+
+                    if(empty($this->cashSlipAttachmentModel->select('', $where))) {
+                        $file->move($path, $file_name);
+                        $data = [
+                            'se_cash_slip_id' => $se_cash_slip_id,
+                            'file_name' => $file_name,
+                            'file_path' => $file_path,
+                            'file_url' => base_url($file_path . '/' . $file_name),
+                            'mime' => $mime_type,
+                            'added_by' => $this->requested_by,
+                            'added_on' => date('Y-m-d H:i:s')
+                        ];
+
+                        if (!$this->cashSlipAttachmentModel->insert($data)) {
+                            return false;
+                        }
+                    }
+                }
+
+            }
+        } else {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -446,14 +590,14 @@ class Se_cash_payments extends MYTController
         ];
 
         if (!$this->cashSlipModel->update($se_cash_slip['id'], $values)) {
-            $db->transRollback();   
+            $db->transRollback();
             $db->close();
             return false;
         }
 
         $db->transCommit();
         $db->close();
-        
+
         return true;
     }
 
@@ -502,7 +646,7 @@ class Se_cash_payments extends MYTController
             case 'disapproved':
                 $values['disapproved_by'] = $this->requested_by;
                 $values['disapproved_on'] = date('Y-m-d H:i:s');
-                $values['status'] = 'disapproved'; 
+                $values['status'] = 'disapproved';
                 break;
             case 'print':
                 $values['printed_by'] = $this->requested_by;
@@ -532,6 +676,7 @@ class Se_cash_payments extends MYTController
     {
         $this->cashEntryModel      = new SE_cash_entry();
         $this->cashSlipModel       = new SE_cash_slip();
+        $this->cashSlipAttachmentModel       = new SE_cash_slip_attachment();
         $this->seReceiveModel      = new Supplies_receive();
         $this->webappResponseModel = new Webapp_response();
     }
