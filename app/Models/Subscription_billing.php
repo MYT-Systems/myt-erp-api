@@ -82,17 +82,26 @@ EOT;
     /**
      * Get all subscription_billings
      */
-    public function get_all_subscription_billing($status = null, $project_name = null)
+    public function get_all_subscription_billing($status = null, $project_name = null, $billing_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT subscription_billing.*, project.name AS project_name
+SELECT subscription_billing.*, project.name AS project_name, project.address AS project_address, customer.name AS customer_name, project.contact_person AS project_contact_person, project.contact_number AS project_contact_number
 FROM subscription_billing
 LEFT JOIN project ON project.id = subscription_billing.project_id
+LEFT JOIN customer ON customer.id = project.customer_id
 WHERE subscription_billing.is_deleted = 0
 EOT;
 
 $binds = [];
+
+if($billing_id) {
+    $sql .= <<<EOT
+
+AND subscription_billing.id = ?
+EOT;
+        $binds[] = $billing_id;
+}
 
 if($status) {
     $sql .= <<<EOT

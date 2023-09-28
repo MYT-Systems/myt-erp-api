@@ -8,7 +8,7 @@ class Subscription_billing_entry extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'subscription_billing_id',
-        'project_client_id',
+        'project_recurring_cost_id',
         'project_id',
         'subscription_billing_entry_date',
         'due_date',
@@ -33,12 +33,12 @@ class Subscription_billing_entry extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT subscription_billing_entry.*, customer.name AS customer_name, project.name AS project_name, project.project_date AS project_date, subscription_billing_entry.amount - subscription_billing_entry.paid_amount AS balance
+SELECT subscription_billing_entry.*, customer.name AS customer_name, project.name AS project_name, project.project_date AS project_date, subscription_billing_entry.amount - subscription_billing_entry.paid_amount AS balance, project_recurring_cost.description AS project_recurring_cost_description, project_recurring_cost.period AS project_recurring_cost_period, project_recurring_cost.price AS project_recurring_cost_price
 FROM subscription_billing_entry
 LEFT JOIN subscription_billing ON subscription_billing.id = subscription_billing_entry.subscription_billing_id 
-LEFT JOIN project_client ON project_client.id = subscription_billing_entry.project_client_id
-LEFT JOIN customer ON customer.id = project_client.customer_id
+LEFT JOIN project_recurring_cost ON project_recurring_cost.id = subscription_billing_entry.project_recurring_cost_id
 LEFT JOIN project ON project.id = subscription_billing_entry.project_id
+LEFT JOIN customer ON customer.id = project.customer_id
     AND subscription_billing.is_deleted = 0
 WHERE subscription_billing_id = ? 
     AND subscription_billing_entry.is_deleted = 0

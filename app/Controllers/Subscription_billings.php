@@ -103,8 +103,9 @@ class Subscription_billings extends MYTController
 
         $status = $this->request->getVar('status') ? : null;
         $project_name = $this->request->getVar('project_name') ? : null;
+        $billing_id = $this->request->getVar('billing_id') ? : null;
 
-        $subscription_billings = $this->subscriptionBillingModel->get_all_subscription_billing($status, $project_name);
+        $subscription_billings = $this->subscriptionBillingModel->get_all_subscription_billing($status, $project_name, $billing_id);
 
         if (!$subscription_billings) {
             $response = $this->failNotFound('No subscription_billing found');

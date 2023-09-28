@@ -8,7 +8,7 @@ class Subscription_billing_payment_entry extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'subscription_billing_payment_id',
-        'subscription_billing_payment_entry_id',
+        'subscription_billing_entry_id',
         'paid_amount',
         'added_by',
         'added_on',
