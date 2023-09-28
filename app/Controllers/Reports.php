@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Controllers;
+use DateTime;
 
 class Reports extends MYTController
 {
@@ -130,6 +131,71 @@ class Reports extends MYTController
             $response = $this->respond([
                 'expense_total' => $expense_totals,
                 'expense_type' => $expense_type_arr,
+                'status'  => 'success'
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Get expense by type
+     */
+    public function get_expense_breakdown_by_day()
+    {
+        if (($response = $this->_api_verification('reports', 'get_expense_breakdown_by_day')) !== true)
+            return $response;
+
+        $expense_type_per_day_type = $this->request->getVar('expense_type_per_day_type');
+        $expense_type_per_day_date_from = $this->request->getVar('expense_type_per_day_date_from');
+        $expense_type_per_day_date_to = $this->request->getVar('expense_type_per_day_date_to');
+
+        $expense_type_breakdown_by_day = $this->suppliesExpenseModel->get_expense_breakdown_by_day($expense_type_per_day_date_from, $expense_type_per_day_date_to, $expense_type_per_day_type)?:[];
+        $expenses = $expense_type_breakdown_by_day;
+
+        // Your date range
+        $date_from = new DateTime($expense_type_per_day_date_from);
+        $date_to = new DateTime($expense_type_per_day_date_to);
+
+        // Loop through the dates and insert new expense records
+        $currentDate = clone $date_from;
+        while ($currentDate <= $date_to) {
+            $expenseDate = $currentDate->format("Y-m-d");
+        
+            // Check if the date already exists in the dataset
+            $dateExists = false;
+            foreach ($expenses as $expense) {
+                if ($expense["expense_date"] === $expenseDate) {
+                    $dateExists = true;
+                    break;
+                }
+            }
+        
+            // If the date does not exist, insert a new expense record
+            if (!$dateExists) {
+                $newExpense = [
+                    "expense_date" => $expenseDate,
+                    "total_expense_per_day" => "0",
+                    "pc_expense_type" => $expense_type_per_day_type ?: "None"
+                ];
+                $expenses[] = $newExpense;
+            }
+        
+            // Increment the current date by one day
+            $currentDate->modify("+1 day");
+        }
+        
+        // Sort the expenses by date using the custom sorting function
+        usort($expenses, function($a, $b) {
+            return strtotime($a["expense_date"]) - strtotime($b["expense_date"]);
+        });
+
+        if (!$expenses) {
+            $response = $this->failNotFound('No report Found');
+        } else {
+            $response = $this->respond([
+                'expenses' => $expenses,
                 'status'  => 'success'
             ]);
         }
@@ -775,6 +841,7 @@ class Reports extends MYTController
         $this->reportModel                = model('App\Models\Report');
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
         $this->projectExpenseModel        = model('App\Models\Project_expense');
+        $this->suppliesExpenseModel       = model('App\Models\Supplies_expense');
         $this->customerModel              = model('App\Models\Customer');
         $this->branchModel                = model('App\Models\Branch');
         $this->transferModel              = model('App\Models\Transfer');

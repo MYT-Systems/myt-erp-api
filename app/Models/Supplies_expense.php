@@ -112,6 +112,71 @@ EOT;
     }
 
     /**
+     * Get receive details by ID
+     */
+    public function get_expense_breakdown_by_day($date_from = null, $date_to = null, $type = "None")
+    {
+        if($type === "" || $type === NULL) {
+            $type = "None";
+        }
+        $database = \Config\Database::connect();
+        $sql      = <<<EOT
+SELECT 
+    calendar.date AS expense_date,
+    COALESCE(SUM(pc.amount), 0) AS total_expense_per_day,
+    IFNULL(pc.expense_type, "$type") AS pc_expense_type
+FROM (
+    SELECT ? + INTERVAL n DAY AS date, "$type" AS expense_type
+    FROM (
+        SELECT 
+            a.N + b.N * 10 + c.N * 100 AS n, "$type" AS expense_type
+        FROM
+            (SELECT 0 AS N UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS a,
+            (SELECT 0 AS N UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS b,
+            (SELECT 0 AS N UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS c
+        ) AS numbers
+    WHERE ? + INTERVAL n DAY <= ?
+) AS calendar
+LEFT JOIN (
+    SELECT petty_cash_detail.date AS date, petty_cash_detail.type AS type, petty_cash_detail.amount AS amount, IFNULL(petty_cash_detail.out_type, "$type") AS expense_type
+    FROM petty_cash_detail
+    WHERE petty_cash_detail.is_deleted = 0
+
+    UNION ALL
+
+    SELECT supplies_expense.supplies_expense_date AS date, 'out' AS type, supplies_expense.grand_total AS amount, IFNULL(supplies_expense.type, "$type") AS expense_type
+    FROM supplies_expense
+    WHERE supplies_expense.is_deleted = 0
+
+    UNION ALL
+
+    SELECT receive.receive_date AS date, 'out' AS type, receive.grand_total AS amount, "Supplies" AS expense_type
+    FROM receive
+    WHERE receive.is_deleted = 0
+) AS pc ON calendar.date = pc.date AND pc.type = 'out'
+EOT;
+
+        $binds = [$date_from, $date_from, $date_to];
+
+if($type !== "None" && $type !== NULL) {
+        $sql      .= <<<EOT
+
+WHERE pc.expense_type = ?
+EOT;
+    $binds[] = $type;
+}
+
+        $sql      .= <<<EOT
+
+GROUP BY calendar.date
+ORDER BY calendar.date;
+EOT;
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
      * Get supplies_expenses based on supplies_expense name, contact_person, phone_no, tin_no, bir_no, email
      */
     public function search($supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $supplies_expense_date, $delivery_date, $delivery_address, $branch_name, $remarks, $purpose, $requisitioner, $status, $order_status, $se_date_from, $se_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything) 
