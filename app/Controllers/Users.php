@@ -13,6 +13,7 @@ class Users extends MYTController
     
     public function __construct()
     {
+        // die("here");
         // Headers for API
         $this->api_key = $_SERVER['HTTP_API_KEY'];
         $this->user_key = $_SERVER['HTTP_USER_KEY'];
@@ -74,7 +75,7 @@ class Users extends MYTController
      */
     public function create()
     {
-        if ($response = $this->_api_verification('users', 'create') !== true)
+        if (($response = $this->_api_verification('users', 'create')) !== true) 
             return $response;
 
         $username = $this->request->getVar('username');
@@ -167,9 +168,9 @@ class Users extends MYTController
         if (($response = $this->_api_verification('users', 'delete')) !== true)
             return $response;
 
-        $pin = $this->request->getVar('pin');
+        $user_id = $this->request->getVar('user_id');
 
-        $where = ['pin' => $pin, 'is_deleted' => 0];
+        $where = ['id' => $user_id, 'is_deleted' => 0];
 
         if (!$user = $this->userModel->select('', $where, 1)) {
             $response = $this->failNotFound('User not found');
