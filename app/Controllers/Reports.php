@@ -174,10 +174,15 @@ class Reports extends MYTController
         
             // If the date does not exist, insert a new expense record
             if (!$dateExists) {
+                $where = [
+                    'id' => $expense_type_per_day_type
+                ];
+                $expense_type = $this->expenseTypeModel->select('', $where, 1);
+
                 $newExpense = [
                     "expense_date" => $expenseDate,
                     "total_expense_per_day" => "0",
-                    "pc_expense_type" => $expense_type_per_day_type ?: "None"
+                    "pc_expense_type" => $expense_type ? $expense_type['name'] : "None"
                 ];
                 $expenses[] = $newExpense;
             }
@@ -842,6 +847,7 @@ class Reports extends MYTController
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
         $this->projectExpenseModel        = model('App\Models\Project_expense');
         $this->suppliesExpenseModel       = model('App\Models\Supplies_expense');
+        $this->expenseTypeModel           = model('App\Models\Expense_type');
         $this->customerModel              = model('App\Models\Customer');
         $this->branchModel                = model('App\Models\Branch');
         $this->transferModel              = model('App\Models\Transfer');

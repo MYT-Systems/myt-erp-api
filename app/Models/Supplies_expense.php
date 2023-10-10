@@ -124,7 +124,7 @@ EOT;
 SELECT 
     calendar.date AS expense_date,
     COALESCE(SUM(pc.amount), 0) AS total_expense_per_day,
-    IFNULL(pc.expense_type, "$type") AS pc_expense_type
+    COALESCE(expense_type.name, "None") AS pc_expense_type
 FROM (
     SELECT ? + INTERVAL n DAY AS date, "$type" AS expense_type
     FROM (
@@ -154,6 +154,7 @@ LEFT JOIN (
     FROM receive
     WHERE receive.is_deleted = 0
 ) AS pc ON calendar.date = pc.date AND pc.type = 'out'
+LEFT JOIN expense_type ON expense_type.id = IFNULL(pc.expense_type, "$type")
 EOT;
 
         $binds = [$date_from, $date_from, $date_to];
@@ -328,5 +329,4 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? (float) $query->getResultArray()[0]['commission'] : false;
     }
-
 }
