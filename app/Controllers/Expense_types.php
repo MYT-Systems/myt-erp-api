@@ -15,7 +15,7 @@ class Expense_types extends MYTController
     }
 
     /**
-     * Get forwarder
+     * Get expense_type
      */
     public function get_expense_types()
     {
@@ -23,10 +23,10 @@ class Expense_types extends MYTController
             return $response; 
 
         $expense_types_id = $this->request->getVar('expense_type_id') ? : null;
-        $expense_types    = $expense_types ? $this->expenseTypeModel->get_details_by_id($expense_types_id) : null;
+        $expense_types    = $this->expenseTypeModel->get_details_by_id($expense_types_id);
 
         if (!$expense_types) {
-            $response = $this->failNotFound('No forwarder found');
+            $response = $this->failNotFound('No expense_type found');
         } else {
             $response = $this->respond([
                 'status' => 'success',
@@ -49,7 +49,7 @@ class Expense_types extends MYTController
         $expense_types = $this->expenseTypeModel->get_all_expense_type();
 
         if (!$expense_types) {
-            $response = $this->failNotFound('No forwarder found');
+            $response = $this->failNotFound('No expense_type found');
         } else {
             $response = $this->respond([
                 'status' => 'success',
@@ -74,11 +74,11 @@ class Expense_types extends MYTController
 
         if (!$expense_types_id= $this->_attempt_create()) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to create forwarder.', 'status' => 'error']);
+            $response = $this->fail(['response' => 'Failed to create expense_type.', 'status' => $this->errorMessage]);
         } else {
             $db->transCommit();
             $response = $this->respond([
-                'response'     => 'Forwarder created successfully.',
+                'response'     => 'expense_type created successfully.',
                 'status'       => 'success',
                 'id' => $expense_types_id
             ]);
@@ -123,7 +123,7 @@ class Expense_types extends MYTController
      */
     public function delete($id = null)
     {
-        if (($response = $this->_api_verification('forwarders', 'delete')) !== true)
+        if (($response = $this->_api_verification('expense_types', 'delete')) !== true)
             return $response;
 
         $expense_type_id = $this->request->getVar('expense_type_id');
@@ -149,7 +149,7 @@ class Expense_types extends MYTController
     }
 
     /**
-     * Search forwarders based on parameters passed
+     * Search expense_types based on parameters passed
      */
     public function search()
     {
@@ -187,9 +187,10 @@ class Expense_types extends MYTController
             'added_on'    => date('Y-m-d H:i:s')
         ];
 
-        if (!$expense_types_id = $this->expenseTypeModel->insert($values))
+        if (!$expense_types_id = $this->expenseTypeModel->insert($values)){
+            $this->errorMessage = $this->expenseTypeModel->error();
             return false;
-
+        }
         return $expense_types_id;
     }
 
