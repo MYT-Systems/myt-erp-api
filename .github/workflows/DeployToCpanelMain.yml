@@ -1,0 +1,25 @@
+name: Publish Website to CPanel
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - .env
+      - .htaccess
+      - app/Config/App.php
+      - app/Config/Database.php
+      
+jobs:
+   web-deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+    steps:
+    - name: 🚚 Get latest code
+      uses: actions/checkout@v3
+    
+    - name: 📂 Sync files
+      uses: SamKirkland/FTP-Deploy-Action@4.3.3
+      with:
+        server: ${{ secrets.FTP_SERVER_MAIN }}
+        username: ${{ secrets.FTP_USERNAME_MAIN }}
+        password: ${{ secrets.FTP_PASSWORD_MAIN }}
