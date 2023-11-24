@@ -224,7 +224,7 @@ class Users extends MYTController
         $type = $this->request->getVar('type');
 
         $values = [
-            'employee_id' => $this->request->getVar('employee_id'),
+            'employee_id' => $this->request->getVar('employee_id') ?? null,
             'pin'         => $this->pin,
             'username'    => $this->request->getVar('username'),
             'password'    => password_hash($this->request->getVar('password'), PASSWORD_BCRYPT),
@@ -241,11 +241,15 @@ class Users extends MYTController
         ];
 
   
-        if (!$user_id = $this->userModel->insert($values) OR
-            ($type != 'branch' AND !$this->_insert_user_assignment($user_id))
-        ) {
+        // if (!$user_id = $this->userModel->insert($values) OR
+        //     ($type != 'branch' AND !$this->_insert_user_assignment($user_id))
+        // ) {
+        //     $this->errorMessage = $this->db->error()['message'];
+        //     return false;
+        // }
+        if(!$user_id = $this->userModel->insert($values)) {
             $this->errorMessage = $this->db->error()['message'];
-            return false;
+            return false; 
         }
 
         return $user_id;
@@ -277,7 +281,7 @@ class Users extends MYTController
         $password = $this->request->getVar('password');
         
         $values = [
-            'employee_id' => $this->request->getVar('employee_id'),
+            'employee_id' => $this->request->getVar('employee_id') ?? null,
             'username'    => $this->request->getVar('username') ? : $user['username'],
             'password'    => $password ? password_hash($this->request->getVar('password'), PASSWORD_BCRYPT) : $user['password'],
             'last_name'   => $this->request->getVar('last_name') ? : $user['last_name'],
@@ -294,8 +298,8 @@ class Users extends MYTController
             $values['password_reset'] = date('Y-m-d H:i:s');
         }
 
-        if (!$this->userModel->update($where, $values) OR
-            !$this->_update_user_assignment($user['id'])
+        if (!$this->userModel->update($where, $values)
+            // !$this->_update_user_assignment($user['id'])
         ) {
             $this->errorMessage = $this->db->error()['message'];
             $this->db->transRollback();
