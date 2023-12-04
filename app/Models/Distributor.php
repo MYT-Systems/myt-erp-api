@@ -48,7 +48,7 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT distributor_client.*, customer.name AS customer_name, project.name AS project_name
+SELECT distributor_client.*, customer.name AS customer_name, project.name AS project_name, distributor_billing.grand_total
 FROM distributor
     LEFT JOIN distributor_client ON distributor_client.distributor_id = distributor.id
     LEFT JOIN distributor_billing_entry ON distributor_billing_entry.distributor_client_id = distributor_client.id
