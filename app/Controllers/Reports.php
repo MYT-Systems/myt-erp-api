@@ -673,11 +673,14 @@ class Reports extends MYTController
             // ]);
         // }
 
+        $date_from = $this->request->get('date_from') ?? date('Y-m-d');
+        $date_to = $this->request->getVar('date_to') ?? date('Y-m-d');
+
         $data = [];
-        $data['sales'] = number_format($this->reportModel->get_sales(), 2, '.', "");
-        $data['expenses'] = number_format($this->reportModel->get_expenses(), 2, '.', "");
+        $data['sales'] = number_format($this->reportModel->get_sales($date_from, $date_to), 2, '.', "");
+        $data['expenses'] = number_format($this->reportModel->get_expenses($date_from, $date_to), 2, '.', "");
         $data['net_sales'] = number_format($data['sales'] - $data['expenses'], 2, '.', "");
-        $data['receivables'] = number_format($this->reportModel->get_receivables(), 2, '.', "");
+        $data['receivables'] = number_format($this->reportModel->get_receivables($date_from, $date_to), 2, '.', "");
         $data['pending_invoice'] = count($this->projectInvoiceModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
         $data['pending_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
 
