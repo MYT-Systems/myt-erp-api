@@ -673,7 +673,7 @@ class Reports extends MYTController
             // ]);
         // }
 
-        $date_from = $this->request->get('date_from') ?? date('Y-m-d');
+        $date_from = $this->request->getVar('date_from') ?? date('Y-m-d');
         $date_to = $this->request->getVar('date_to') ?? date('Y-m-d');
 
         $data = [];
