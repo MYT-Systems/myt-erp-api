@@ -713,7 +713,7 @@ EOT;
     /**
      * Get sales
      */
-    public function get_sales()
+    public function get_sales($date_from, $date_to)
     {
         $database = \Config\Database::connect();
 
@@ -722,15 +722,25 @@ SELECT SUM(paid_amount) AS sales
 FROM project_invoice_payment
 WHERE is_deleted = 0;
 EOT;
+        $binds = [];
 
-        $query = $database->query($sql);
+        if($date_from && $date_to) {
+            $sql .= <<<EOT
+
+AND payment_date BETWEEN ? AND ?
+EOT;
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
+
+        $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray()[0]['sales'] : 0;
     }
 
     /**
      * Get expenses
      */
-    public function get_expenses()
+    public function get_expenses($date_from, $date_to)
     {
         $database = \Config\Database::connect();
 
@@ -739,15 +749,25 @@ SELECT SUM(grand_total) AS expenses
 FROM project_expense
 WHERE is_deleted = 0;
 EOT;
+$binds = [];
 
-        $query = $database->query($sql);
+        if($date_from && $date_to) {
+            $sql .= <<<EOT
+
+AND DATE(added_on) BETWEEN ? AND ?
+EOT;
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
+
+        $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray()[0]['expenses'] : 0;
     }
 
     /**
      * Get receivables
      */
-    public function get_receivables()
+    public function get_receivables($date_from, $date_to)
     {
         $database = \Config\Database::connect();
 
@@ -759,8 +779,17 @@ WHERE project_invoice.is_deleted = 0
 AND project.is_deleted = 0
 AND project_invoice.status = 'sent';
 EOT;
+        $binds = [];
+        if($date_from && $date_to) {
+            $sql .= <<<EOT
 
-        $query = $database->query($sql);
+AND project_invoice.invice_date BETWEEN ? AND ?
+EOT;
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
+
+        $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray()[0]['receivables'] : 0;
     }
 
