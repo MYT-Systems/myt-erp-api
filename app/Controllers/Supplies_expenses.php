@@ -483,33 +483,42 @@ class Supplies_expenses extends MYTController
             'supplier'              => $supplier ? $supplier[0] : $vendor[0],
         ];
 
-        $email = \Config\Services::email();
-        $email->setFrom('mytdevcorp.com@gmail.com', 'MYT');
-        $email->setTo($supplier_email);
-        $email->setCC('mytdevcorp.com@gmail.com');
-        $email->setSubject('SUPPLIES EXPENSE ORDER #'.$supplies_expense['id']);
-
         // Create an html message
-        $message = view('emails/supplies_expense', $data);
+        $content = view('emails/supplies_expense', $data);
 
-        $email->setMessage($message);
-        
-        $response = "";
-        if ($email->send()) {
-            $response = [
-                'response' => 'Email sent successfully'
-            ];
+        $curl = curl_init();
 
-            if (!$this->_attempt_change_status($supplies_expense, 'sent')) {
-                var_dump('failed to change status');
-                return false;
-            }
-        } else {
-            var_dump("failed to send email");
+        $payload = [
+            "sender_email" => MYT_EMAIL,
+            "sender_name" => MYT_NAME,
+            "sender_pass" => MYT_PASS,
+            "recipients" => [$supplier_email],
+            "subject" => 'Supplies Expenses',
+            "content" => $content
+        ];
+
+        $this->_setup_curl($curl, $payload);
+
+        $status = null;
+        if (!$this->_attempt_change_status($supplies_expense, 'sent')) {
+            var_dump('failed to change status');
             return false;
         }
+        else {
+            if ($response = curl_exec($curl)) {
+                $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                $response = json_decode(trim($response), true);
+                $response['status'] = $status;
+                $response['response'] = 'Email sent successfully';
+            } else {
+                curl_close($curl);
+                $this->_error_message = "Failed to send email";
+                return false;
+            }
+        }
 
-        return true;
+        curl_close($curl);
+        return $response;
     }
 
     /**
@@ -672,6 +681,25 @@ class Supplies_expenses extends MYTController
         }
 
         return true;
+    }
+
+    protected function _setup_curl($curl, $payload, $method = "POST")
+    {
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://email.myt-enterprise.com/email_services/send",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'API-KEY: ' . 'a9452321-248b-11ee-bef7-0cc47a6461ea'
+            ],
+            CURLOPT_POSTFIELDS => json_encode($payload)
+        ));
     }
 
     /**
