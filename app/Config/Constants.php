@@ -38,9 +38,9 @@ defined('MINUTE') || define('MINUTE', 60);
 defined('HOUR')   || define('HOUR', 3600);
 defined('DAY')    || define('DAY', 86400);
 defined('WEEK')   || define('WEEK', 604800);
-defined('MONTH')  || define('MONTH', 2_592_000);
-defined('YEAR')   || define('YEAR', 31_536_000);
-defined('DECADE') || define('DECADE', 315_360_000);
+defined('MONTH')  || define('MONTH', 2592000);
+defined('YEAR')   || define('YEAR', 31536000);
+defined('DECADE') || define('DECADE', 315360000);
 
 /*
  | --------------------------------------------------------------------------
@@ -105,3 +105,8 @@ defined('PAYMENT_METHODS') || define('PAYMENT_METHODS', 'gcash,food_panda,grab_f
 
 // CONFIGURATIONS
 defined('SAGO_ITEM_ID') || define('SAGO_ITEM_ID', '10');
+
+// EMAIL CONFIG
+defined('MYT_EMAIL') || define('MYT_EMAIL', 'mytdevcorp.com@gmail.com');
+defined('MYT_NAME') || define('MYT_NAME', 'MYT SOFTDEV SOLUTIONS INC.');
+defined('MYT_PASSWORD') || define('MYT_PASSWORD', 'ciut xypw vlyb xdgh');
