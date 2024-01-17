@@ -224,9 +224,11 @@ FROM (
         supplies_expense.doc_no AS reference_no, 
         supplies_expense.paid_amount AS paid_amount,
         (supplies_expense.grand_total - supplies_expense.paid_amount) AS balance,
-        supplies_expense.remarks
+        supplies_expense.remarks,
+        supplies_receive.invoice_no
     FROM supplies_expense
     LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+    LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
     WHERE supplies_expense.is_deleted = 0
     AND supplies_expense.status <> "pending"
     AND supplies_expense.status <> "for_approval"
@@ -252,7 +254,8 @@ FROM (
         project_expense.id AS reference_no, 
         project_expense.paid_amount AS paid_amount,
         (project_expense.grand_total - project_expense.paid_amount) AS balance,
-        project_expense.remarks
+        project_expense.remarks,
+        project_expense.id AS invoice_no
     FROM project_expense
     LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
     WHERE project_expense.is_deleted = 0
