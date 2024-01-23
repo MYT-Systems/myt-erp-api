@@ -299,7 +299,9 @@ EOT;
         $binds = [];
 
         $sql = <<<EOT
-SELECT project.name AS name, 
+SELECT
+    project.id AS project_id,
+    project.name AS name, 
     project.start_date AS start_date, 
     customer.name AS customer_name, 
     project.grand_total AS amount, 
