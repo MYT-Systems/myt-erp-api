@@ -8,6 +8,8 @@ class Project extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'name',
+        'distributor_id',
+        'billing_date',
         'project_date',
         'start_date',
         'customer_id',
