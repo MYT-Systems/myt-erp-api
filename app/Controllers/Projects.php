@@ -22,10 +22,11 @@ class Projects extends MYTController
         if (($response = $this->_api_verification('projects', 'get_project')) !== true)
             return $response;
 
-        $project_id        = $this->request->getVar('project_id') ? : null;
-        $project            = $project_id ? $this->projectModel->get_details_by_id($project_id) : null;
-        $project_attachment = $project_id ? $this->projectAttachmentModel->get_details_by_project_id($project_id) : null;
-        $project_invoice    = $project_id ? $this->projectInvoiceModel->get_details_by_project_id($project_id) : null;
+        $project_id             = $this->request->getVar('project_id') ? : null;
+        $project                = $project_id ? $this->projectModel->get_details_by_id($project_id) : null;
+        $project_attachment     = $project_id ? $this->projectAttachmentModel->get_details_by_project_id($project_id) : null;
+        $project_invoice        = $project_id ? $this->projectInvoiceModel->get_details_by_project_id($project_id) : null;
+        $project_cost           = $project_id ? $this->projectCostModel->get_details_by_project_id($project_id) : null;
         $project_recurring_cost = $project_id ? $this->projectRecurringCostModel->get_details_by_project_id($project_id) : null;
 
         if($project_recurring_cost) {
@@ -42,6 +43,7 @@ class Projects extends MYTController
         } else {
             $project[0]['attachment'] = $project_attachment;
             $project[0]['invoice'] = $project_invoice;
+            $project[0]['cost'] = $project_cost;
             $project[0]['recurring_cost'] = $project_recurring_cost;
 
 
@@ -107,6 +109,9 @@ class Projects extends MYTController
         } elseif (!$this->_attempt_generate_project_recurring_costs($project_id)) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
+        } elseif (!$this->_attempt_generate_project_costs($project_id)) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
         } elseif ($this->request->getFile('file') AND !$response = $this->_attempt_upload_file_base64($this->projectAttachmentModel, ['project_id' => $project_id]) AND
                    $response === false) {
             $this->db->transRollback();
@@ -121,6 +126,57 @@ class Projects extends MYTController
         $this->db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
+    }
+
+    /**
+     * Batch insert project costs
+     */
+    protected function _attempt_generate_project_costs($project_id)
+    {
+        $project_cost_descriptions = $this->request->getVar('project_cost_description') ?? [];
+        $project_cost_type = $this->request->getVar('project_cost_type') ?? [];
+        $project_cost_amount = $this->request->getVar('project_cost_amount') ?? [];
+
+        $values = [];
+        foreach($project_cost_descriptions as $i => $project_cost_description) {
+            $values[] = [
+                'project_id'  => $project_id,
+                'description' => $project_cost_description,
+                'type'        => $project_cost_type[$i],
+                'amount'      => $project_cost_amount[$i],
+                'added_by'    => $this->request->getVar('requester'),
+                'added_on'    => date('Y-m-d H:i:s')
+            ];
+        }
+
+        if(!$this->projectCosteModel->insertBatch($values)) {
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Delete project costs by project_id
+     */
+    protected function _attempt_delete_project_costs($project_id)
+    {
+        $where = [
+            'project_id' => $project_id,
+            'is_deleted' => 0
+        ];
+
+        $values = [
+            'is_deleted' => 1,
+            'added_by'   => $this->request->getVar(),
+            'added_on'   => date('Y-m-d H:i:s')
+        ];
+
+        if(!$this->projectCostModel->update($where, $values)){
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -154,7 +210,7 @@ class Projects extends MYTController
             $values['price']     = $price;
 
             if (!$this->projectRecurringCostModel->insert($values)) {
-                $this->errorMessage = $db->error()['message'];
+                $this->errorMessage = $this->db->error()['message'];
                 return false;
             }
         }
@@ -189,7 +245,13 @@ class Projects extends MYTController
         } elseif (!$this->_attempt_generate_project_recurring_costs($project['id'])) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
-        } else {
+        } elseif(!$this->_attempt_delete_project_costs($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
+        } elseif (!$this->_attempt_generate_project_costs($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
+        }else {
             $this->db->transCommit();
             $response = $this->respond(['response' => 'Project updated successfully.', 'status' => 'success']);
         }
@@ -471,12 +533,13 @@ class Projects extends MYTController
     protected function _load_essentials()
     {
         $this->projectModel               = model('App\Models\Project');
-        $this->projectInvoiceModel               = model('App\Models\Project_invoice');
-        $this->projectRecurringCostModel               = model('App\Models\Project_recurring_cost');
+        $this->projectInvoiceModel        = model('App\Models\Project_invoice');
+        $this->projectCostModel           = model('App\Models\Project_cost');
+        $this->projectRecurringCostModel  = model('App\Models\Project_recurring_cost');
         $this->projectAttachmentModel     = model('App\Models\Project_attachment');
-        $this->inventoryGroupDetailModel = model('App\Models\Inventory_group_detail');
+        $this->inventoryGroupDetailModel  = model('App\Models\Inventory_group_detail');
         $this->projectGroupDetailModel    = model('App\Models\Project_group_detail');
-        $this->franchiseeModel           = model('App\Models\Franchisee');
-        $this->webappResponseModel       = model('App\Models\Webapp_response');
+        $this->franchiseeModel            = model('App\Models\Franchisee');
+        $this->webappResponseModel        = model('App\Models\Webapp_response');
     }
 }
