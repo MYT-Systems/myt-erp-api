@@ -168,7 +168,7 @@ class Projects extends MYTController
 
         $values = [
             'is_deleted' => 1,
-            'added_by'   => $this->request->getVar(),
+            'added_by'   => $this->request->getVar('requester'),
             'added_on'   => date('Y-m-d H:i:s')
         ];
 
