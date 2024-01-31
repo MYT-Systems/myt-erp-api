@@ -82,7 +82,7 @@ GROUP BY project_invoice_item.project_invoice_id
 ) AS project_invoice_item_name ON project_invoice_item_name.project_invoice_id = project_invoice.id
 WHERE project_invoice.is_deleted = 0
     AND project.id = ?
-    AND porject.is_deleted = 0
+    AND project.is_deleted = 0
 GROUP BY project_invoice.id
 ORDER BY project_invoice.id ASC
 EOT;
