@@ -105,7 +105,7 @@ class Projects extends MYTController
 
         if (!$project_id = $this->_attempt_create()) {
             $this->db->transRollback();
-            $response = $this->fail('Failed to create project.');
+            $response = $this->fail('Failed to create project.'. $this->errorMessage);
         } elseif (!$this->_attempt_generate_project_recurring_costs($project_id)) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
@@ -149,7 +149,7 @@ class Projects extends MYTController
             ];
         }
 
-        if(!$this->projectCosteModel->insertBatch($values)) {
+        if(!$this->projectCostModel->insertBatch($values)) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
@@ -368,7 +368,8 @@ class Projects extends MYTController
         ];
 
         if (!$project_id = $this->projectModel->insert($values)) {
-           return false;
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
         }
 
         if ($this->request->getVar('inventory_group_id')) {
@@ -380,6 +381,7 @@ class Projects extends MYTController
             ];
 
             if (!$this->inventoryGroupDetailModel->insert($values)) {
+                $this->errorMessage = $this->db->error()['message'];
                 return false;
             }
         }
@@ -431,6 +433,7 @@ class Projects extends MYTController
         ];
 
         if (!$this->projectModel->update($project['id'], $values)) {
+            $this->errorMessage = $this->db->error()['message'];
             return false;
         }
 
