@@ -830,7 +830,7 @@ EOT;
         if($date_from && $date_to) {
             $sql .= <<<EOT
 
-AND project_invoice.invice_date BETWEEN ? AND ?
+AND project_invoice.invoice_date BETWEEN ? AND ?
 EOT;
             $binds[] = $date_from;
             $binds[] = $date_to;
