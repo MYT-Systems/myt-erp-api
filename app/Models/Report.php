@@ -263,10 +263,10 @@ FROM (
 ) expense
 EOT;
 
-        $sql .= " WHERE expense.type IS NOT NULL AND expense.expense_date IS NOT NULL ";
+        $sql .= " WHERE expense.expense_type IS NOT NULL AND expense.expense_date IS NOT NULL ";
 
         if ($expense_type) {
-            $sql .= " AND expense.type = ?";
+            $sql .= " AND expense.expense_type = ?";
             $binds[] = $expense_type;
         }
 
