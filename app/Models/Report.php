@@ -205,11 +205,30 @@ EOT;
         $binds = [];
 
         $sql = <<<EOT
-SELECT expense.expense_date AS expense_date, expense.particulars AS particulars, expense.doc_no AS doc_no, expense.total AS expense_total, expense.type AS expense_type, expense.payment_status AS payment_status, expense.reference_no AS reference_no, expense.paid_amount AS paid_amount
+SELECT *
 FROM (
-    SELECT supplies_expense.supplies_expense_date AS expense_date, 'Supplies Expense' AS particulars, supplies_expense.id AS doc_no, supplies_expense.grand_total AS total, expense_type.name AS type, CASE WHEN supplies_expense.grand_total = supplies_expense.paid_amount THEN 'fully paid' WHEN supplies_expense.grand_total < supplies_expense.paid_amount THEN 'over paid' WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_expense.paid_amount THEN 'partially paid' ELSE 'unpaid' END AS payment_status, supplies_expense.doc_no AS reference_no, supplies_expense.paid_amount AS paid_amount
+    SELECT 
+        supplies_expense.supplies_expense_date AS expense_date, 
+        'Supplies Expense' AS particulars, 
+        supplies_expense.id AS doc_no, 
+        supplies_expense.grand_total AS expense_total, 
+        expense_type.name AS type, 
+        CASE 
+            WHEN supplies_expense.grand_total = supplies_expense.paid_amount 
+            THEN 'fully paid'
+            WHEN supplies_expense.grand_total < supplies_expense.paid_amount 
+            THEN 'over paid' 
+            WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_expense.paid_amount 
+            THEN 'partially paid' 
+            ELSE 'unpaid' END AS payment_status, 
+        supplies_expense.doc_no AS reference_no, 
+        supplies_expense.paid_amount AS paid_amount,
+        (supplies_expense.grand_total - supplies_expense.paid_amount) AS balance,
+        supplies_expense.remarks,
+        supplies_receive.invoice_no
     FROM supplies_expense
     LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+    LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
     WHERE supplies_expense.is_deleted = 0
     AND supplies_expense.status <> "pending"
     AND supplies_expense.status <> "for_approval"
@@ -218,7 +237,25 @@ FROM (
 
     UNION
 
-    SELECT project_expense.project_expense_date AS expense_date, 'Project Expense' AS particulars, project_expense.id AS doc_no, project_expense.grand_total AS total, expense_type.name AS type, CASE WHEN project_expense.grand_total = project_expense.paid_amount THEN 'fully paid' WHEN project_expense.grand_total < project_expense.paid_amount THEN 'over paid' WHEN project_expense.paid_amount > 0 AND project_expense.grand_total > project_expense.paid_amount THEN 'partially paid' ELSE 'unpaid' END AS payment_status, project_expense.id AS reference_no, project_expense.paid_amount AS paid_amount
+    SELECT 
+        project_expense.project_expense_date AS expense_date, 
+        'Project Expense' AS particulars, 
+        project_expense.id AS doc_no, 
+        project_expense.grand_total AS expense_total, 
+        expense_type.name AS type, 
+        CASE 
+            WHEN project_expense.grand_total = project_expense.paid_amount 
+            THEN 'fully paid' 
+            WHEN project_expense.grand_total < project_expense.paid_amount 
+            THEN 'over paid' 
+            WHEN project_expense.paid_amount > 0 AND project_expense.grand_total > project_expense.paid_amount 
+            THEN 'partially paid' 
+            ELSE 'unpaid' END AS payment_status,
+        project_expense.id AS reference_no, 
+        project_expense.paid_amount AS paid_amount,
+        (project_expense.grand_total - project_expense.paid_amount) AS balance,
+        project_expense.remarks,
+        project_expense.id AS invoice_no
     FROM project_expense
     LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
     WHERE project_expense.is_deleted = 0
@@ -262,7 +299,17 @@ EOT;
         $binds = [];
 
         $sql = <<<EOT
-SELECT project.name AS name, project.start_date AS start_date, customer.name AS customer_name, project.grand_total AS amount, project.paid_amount AS paid_amount, project.grand_total - project.paid_amount AS receivable, SUM(IFNULL(project_expense.grand_total, 0)) AS project_expense, project.paid_amount - SUM(IF(project_expense.status = 'approved', IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
+SELECT
+    project.id AS project_id,
+    project.name AS name, 
+    project.start_date AS start_date, 
+    customer.name AS customer_name, 
+    project.grand_total AS amount, 
+    project.paid_amount AS paid_amount, 
+    project.grand_total - project.paid_amount AS receivable, 
+    SUM(IFNULL(project_expense.grand_total, 0)) AS project_expense, 
+    project.paid_amount - SUM(IF(project_expense.status = 'approved', 
+    IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
 FROM project
 LEFT JOIN customer ON customer.id = project.customer_id
 LEFT JOIN project_expense ON project_expense.project_id = project.id AND project_expense.is_deleted = 0
@@ -783,7 +830,7 @@ EOT;
         if($date_from && $date_to) {
             $sql .= <<<EOT
 
-AND project_invoice.invice_date BETWEEN ? AND ?
+AND project_invoice.invoice_date BETWEEN ? AND ?
 EOT;
             $binds[] = $date_from;
             $binds[] = $date_to;

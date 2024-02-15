@@ -8,6 +8,8 @@ class Project extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'name',
+        'distributor_id',
+        'billing_date',
         'project_date',
         'start_date',
         'customer_id',
@@ -157,8 +159,9 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT project.*, customer.name AS customer_name
+SELECT project.*, customer.name AS customer_name, distributor.name AS distributor_name
 FROM project
+LEFT JOIN distributor ON distributor.id = project.distributor_id
 LEFT JOIN customer ON customer.id = project.customer_id
 WHERE project.is_deleted = 0
 EOT;
@@ -216,8 +219,9 @@ EOT;
         $database = \Config\Database::connect();
         
         $sql = <<<EOT
-SELECT project.*, customer.name AS customer_name
+SELECT project.*, customer.name AS customer_name, distributor.name AS distributor_name
 FROM project
+LEFT JOIN distributor ON distributor.id = project.distributor_id
 LEFT JOIN customer ON customer.id = project.customer_id
 WHERE project.is_deleted = 0
 EOT;
