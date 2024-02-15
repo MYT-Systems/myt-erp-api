@@ -212,7 +212,8 @@ FROM (
         'Supplies Expense' AS particulars, 
         supplies_expense.id AS doc_no, 
         supplies_expense.grand_total AS expense_total, 
-        expense_type.name AS expense_type, 
+        expense_type.name AS expense_type,
+        project_expense.expense_type_id, 
         CASE 
             WHEN supplies_expense.grand_total = supplies_expense.paid_amount 
             THEN 'fully paid'
@@ -243,6 +244,7 @@ FROM (
         project_expense.id AS doc_no, 
         project_expense.grand_total AS expense_total, 
         expense_type.name AS expense_type, 
+        project_expense.expense_type_id,
         CASE 
             WHEN project_expense.grand_total = project_expense.paid_amount 
             THEN 'fully paid' 
@@ -266,7 +268,7 @@ EOT;
         $sql .= " WHERE expense.expense_type IS NOT NULL AND expense.expense_date IS NOT NULL ";
 
         if ($expense_type) {
-            $sql .= " AND expense.expense_type = ?";
+            $sql .= " AND expense.expense_type_id = ?";
             $binds[] = $expense_type;
         }
 
@@ -285,10 +287,10 @@ EOT;
             $binds[] = $payment_status;
         }
 
-//         $sql .= <<<EOT
+        $sql .= <<<EOT
 
-// ORDER BY expense.expense_date, id DESC
-// EOT;
+ORDER BY expense.doc_no DESC
+EOT;
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
