@@ -224,7 +224,7 @@ FROM (
         supplies_expense.doc_no AS reference_no, 
         supplies_expense.paid_amount AS paid_amount,
         (supplies_expense.grand_total - supplies_expense.paid_amount) AS balance,
-        supplies_expense.description,
+        supplies_expense.remarks AS description,
         supplies_receive.invoice_no
     FROM supplies_expense
     LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
@@ -254,7 +254,7 @@ FROM (
         project_expense.id AS reference_no, 
         project_expense.paid_amount AS paid_amount,
         (project_expense.grand_total - project_expense.paid_amount) AS balance,
-        project_expense.description,
+        project_expense.remarks AS description,
         project_expense.id AS invoice_no
     FROM project_expense
     LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
@@ -284,6 +284,11 @@ EOT;
             $sql .= " AND expense.payment_status = ?";
             $binds[] = $payment_status;
         }
+
+//         $sql .= <<<EOT
+
+// ORDER BY expense.expense_date, id DESC
+// EOT;
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
