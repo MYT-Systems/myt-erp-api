@@ -213,7 +213,6 @@ FROM (
         supplies_expense.id AS doc_no, 
         supplies_expense.grand_total AS expense_total, 
         expense_type.name AS expense_type,
-        project_expense.expense_type_id, 
         CASE 
             WHEN supplies_expense.grand_total = supplies_expense.paid_amount 
             THEN 'fully paid'
@@ -226,7 +225,8 @@ FROM (
         supplies_expense.paid_amount AS paid_amount,
         (supplies_expense.grand_total - supplies_expense.paid_amount) AS balance,
         supplies_expense.remarks AS description,
-        supplies_receive.invoice_no
+        supplies_receive.invoice_no,
+        expense_type.id AS expense_type_id
     FROM supplies_expense
     LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
     LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
@@ -244,7 +244,6 @@ FROM (
         project_expense.id AS doc_no, 
         project_expense.grand_total AS expense_total, 
         expense_type.name AS expense_type, 
-        project_expense.expense_type_id,
         CASE 
             WHEN project_expense.grand_total = project_expense.paid_amount 
             THEN 'fully paid' 
@@ -257,7 +256,8 @@ FROM (
         project_expense.paid_amount AS paid_amount,
         (project_expense.grand_total - project_expense.paid_amount) AS balance,
         project_expense.remarks AS description,
-        project_expense.id AS invoice_no
+        project_expense.id AS invoice_no,
+        expense_type.id AS expense_type_id
     FROM project_expense
     LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
     WHERE project_expense.is_deleted = 0
