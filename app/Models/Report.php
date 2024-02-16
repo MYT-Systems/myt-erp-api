@@ -734,7 +734,7 @@ EOT;
 
         $sql .= <<<EOT
 
-GROUP BY project_invoice.id;
+GROUP BY project_invoice.id
 EOT;
 
         $query = $database->query($sql, $binds);
@@ -831,7 +831,7 @@ FROM project_invoice
 LEFT JOIN project ON project.id = project_invoice.project_id
 WHERE project_invoice.is_deleted = 0
 AND project.is_deleted = 0
-AND project_invoice.status = 'sent';
+AND project_invoice.status = 'sent'
 EOT;
         $binds = [];
         if($date_from && $date_to) {
