@@ -774,7 +774,7 @@ EOT;
         $sql = <<<EOT
 SELECT SUM(paid_amount) AS sales
 FROM project_invoice_payment
-WHERE is_deleted = 0;
+WHERE is_deleted = 0
 EOT;
         $binds = [];
 
@@ -801,7 +801,7 @@ EOT;
         $sql = <<<EOT
 SELECT SUM(grand_total) AS expenses
 FROM project_expense
-WHERE is_deleted = 0;
+WHERE is_deleted = 0
 EOT;
 $binds = [];
 
