@@ -214,16 +214,16 @@ FROM (
         supplies_expense.grand_total AS expense_total, 
         expense_type.name AS expense_type,
         CASE 
-            WHEN supplies_expense.grand_total = supplies_expense.paid_amount 
+            WHEN supplies_expense.grand_total = supplies_receive.paid_amount 
             THEN 'fully paid'
-            WHEN supplies_expense.grand_total < supplies_expense.paid_amount 
+            WHEN supplies_expense.grand_total < supplies_receive.paid_amount 
             THEN 'over paid' 
-            WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_expense.paid_amount 
+            WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_receive.paid_amount 
             THEN 'partially paid' 
             ELSE 'unpaid' END AS payment_status, 
         supplies_expense.doc_no AS reference_no, 
-        supplies_expense.paid_amount AS paid_amount,
-        (supplies_expense.grand_total - supplies_expense.paid_amount) AS balance,
+        IFNULL(supplies_receive.paid_amount, 0) AS paid_amount,
+        (supplies_expense.grand_total - supplies_receive.paid_amount) AS balance,
         supplies_expense.remarks AS description,
         supplies_receive.invoice_no,
         expense_type.id AS expense_type_id
@@ -231,6 +231,7 @@ FROM (
     LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
     LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
     WHERE supplies_expense.is_deleted = 0
+    AND supplies_receive.is_deleted = 0
     AND supplies_expense.status <> "pending"
     AND supplies_expense.status <> "for_approval"
     AND supplies_expense.status <> "disapproved"
