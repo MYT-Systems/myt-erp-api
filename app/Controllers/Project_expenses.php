@@ -167,7 +167,7 @@ class Project_expenses extends MYTController
                 'amount' => $this->request->getVar('amount'),
                 'other_fees' => $this->request->getVar('other_fees'),
                 'grand_total' => $this->request->getVar('grand_total'),
-                'project_expense_date' => $this->request->getVar('project_expense_date'),
+                'project_expense_date' => $this->request->getVar('project_expense_date') ?? date('Y-m-d'),
                 'added_by' => $this->requested_by,
                 'added_on' => date('Y-m-d H:i:s'),
             ];
