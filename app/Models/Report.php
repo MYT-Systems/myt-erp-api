@@ -800,9 +800,20 @@ EOT;
         $database = \Config\Database::connect();
 
         $sql = <<<EOT
-SELECT SUM(grand_total) AS expenses
-FROM project_expense
-WHERE is_deleted = 0
+SELECT SUM(expenses) AS expenses
+FROM (
+    SELECT SUM(grand_total) AS expenses
+    FROM project_expense
+    WHERE is_deleted = 0
+
+    UNION
+
+    SELECT SUM(grand_total) AS expenses
+    FROM supplies_expense
+    WHERE is_deleted = 0
+    AND status  IN ('approved', 'printed', 'sent')
+) AS report
+WHERE 1
 EOT;
 $binds = [];
 
