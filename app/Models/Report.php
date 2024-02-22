@@ -917,6 +917,66 @@ EOT;
         return $query ? $query->getResultArray() : [];
     }
 
+    public function get_financial_report($date_from, $date_to)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT *
+FROM (
+    (SELECT 
+        supplies_expense.supplies_expense_date AS date, 
+        'Supplies Invoice' AS reference,
+        expense_type.name COLLATE utf8mb4_general_ci AS account_type,
+        supplies_expense.remarks COLLATE utf8mb4_general_ci AS description,
+        NULL AS income,
+        supplies_expense.grand_total AS expense
+    FROM supplies_expense
+    LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+    WHERE supplies_expense.is_deleted = 0
+    AND supplies_expense.status NOT IN ('pending', 'for_approval', 'disapproved', 'deleted'))
+
+    UNION ALL
+
+    (SELECT 
+        project_expense.project_expense_date AS date, 
+        'Project Invoice' AS reference,
+        expense_type.name COLLATE utf8mb4_general_ci AS account_type,
+        project_expense.remarks COLLATE utf8mb4_general_ci AS description,
+        NULL AS income, 
+        project_expense.grand_total AS expense
+    FROM project_expense
+    LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
+    WHERE project_expense.is_deleted = 0
+    AND project_expense.status = 'approved')
+
+    UNION ALL
+
+    (SELECT 
+        project.project_date AS date,
+        'Sales Invoice' AS reference,
+        project.project_type COLLATE utf8mb4_general_ci AS account_type,
+        '' AS description,
+        project.grand_total AS income,
+        NULL AS expense
+    FROM project
+    WHERE project.is_deleted = 0)
+) AS report
+WHERE 1
+EOT;
+        $binds = [];
+
+        if($date_from && $date_to) {
+            $sql .= <<<EOT
+
+AND report.date BETWEEN ? AND ?
+EOT;
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
+
     /**
      * Get franchisee sales based on date
      */
