@@ -395,6 +395,7 @@ class Projects extends MYTController
             ];
 
             if (!$this->projectGroupDetailModel->insert($values)) {
+                $this->errorMessage = $this->db->error()['message'];
                 return false;
             }
         }

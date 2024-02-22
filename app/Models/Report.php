@@ -212,24 +212,26 @@ FROM (
         'Supplies Expense' AS particulars, 
         supplies_expense.id AS doc_no, 
         supplies_expense.grand_total AS expense_total, 
-        expense_type.name AS type, 
+        expense_type.name AS expense_type,
         CASE 
-            WHEN supplies_expense.grand_total = supplies_expense.paid_amount 
+            WHEN supplies_expense.grand_total = supplies_receive.paid_amount 
             THEN 'fully paid'
-            WHEN supplies_expense.grand_total < supplies_expense.paid_amount 
+            WHEN supplies_expense.grand_total < supplies_receive.paid_amount 
             THEN 'over paid' 
-            WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_expense.paid_amount 
+            WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_receive.paid_amount 
             THEN 'partially paid' 
             ELSE 'unpaid' END AS payment_status, 
         supplies_expense.doc_no AS reference_no, 
-        supplies_expense.paid_amount AS paid_amount,
-        (supplies_expense.grand_total - supplies_expense.paid_amount) AS balance,
-        supplies_expense.remarks,
-        supplies_receive.invoice_no
+        IFNULL(supplies_receive.paid_amount, 0) AS paid_amount,
+        (supplies_expense.grand_total - supplies_receive.paid_amount) AS balance,
+        supplies_expense.remarks AS description,
+        supplies_receive.invoice_no,
+        expense_type.id AS expense_type_id
     FROM supplies_expense
     LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
     LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
     WHERE supplies_expense.is_deleted = 0
+    AND supplies_receive.is_deleted = 0
     AND supplies_expense.status <> "pending"
     AND supplies_expense.status <> "for_approval"
     AND supplies_expense.status <> "disapproved"
@@ -242,7 +244,7 @@ FROM (
         'Project Expense' AS particulars, 
         project_expense.id AS doc_no, 
         project_expense.grand_total AS expense_total, 
-        expense_type.name AS type, 
+        expense_type.name AS expense_type, 
         CASE 
             WHEN project_expense.grand_total = project_expense.paid_amount 
             THEN 'fully paid' 
@@ -254,8 +256,9 @@ FROM (
         project_expense.id AS reference_no, 
         project_expense.paid_amount AS paid_amount,
         (project_expense.grand_total - project_expense.paid_amount) AS balance,
-        project_expense.remarks,
-        project_expense.id AS invoice_no
+        project_expense.remarks AS description,
+        project_expense.id AS invoice_no,
+        expense_type.id AS expense_type_id
     FROM project_expense
     LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
     WHERE project_expense.is_deleted = 0
@@ -263,10 +266,10 @@ FROM (
 ) expense
 EOT;
 
-        $sql .= " WHERE expense.type IS NOT NULL AND expense.expense_date IS NOT NULL ";
+        $sql .= " WHERE expense.expense_type IS NOT NULL AND expense.expense_date IS NOT NULL ";
 
         if ($expense_type) {
-            $sql .= " AND expense.type = ?";
+            $sql .= " AND expense.expense_type_id = ?";
             $binds[] = $expense_type;
         }
 
@@ -284,6 +287,11 @@ EOT;
             $sql .= " AND expense.payment_status = ?";
             $binds[] = $payment_status;
         }
+
+        $sql .= <<<EOT
+
+ORDER BY expense.doc_no DESC
+EOT;
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
@@ -727,7 +735,7 @@ EOT;
 
         $sql .= <<<EOT
 
-GROUP BY project_invoice.id;
+GROUP BY project_invoice.id
 EOT;
 
         $query = $database->query($sql, $binds);
@@ -767,7 +775,7 @@ EOT;
         $sql = <<<EOT
 SELECT SUM(paid_amount) AS sales
 FROM project_invoice_payment
-WHERE is_deleted = 0;
+WHERE is_deleted = 0
 EOT;
         $binds = [];
 
@@ -792,9 +800,20 @@ EOT;
         $database = \Config\Database::connect();
 
         $sql = <<<EOT
-SELECT SUM(grand_total) AS expenses
-FROM project_expense
-WHERE is_deleted = 0;
+SELECT SUM(expenses) AS expenses
+FROM (
+    SELECT SUM(grand_total) AS expenses
+    FROM project_expense
+    WHERE is_deleted = 0
+
+    UNION
+
+    SELECT SUM(grand_total) AS expenses
+    FROM supplies_expense
+    WHERE is_deleted = 0
+    AND status  IN ('approved', 'printed', 'sent')
+) AS report
+WHERE 1
 EOT;
 $binds = [];
 
@@ -824,7 +843,7 @@ FROM project_invoice
 LEFT JOIN project ON project.id = project_invoice.project_id
 WHERE project_invoice.is_deleted = 0
 AND project.is_deleted = 0
-AND project_invoice.status = 'sent';
+AND project_invoice.status = 'sent'
 EOT;
         $binds = [];
         if($date_from && $date_to) {
@@ -906,6 +925,66 @@ WHERE franchisee.is_deleted = 0
 EOT;
 
         $query = $database->query($sql);
+        return $query ? $query->getResultArray() : [];
+    }
+
+    public function get_financial_report($date_from, $date_to)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT *
+FROM (
+    (SELECT 
+        supplies_expense.supplies_expense_date AS date, 
+        'Supplies Invoice' AS reference,
+        expense_type.name COLLATE utf8mb4_general_ci AS account_type,
+        supplies_expense.remarks COLLATE utf8mb4_general_ci AS description,
+        NULL AS income,
+        supplies_expense.grand_total AS expense
+    FROM supplies_expense
+    LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+    WHERE supplies_expense.is_deleted = 0
+    AND supplies_expense.status NOT IN ('pending', 'for_approval', 'disapproved', 'deleted'))
+
+    UNION ALL
+
+    (SELECT 
+        project_expense.project_expense_date AS date, 
+        'Project Invoice' AS reference,
+        expense_type.name COLLATE utf8mb4_general_ci AS account_type,
+        project_expense.remarks COLLATE utf8mb4_general_ci AS description,
+        NULL AS income, 
+        project_expense.grand_total AS expense
+    FROM project_expense
+    LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
+    WHERE project_expense.is_deleted = 0
+    AND project_expense.status = 'approved')
+
+    UNION ALL
+
+    (SELECT 
+        project.project_date AS date,
+        'Sales Invoice' AS reference,
+        project.project_type COLLATE utf8mb4_general_ci AS account_type,
+        '' AS description,
+        project.grand_total AS income,
+        NULL AS expense
+    FROM project
+    WHERE project.is_deleted = 0)
+) AS report
+WHERE 1
+EOT;
+        $binds = [];
+
+        if($date_from && $date_to) {
+            $sql .= <<<EOT
+
+AND report.date BETWEEN ? AND ?
+EOT;
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
+        $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
     }
 

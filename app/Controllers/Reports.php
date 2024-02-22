@@ -837,6 +837,43 @@ class Reports extends MYTController
         return $response;
     }
 
+    /**
+     * Get Combined Reports of Incomes and Expenses
+     */
+    public function get_financial_report()
+    {
+        if (($response = $this->_api_verification('reports', 'financial_report')) !== true)
+            return $response;
+
+        $date_from = $this->request->getVar('date_from') ?? null;
+        $date_to   = $this->request->getVar('date_to') ?? null;
+
+        if($financial_report = $this->reportModel->get_financial_report($date_from, $date_to)) {
+            $summary = [
+                'total_income' => 0,
+                'total_expense' => 0,
+                'total_profit'   => 0
+            ];
+
+            foreach($financial_report as $row) {
+                $summary['total_income'] += $row['income'];
+                $summary['total_expense'] += $row['expense'];
+                $summary['total_profit'] += ($row['income'] - $row['expense']);
+            }
+
+            $response = $this->respond([
+                'summary'           => $summary,
+                'financial_report'  => $financial_report,
+                'status'            => 'success',
+            ]);
+        }
+        else {
+            $response = $this->failNotFound('No financial report found');
+        }
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
     // ------------------------------------------------------------------------
     // Private Functions
     // ------------------------------------------------------------------------
