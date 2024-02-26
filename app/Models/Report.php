@@ -310,7 +310,8 @@ EOT;
 SELECT
     project.id AS project_id,
     project.name AS name, 
-    project.start_date AS start_date, 
+    project.start_date AS start_date,
+    distributor.name AS distributor_name, 
     customer.name AS customer_name, 
     project.grand_total AS amount, 
     project.paid_amount AS paid_amount, 
