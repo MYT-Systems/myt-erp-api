@@ -346,6 +346,7 @@ class Projects extends MYTController
             'name' => $this->request->getVar('name'),
             'project_date' => $this->request->getVar('project_date'),
             'start_date' => $this->request->getVar('start_date'),
+            'renewal_date' => $this->request->getVar('renewal_date'),
             'customer_id' => $this->request->getVar('customer_id'),
             'distributor_id' => $this->request->getVar('distributor_id'),
             'billing_date' => $this->request->getVar('billing_date'),
