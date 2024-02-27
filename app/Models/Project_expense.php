@@ -87,13 +87,18 @@ EOT;
     /**
      * Get project_expenseess based on project_expense name, address, contact_person, contact_person_no, tin_no, bir_no
      */
-    public function search($project_id = null, $expense_type_id = null, $partner_id = null, $remarks = null, $amount = null, $other_fees = null, $grand_total = null, $status = null, $project_name = null)
+    public function search($project_id = null, $expense_type_id = null, $partner_id = null, $remarks = null, $amount = null, $other_fees = null, $grand_total = null, $status = null, $project_name = null, $supplier_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT project_expense.*, project.name, partner.name AS partner_name, CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name
+SELECT project_expense.*, 
+    project.name,
+    partner.name AS partner_name, 
+    supplier.trade_name AS supplier_name,
+    CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name
 FROM project_expense
 LEFT JOIN project ON project.id = project_expense.project_id
+LEFT JOIN supplier ON supplier.id = project_expense.supplier_id
 LEFT JOIN partner ON partner.id = project_expense.partner_id
 LEFT JOIN user AS adder ON adder.id = project_expense.added_by
 WHERE project_expense.is_deleted = 0
@@ -109,6 +114,8 @@ EOT;
         if ($grand_total) { $sql .= " AND project_expense.grand_total = ?"; $binds[] = $grand_total;}
         if ($status) { $sql .= " AND project_expense.status = ?"; $binds[] = $status;}
         if ($project_name) { $sql .= " AND project.name = ?"; $binds[] = $project_name;}
+        if ($supplier_id) { $sql .= " AND project_expense.supplier_id = ?"; $binds[] = $supplier_id;}
+
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
