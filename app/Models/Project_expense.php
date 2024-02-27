@@ -11,6 +11,7 @@ class Project_expense extends MYTModel
         'expense_type_id',
         'project_expense_date',
         'partner_id',
+        'supplier_id',
         'remarks',
         'amount',
         'other_fees',
