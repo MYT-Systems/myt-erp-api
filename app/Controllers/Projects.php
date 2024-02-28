@@ -42,6 +42,7 @@ class Projects extends MYTController
         $project_invoice        = $project_id ? $this->projectInvoiceModel->get_details_by_project_id($project_id) : null;
         $project_one_time_fee   = $project_id ? $this->projectOneTimeFeeModel->get_details_by_project_id($project_id) : null;
         $project_recurring_cost = $project_id ? $this->projectRecurringCostModel->get_details_by_project_id($project_id) : null;
+        $project_type           = $project_id ? $this->projectTypeModel->get_details_by_project_id($project_id) : null;
 
         if($project_recurring_cost) {
             foreach($project_recurring_cost AS $index => $project_recurring_cost_item) {
@@ -59,6 +60,7 @@ class Projects extends MYTController
             $project[0]['invoice'] = $project_invoice;
             $project[0]['one_time_fee'] = $project_one_time_fee;
             $project[0]['recurring_cost'] = $project_recurring_cost;
+            $project[0]['type'] = $project_type;
 
 
             $response = $this->respond([
@@ -418,6 +420,15 @@ class Projects extends MYTController
         } elseif (!$this->_attempt_delete($project['id'])) {
             $this->db->transRollback();
             $response = $this->fail(['response' => 'Failed to delete project.', 'status' => 'error']);
+        } elseif (!$this->_attempt_delete_recurring_costs($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
+        } elseif(!$this->_attempt_delete_project_one_time_fees($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
+        } elseif(!$this->_attempt_delete_project_types($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
             $response = $this->respond(['response' => 'Project deleted successfully.', 'status' => 'success']);
