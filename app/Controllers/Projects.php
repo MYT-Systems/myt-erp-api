@@ -60,7 +60,7 @@ class Projects extends MYTController
             $project[0]['invoice'] = $project_invoice;
             $project[0]['one_time_fee'] = $project_one_time_fee;
             $project[0]['recurring_cost'] = $project_recurring_cost;
-            $project[0]['type'] = $project_type;
+            $project[0]['project_types'] = $project_type;
 
 
             $response = $this->respond([
