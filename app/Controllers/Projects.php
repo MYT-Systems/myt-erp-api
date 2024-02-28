@@ -210,8 +210,8 @@ class Projects extends MYTController
 
         $values = [
             'is_deleted' => 1,
-            'added_by'   => $this->request->getVar('requester'),
-            'added_on'   => date('Y-m-d H:i:s')
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if(!$this->projectOneTimeFeeModel->update($where, $values)){
@@ -233,8 +233,8 @@ class Projects extends MYTController
 
         $values = [
             'is_deleted' => 1,
-            'added_by'   => $this->request->getVar('requester'),
-            'added_on'   => date('Y-m-d H:i:s')
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if(!$this->projectTypeModel->update($where, $values)){
