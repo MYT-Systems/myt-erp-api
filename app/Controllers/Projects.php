@@ -249,7 +249,7 @@ class Projects extends MYTController
      */
     protected function _attempt_generate_project_one_time_fees($project_id)
     {
-        $project_one_time_fee_descriptions = $this->request->getVar('project_one_time_description') ?? [];
+        $project_one_time_fee_descriptions = $this->request->getVar('project_one_time_fee_description') ?? [];
         $project_one_time_fee_amount = $this->request->getVar('project_one_time_fee_amount') ?? [];
         $values = [];
         foreach($project_one_time_fee_descriptions as $i => $project_one_time_fee_description) {
