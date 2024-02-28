@@ -12,6 +12,8 @@ class Project extends MYTModel
         'billing_date',
         'project_date',
         'start_date',
+        'renewal_date',
+        'payment_structure',
         'customer_id',
         'address',
         'company',
@@ -219,7 +221,9 @@ EOT;
         $database = \Config\Database::connect();
         
         $sql = <<<EOT
-SELECT project.*, customer.name AS customer_name, distributor.name AS distributor_name
+SELECT project.*, 
+    customer.name AS customer_name, 
+    distributor.name AS distributor_name
 FROM project
 LEFT JOIN distributor ON distributor.id = project.distributor_id
 LEFT JOIN customer ON customer.id = project.customer_id

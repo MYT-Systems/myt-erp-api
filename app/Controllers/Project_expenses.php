@@ -163,11 +163,12 @@ class Project_expenses extends MYTController
                 'project_id' => $this->request->getVar('project_id'),
                 'expense_type_id' => $this->request->getVar('expense_type_id'),
                 'partner_id' => $partner_id,
+                'supplier_id' => $this->request->getVar('supplier_id'),
                 'remarks' => $this->request->getVar('remarks'),
                 'amount' => $this->request->getVar('amount'),
                 'other_fees' => $this->request->getVar('other_fees'),
                 'grand_total' => $this->request->getVar('grand_total'),
-                'project_expense_date' => $this->request->getVar('project_expense_date'),
+                'project_expense_date' => $this->request->getVar('project_expense_date') ?? date('Y-m-d'),
                 'added_by' => $this->requested_by,
                 'added_on' => date('Y-m-d H:i:s'),
             ];
@@ -269,8 +270,9 @@ class Project_expenses extends MYTController
             $grand_total = $this->request->getVar('grand_total');
             $status = $this->request->getVar('status');
             $project_name = $this->request->getVar('project_name');
+            $supplier_id = $this->request->getVar('supplier_id');
 
-        if (!$project_expense = $this->projectExpenseModel->search($project_id, $expense_type_id, $partner_id, $remarks, $amount, $other_fees, $grand_total, $status, $project_name)) {
+        if (!$project_expense = $this->projectExpenseModel->search($project_id, $expense_type_id, $partner_id, $remarks, $amount, $other_fees, $grand_total, $status, $project_name, $supplier_id)) {
             $response = $this->failNotFound('No project_expense found');
         } else {
             $response = [];
@@ -295,6 +297,7 @@ class Project_expenses extends MYTController
             'project_id' => $this->request->getVar('project_id'),
             'expense_type_id' => $this->request->getVar('expense_type_id'),
             'partner_id' => $this->request->getVar('partner_id'),
+            'supplier_id' => $this->request->getVar('supplier_id'),
             'remarks' => $this->request->getVar('remarks'),
             'amount' => $this->request->getVar('amount'),
             'other_fees' => $this->request->getVar('other_fees'),

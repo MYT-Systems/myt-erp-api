@@ -300,7 +300,7 @@ EOT;
     /**
      * Get expense
      */
-    public function get_project_sales($project_id = null, $date_from = null, $date_to = null, $customer_id = null)
+    public function get_project_sales($project_id, $date_from, $date_to, $customer_id, $distributor_id)
     {
         $database = \Config\Database::connect();
     
@@ -310,7 +310,8 @@ EOT;
 SELECT
     project.id AS project_id,
     project.name AS name, 
-    project.start_date AS start_date, 
+    project.start_date AS start_date,
+    distributor.name AS distributor_name, 
     customer.name AS customer_name, 
     project.grand_total AS amount, 
     project.paid_amount AS paid_amount, 
@@ -320,6 +321,7 @@ SELECT
     IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
 FROM project
 LEFT JOIN customer ON customer.id = project.customer_id
+LEFT JOIN distributor ON distributor.id = project.distributor_id
 LEFT JOIN project_expense ON project_expense.project_id = project.id AND project_expense.is_deleted = 0
 WHERE customer.is_deleted = 0
 AND project.is_deleted = 0
@@ -343,6 +345,11 @@ EOT;
         if ($customer_id) {
             $sql .= " AND project.customer_id = ?";
             $binds[] = $customer_id;
+        }
+
+        if ($distributor_id) {
+            $sql .= " AND project.distributor_id = ?";
+            $binds[] = $distributor_id;
         }
 
         $sql .= " GROUP BY project.id";

@@ -309,12 +309,13 @@ class Reports extends MYTController
         if (($response = $this->_api_verification('reports', 'get_project_sales')) !== true)
             return $response;
 
-        $project_id = $this->request->getVar('project_id');
-        $date_from = $this->request->getVar('date_from');
-        $date_to = $this->request->getVar('date_to');
-        $customer_id = $this->request->getVar('customer_id');
+        $project_id = $this->request->getVar('project_id') ?? null;
+        $date_from = $this->request->getVar('date_from') ?? null;
+        $date_to = $this->request->getVar('date_to') ?? null;
+        $customer_id = $this->request->getVar('customer_id') ?? null;
+        $distributor_id = $this->request->getVar('distributor_id') ?? null;
 
-        if (!$project_sales = $this->reportModel->get_project_sales($project_id, $date_from, $date_to, $customer_id)) {
+        if (!$project_sales = $this->reportModel->get_project_sales($project_id, $date_from, $date_to, $customer_id, $distributor_id)) {
             $response = $this->failNotFound('No report Found');
         } else {
 
