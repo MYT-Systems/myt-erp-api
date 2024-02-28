@@ -15,6 +15,20 @@ class Projects extends MYTController
     }
 
     /**
+     * Get all project type names 
+     */
+    public function get_project_type_names()
+    {
+        $project_type_names = $this->projectTypeNameModel->select('',[]);
+        $response = $this->respond([
+            'status' => 'success',
+            'data'   => $project_type_names
+        ]);
+
+        return $response;
+    }
+
+    /**
      * Get project
      */
     public function get_project()
