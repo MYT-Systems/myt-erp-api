@@ -218,11 +218,16 @@ EOT;
     public function search($project_id = null, $name = null, $project_date = null, $start_date = null, $customer_id = null, $address = null, $company = null, $contact_person = null, $contact_number = null, $project_type = null)
     {
         $database = \Config\Database::connect();
-        
+        $date_today = date('Y-m-d');
+
         $sql = <<<EOT
 SELECT project.*, 
     customer.name AS customer_name, 
-    distributor.name AS distributor_name
+    distributor.name AS distributor_name,
+    (CASE
+        WHEN PERIOD_DIFF('$date_today', renewal_date) <= 1 THEN 'For Renewal'
+        ELSE 'Active'  
+    END) AS renewal_status
 FROM project
 LEFT JOIN distributor ON distributor.id = project.distributor_id
 LEFT JOIN customer ON customer.id = project.customer_id
