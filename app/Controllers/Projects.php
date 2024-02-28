@@ -237,7 +237,7 @@ class Projects extends MYTController
             'updated_on' => date('Y-m-d H:i:s')
         ];
 
-        if(!$this->projectTypeModel->update($where, $values)){
+        if(!$this->projectTypeModel->custom_update($where, $values)){
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
