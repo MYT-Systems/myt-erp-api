@@ -26,7 +26,7 @@ class Projects extends MYTController
         $project                = $project_id ? $this->projectModel->get_details_by_id($project_id) : null;
         $project_attachment     = $project_id ? $this->projectAttachmentModel->get_details_by_project_id($project_id) : null;
         $project_invoice        = $project_id ? $this->projectInvoiceModel->get_details_by_project_id($project_id) : null;
-        $project_cost           = $project_id ? $this->projectCostModel->get_details_by_project_id($project_id) : null;
+        $project_one_time_fee   = $project_id ? $this->projectOneTimeFeeModel->get_details_by_project_id($project_id) : null;
         $project_recurring_cost = $project_id ? $this->projectRecurringCostModel->get_details_by_project_id($project_id) : null;
 
         if($project_recurring_cost) {
@@ -43,7 +43,7 @@ class Projects extends MYTController
         } else {
             $project[0]['attachment'] = $project_attachment;
             $project[0]['invoice'] = $project_invoice;
-            $project[0]['cost'] = $project_cost;
+            $project[0]['one_time_fee'] = $project_one_time_fee;
             $project[0]['recurring_cost'] = $project_recurring_cost;
 
 
@@ -109,7 +109,7 @@ class Projects extends MYTController
         } elseif (!$this->_attempt_generate_project_recurring_costs($project_id)) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
-        } elseif (!$this->_attempt_generate_project_costs($project_id)) {
+        } elseif (!$this->_attempt_generate_one_time_fee($project_id)) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
         } elseif ($this->request->getFile('file') AND !$response = $this->_attempt_upload_file_base64($this->projectAttachmentModel, ['project_id' => $project_id]) AND
@@ -173,6 +173,54 @@ class Projects extends MYTController
         ];
 
         if(!$this->projectCostModel->update($where, $values)){
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Delete project costs by project_id
+     */
+    protected function _attempt_delete_project_one_time_fees($project_id)
+    {
+        $where = [
+            'project_id' => $project_id,
+            'is_deleted' => 0
+        ];
+
+        $values = [
+            'is_deleted' => 1,
+            'added_by'   => $this->request->getVar('requester'),
+            'added_on'   => date('Y-m-d H:i:s')
+        ];
+
+        if(!$this->projectOneTimeFeeModel->update($where, $values)){
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Batch insert project one time fees
+     */
+    protected function _attempt_generate_one_time_fee($project_id)
+    {
+        $project_one_time_fee_descriptions = $this->request->getVar('project_one_time_description') ?? [];
+        $project_one_time_fee_amount = $this->request->getVar('project_one_time_fee_amount') ?? [];
+        $values = [];
+        foreach($project_one_time_fee_descriptions as $i => $project_one_time_fee_description) {
+            $values[] = [
+                'project_id'  => $project_id,
+                'description' => $project_one_time_fee_description,
+                'amount'      => $project_one_time_fee_amount[$i],
+                'added_by'    => $this->request->getVar('requester'),
+                'added_on'    => date('Y-m-d H:i:s')
+            ];
+        }
+
+        if(!$this->projectOneTimeFeeModel->insertBatch($values)) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
@@ -245,7 +293,7 @@ class Projects extends MYTController
         } elseif (!$this->_attempt_generate_project_recurring_costs($project['id'])) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
-        } elseif(!$this->_attempt_delete_project_costs($project['id'])) {
+        } elseif(!$this->_attempt_delete_project_one_time_fees($project['id'])) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
         } elseif (!$this->_attempt_generate_project_costs($project['id'])) {
@@ -542,6 +590,7 @@ class Projects extends MYTController
     {
         $this->projectModel               = model('App\Models\Project');
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
+        $this->projectOneTimeFeeModel     = model('App\Models\Project_one_time_fee');
         $this->projectCostModel           = model('App\Models\Project_cost');
         $this->projectRecurringCostModel  = model('App\Models\Project_recurring_cost');
         $this->projectAttachmentModel     = model('App\Models\Project_attachment');
