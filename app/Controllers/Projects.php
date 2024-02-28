@@ -109,7 +109,7 @@ class Projects extends MYTController
         } elseif (!$this->_attempt_generate_project_recurring_costs($project_id)) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
-        } elseif (!$this->_attempt_generate_one_time_fee($project_id)) {
+        } elseif (!$this->_attempt_generate_project_one_time_fees($project_id)) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
         } elseif ($this->request->getFile('file') AND !$response = $this->_attempt_upload_file_base64($this->projectAttachmentModel, ['project_id' => $project_id]) AND
@@ -205,7 +205,7 @@ class Projects extends MYTController
     /**
      * Batch insert project one time fees
      */
-    protected function _attempt_generate_one_time_fee($project_id)
+    protected function _attempt_generate_project_one_time_fees($project_id)
     {
         $project_one_time_fee_descriptions = $this->request->getVar('project_one_time_description') ?? [];
         $project_one_time_fee_amount = $this->request->getVar('project_one_time_fee_amount') ?? [];
@@ -296,7 +296,7 @@ class Projects extends MYTController
         } elseif(!$this->_attempt_delete_project_one_time_fees($project['id'])) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
-        } elseif (!$this->_attempt_generate_project_costs($project['id'])) {
+        } elseif (!$this->_attempt_generate_project_one_time_fees($project['id'])) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
         }else {
