@@ -15,6 +15,20 @@ class Projects extends MYTController
     }
 
     /**
+     * Get all project type names 
+     */
+    public function get_project_type_names()
+    {
+        $project_type_names = $this->projectTypeNameModel->select('',[]);
+        $response = $this->respond([
+            'status' => 'success',
+            'data'   => $project_type_names
+        ]);
+
+        return $response;
+    }
+
+    /**
      * Get project
      */
     public function get_project()
@@ -28,6 +42,7 @@ class Projects extends MYTController
         $project_invoice        = $project_id ? $this->projectInvoiceModel->get_details_by_project_id($project_id) : null;
         $project_one_time_fee   = $project_id ? $this->projectOneTimeFeeModel->get_details_by_project_id($project_id) : null;
         $project_recurring_cost = $project_id ? $this->projectRecurringCostModel->get_details_by_project_id($project_id) : null;
+        $project_type           = $project_id ? $this->projectTypeModel->get_details_by_project_id($project_id) : null;
 
         if($project_recurring_cost) {
             foreach($project_recurring_cost AS $index => $project_recurring_cost_item) {
@@ -45,6 +60,7 @@ class Projects extends MYTController
             $project[0]['invoice'] = $project_invoice;
             $project[0]['one_time_fee'] = $project_one_time_fee;
             $project[0]['recurring_cost'] = $project_recurring_cost;
+            $project[0]['project_types'] = $project_type;
 
 
             $response = $this->respond([
@@ -110,6 +126,9 @@ class Projects extends MYTController
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
         } elseif (!$this->_attempt_generate_project_one_time_fees($project_id)) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
+        } elseif (!$this->_attempt_generate_project_types($project_id)) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
         } elseif ($this->request->getFile('file') AND !$response = $this->_attempt_upload_file_base64($this->projectAttachmentModel, ['project_id' => $project_id]) AND
@@ -180,7 +199,7 @@ class Projects extends MYTController
     }
 
     /**
-     * Delete project costs by project_id
+     * Delete project one time fees by project_id
      */
     protected function _attempt_delete_project_one_time_fees($project_id)
     {
@@ -203,11 +222,34 @@ class Projects extends MYTController
     }
 
     /**
+     * Delete project types by project_id
+     */
+    protected function _attempt_delete_project_types($project_id)
+    {
+        $where = [
+            'project_id' => $project_id,
+            'is_deleted' => 0
+        ];
+
+        $values = [
+            'is_deleted' => 1,
+            'added_by'   => $this->request->getVar('requester'),
+            'added_on'   => date('Y-m-d H:i:s')
+        ];
+
+        if(!$this->projectTypeModel->update($where, $values)){
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Batch insert project one time fees
      */
     protected function _attempt_generate_project_one_time_fees($project_id)
     {
-        $project_one_time_fee_descriptions = $this->request->getVar('project_one_time_description') ?? [];
+        $project_one_time_fee_descriptions = $this->request->getVar('project_one_time_fee_description') ?? [];
         $project_one_time_fee_amount = $this->request->getVar('project_one_time_fee_amount') ?? [];
         $values = [];
         foreach($project_one_time_fee_descriptions as $i => $project_one_time_fee_description) {
@@ -215,7 +257,7 @@ class Projects extends MYTController
                 'project_id'  => $project_id,
                 'description' => $project_one_time_fee_description,
                 'amount'      => $project_one_time_fee_amount[$i],
-                'added_by'    => $this->request->getVar('requester'),
+                'added_by'    => $this->requested_by,
                 'added_on'    => date('Y-m-d H:i:s')
             ];
         }
@@ -237,31 +279,60 @@ class Projects extends MYTController
         $periods = $this->request->getVar('periods') ?? [];
         $prices = $this->request->getVar('prices') ?? [];
 
-        $values = [
-            'project_id'         => $project_id,
-            'added_by'           => $this->requested_by,
-            'added_on'           => date('Y-m-d H:i:s'),
-        ];
+        if($descriptions) {
+            $values = [
+                'project_id'         => $project_id,
+                'added_by'           => $this->requested_by,
+                'added_on'           => date('Y-m-d H:i:s'),
+            ];
+    
+            $grand_total = 0;
+    
+            foreach ($descriptions as $key => $description) {
+                // checks if it is an item in case an item_name was passed
+                $description = $descriptions[$key];
+                $type = $types[$key];
+                $period = $periods[$key];
+                $price = $prices[$key];
+    
+                $values['description']  = $description;
+                $values['type']         = $type;
+                $values['period']          = $period;
+                $values['price']     = $price;
+    
+                if (!$this->projectRecurringCostModel->insert($values)) {
+                    $this->errorMessage = $this->db->error()['message'];
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
-        $grand_total = 0;
+    /**
+     * Batch Insert Project Types
+     */
+    protected function _attempt_generate_project_types($project_id)
+    {
+        $project_type_name_ids = $this->request->getVar('project_type_name_id') ?? [];
 
-        foreach ($descriptions as $key => $description) {
-            // checks if it is an item in case an item_name was passed
-            $description = $descriptions[$key];
-            $type = $types[$key];
-            $period = $periods[$key];
-            $price = $prices[$key];
+        if($project_type_name_ids) {
+            $values = [];
+            foreach($project_type_name_ids as $project_type_name_id) {
+                $values[] = [
+                    'project_id' => $project_id,
+                    'project_type_name_id' => $project_type_name_id,
+                    'added_by' => $this->requested_by,
+                    'added_on' => date('Y-m-d H:i:s')
+                ];
+            }
 
-            $values['description']  = $description;
-            $values['type']         = $type;
-            $values['period']          = $period;
-            $values['price']     = $price;
-
-            if (!$this->projectRecurringCostModel->insert($values)) {
+            if(!$this->projectTypeModel->insertBatch($values)) {
                 $this->errorMessage = $this->db->error()['message'];
                 return false;
             }
         }
+
         return true;
     }
 
@@ -299,7 +370,13 @@ class Projects extends MYTController
         } elseif (!$this->_attempt_generate_project_one_time_fees($project['id'])) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
-        }else {
+        } elseif(!$this->_attempt_delete_project_types($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
+        } elseif (!$this->_attempt_generate_project_types($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
+        } else {
             $this->db->transCommit();
             $response = $this->respond(['response' => 'Project updated successfully.', 'status' => 'success']);
         }
@@ -343,6 +420,15 @@ class Projects extends MYTController
         } elseif (!$this->_attempt_delete($project['id'])) {
             $this->db->transRollback();
             $response = $this->fail(['response' => 'Failed to delete project.', 'status' => 'error']);
+        } elseif (!$this->_attempt_delete_recurring_costs($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
+        } elseif(!$this->_attempt_delete_project_one_time_fees($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
+        } elseif(!$this->_attempt_delete_project_types($project['id'])) {
+            $this->db->transRollback();
+            $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
             $response = $this->respond(['response' => 'Project deleted successfully.', 'status' => 'success']);
@@ -403,7 +489,6 @@ class Projects extends MYTController
             'company' => $this->request->getVar('company'),
             'contact_person' => $this->request->getVar('contact_person'),
             'contact_number' => $this->request->getVar('contact_number') ?: null,
-            'project_type' => $this->request->getVar('project_type'),
             'project_price' => $this->request->getVar('project_price'),
             'vat_type' => $this->request->getVar('vat_type'),
             'vat_twelve' => $this->request->getVar('vat_twelve'),
@@ -471,7 +556,6 @@ class Projects extends MYTController
             'company' => $this->request->getVar('company'),
             'contact_person' => $this->request->getVar('contact_person'),
             'contact_number' => $this->request->getVar('contact_number') ?: null,
-            'project_type' => $this->request->getVar('project_type'),
             'project_price' => $this->request->getVar('project_price'),
             'vat_type' => $this->request->getVar('vat_type'),
             'vat_twelve' => $this->request->getVar('vat_twelve'),
@@ -593,6 +677,8 @@ class Projects extends MYTController
         $this->projectOneTimeFeeModel     = model('App\Models\Project_one_time_fee');
         $this->projectCostModel           = model('App\Models\Project_cost');
         $this->projectRecurringCostModel  = model('App\Models\Project_recurring_cost');
+        $this->projectTypeModel           = model('App\Models\Project_type');
+        $this->projectTypeNameModel       = model('App\Models\Project_type_name');
         $this->projectAttachmentModel     = model('App\Models\Project_attachment');
         $this->inventoryGroupDetailModel  = model('App\Models\Inventory_group_detail');
         $this->projectGroupDetailModel    = model('App\Models\Project_group_detail');

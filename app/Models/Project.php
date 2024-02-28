@@ -19,7 +19,6 @@ class Project extends MYTModel
         'company',
         'contact_person',
         'contact_number',
-        'project_type',
         'project_price',
         'vat_type',
         'vat_twelve',
