@@ -215,23 +215,27 @@ EOT;
     /**
      * Search
      */
-    public function search($project_id = null, $name = null, $project_date = null, $start_date = null, $customer_id = null, $address = null, $company = null, $contact_person = null, $contact_number = null, $project_type = null)
+    public function search($project_id = null, $name = null, $project_date = null, $start_date = null, $customer_id = null, $address = null, $company = null, $contact_person = null, $contact_number = null, $project_type = null, $renewal_status = null)
     {
         $database = \Config\Database::connect();
         $date_today = date('Y-m-d');
 
         $sql = <<<EOT
-SELECT project.*, 
-    customer.name AS customer_name, 
-    distributor.name AS distributor_name,
-    (CASE
-        WHEN PERIOD_DIFF('$date_today', renewal_date) <= 1 THEN 'For Renewal'
-        ELSE 'Active'  
-    END) AS renewal_status
+SELECT *
+FROM (
+    SELECT project.*, 
+customer.name AS customer_name, 
+distributor.name AS distributor_name,
+(CASE
+    WHEN PERIOD_DIFF('$date_today', renewal_date) <= 1 THEN 'For Renewal'
+    ELSE 'Active'  
+END) AS renewal_status
 FROM project
 LEFT JOIN distributor ON distributor.id = project.distributor_id
 LEFT JOIN customer ON customer.id = project.customer_id
 WHERE project.is_deleted = 0
+) AS project
+WHERE 1
 EOT;
 
         $binds = [];
@@ -241,12 +245,12 @@ EOT;
         }
 
         if ($project_date) {
-            $sql .= ' AND project_date = ?';
+            $sql .= ' AND project.project_date = ?';
             $binds[] = $project_date;
         }
 
         if ($start_date) {
-            $sql .= ' AND project_date = ?';
+            $sql .= ' AND project.project_date = ?';
             $binds[] = $start_date;
         }
 
@@ -257,7 +261,7 @@ EOT;
         }
 
         if ($customer_id) {
-            $sql .= ' AND customer.id = ?';
+            $sql .= ' AND project.customer_id = ?';
             $binds[] = $customer_id;
         }
 
@@ -283,6 +287,11 @@ EOT;
             $sql .= ' AND project.project_type REGEXP ?';
             $name    = str_replace(' ', '|', $project_type);
             $binds[] = $project_type;
+        }
+
+        if ($renewal_status) {
+            $sql .= ' AND project.renewal_status = ?';
+            $binds[] = $renewal_status;
         }
 
         $sql .= ' ORDER BY project.name ASC';
