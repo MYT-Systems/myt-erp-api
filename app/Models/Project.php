@@ -215,7 +215,7 @@ EOT;
     /**
      * Search
      */
-    public function search($project_id = null, $name = null, $project_date = null, $start_date = null, $customer_id = null, $address = null, $company = null, $contact_person = null, $contact_number = null, $project_type = null, $renewal_status = null)
+    public function search($project_id = null, $name = null, $project_date = null, $start_date = null, $customer_id = null, $address = null, $company = null, $contact_person = null, $contact_number = null, $project_type = null, $renewal_status = null, $distributor_id = null)
     {
         $database = \Config\Database::connect();
         $date_today = date('Y-m-d');
@@ -292,6 +292,11 @@ EOT;
         if ($renewal_status) {
             $sql .= ' AND project.renewal_status = ?';
             $binds[] = $renewal_status;
+        }
+
+        if ($distributor_id) {
+            $sql .= ' AND project.distributor_id = ?';
+            $binds[] = $distributor_id;
         }
 
         $sql .= ' ORDER BY project.name ASC';

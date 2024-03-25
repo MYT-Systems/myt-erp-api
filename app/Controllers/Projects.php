@@ -458,8 +458,9 @@ class Projects extends MYTController
         $contact_number = $this->request->getVar('contact_number') ?: null;
         $project_type = $this->request->getVar('project_type');
         $renewal_status = $this->request->getVar('renewal_status');
+        $distributor_id = $this->request->getVar('distributor_id');
 
-        if (!$projects = $this->projectModel->search($project_id, $name, $project_date, $start_date, $customer_id, $address, $company, $contact_person, $contact_number, $project_type, $renewal_status)) {
+        if (!$projects = $this->projectModel->search($project_id, $name, $project_date, $start_date, $customer_id, $address, $company, $contact_person, $contact_number, $project_type, $renewal_status, $distributor_id)) {
             $response = $this->failNotFound('No project found');
         } else {
             $response = [];
