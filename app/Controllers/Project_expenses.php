@@ -271,8 +271,9 @@ class Project_expenses extends MYTController
             $status = $this->request->getVar('status');
             $project_name = $this->request->getVar('project_name');
             $supplier_id = $this->request->getVar('supplier_id');
+            $distributor_id = $this->request->getVar('distributor_id');
 
-        if (!$project_expense = $this->projectExpenseModel->search($project_id, $expense_type_id, $partner_id, $remarks, $amount, $other_fees, $grand_total, $status, $project_name, $supplier_id)) {
+        if (!$project_expense = $this->projectExpenseModel->search($project_id, $expense_type_id, $partner_id, $remarks, $amount, $other_fees, $grand_total, $status, $project_name, $supplier_id, $distributor_id)) {
             $response = $this->failNotFound('No project_expense found');
         } else {
             $response = [];
