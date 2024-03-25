@@ -110,7 +110,7 @@ EOT;
     /**
      * Search
      */
-    public function search($project_id, $customer_id, $project_invoice_id, $payment_method, $payment_date_from, $payment_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name)
+    public function search($project_id, $customer_id, $project_invoice_id, $payment_method, $payment_date_from, $payment_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name, $date_from, $date_to)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -190,6 +190,15 @@ EOT;
         if ($branch_name) {
             $sql .= ' AND (SELECT name FROM branch WHERE branch.id = (SELECT project_id FROM project WHERE project.id = project_invoice_payment.project_id)) LIKE ?';
             $binds[] = '%' . $branch_name . '%';
+        }
+
+        if ($date_from && $date_to) {
+            $sql .= <<<EOT
+
+AND project_invoice_payment.payment_date BETWEEN ? AND ?
+EOT;
+            $binds[] = $date_from;
+            $binds[] = $date_to;
         }
 
         $query = $database->query($sql, $binds);

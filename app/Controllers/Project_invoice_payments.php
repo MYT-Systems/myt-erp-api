@@ -178,8 +178,10 @@ class Project_invoice_payments extends MYTController
         $reference_number   = $this->request->getVar('reference_number') ?? null;
         $transaction_number = $this->request->getVar('transaction_number') ?? null;
         $branch_name        = $this->request->getVar('branch_name') ?? null;
+        $date_from          = $this->request->getVar('date_from') ?? null;
+        $date_to            = $this->request->getVar('date_to') ?? null;
 
-        if (!$project_invoice_payments = $this->projectInvoicePaymentModel->search($project_id, $customer_id, $project_invoice_id, $payment_method, $payment_date_from, $payment_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name)) {
+        if (!$project_invoice_payments = $this->projectInvoicePaymentModel->search($project_id, $customer_id, $project_invoice_id, $payment_method, $payment_date_from, $payment_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name, $date_from, $date_to)) {
             $response = $this->failNotFound('No project invoice sale payment found');
         } else {
             foreach ($project_invoice_payments as $key => $project_invoice_payment) {
