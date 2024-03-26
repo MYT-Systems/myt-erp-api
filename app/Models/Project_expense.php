@@ -100,7 +100,7 @@ EOT;
 SELECT project_expense.*, 
     project.name,
     partner.name AS partner_name, 
-    distributor_name AS distributor_name,
+    distributor.name AS distributor_name,
     supplier.trade_name AS supplier_name,
     CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name
 FROM project_expense
