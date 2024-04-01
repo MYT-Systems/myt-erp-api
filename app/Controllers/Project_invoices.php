@@ -403,14 +403,13 @@ class Project_invoices extends MYTController
         $units      = $this->request->getVar('units') ?? [];
         $prices     = $this->request->getVar('prices') ?? [];
         $quantities = $this->request->getVar('quantities') ?? [];
+        $grand_total = $this->request->getVar('grand_total') ?? 0;
 
         $values = [
             'project_invoice_id' => $project_invoice_id,
             'added_by'           => $this->requested_by,
             'added_on'           => date('Y-m-d H:i:s'),
         ];
-
-        $grand_total = 0;
 
         foreach ($item_names as $key => $item_name) {
             $subtotal = $prices[$key] * $quantities[$key];
@@ -432,19 +431,13 @@ class Project_invoices extends MYTController
             $values['qty']          = $quantities[$key];
             $values['subtotal']     = $subtotal;
 
-            $grand_total += $values['subtotal'];
-
             if (!$this->projectInvoiceItemModel->insert_on_duplicate($values, $this->requested_by, $db)) {
                 $this->errorMessage = $db->error()['message'];
                 return false;
             }
         }
 
-
-
-        $grand_total = $grand_total + (float)$this->request->getVar('service_fee') + (float)$this->request->getVar('delivery_fee');
         $values = [
-            'grand_total' => $grand_total,
             'updated_by'  => $this->requested_by,
             'updated_on'  => date('Y-m-d H:i:s'),
         ];
