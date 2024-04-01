@@ -19,6 +19,7 @@ class Project_invoice extends MYTModel
         'service_fee',
         'delivery_fee',
         'grand_total',
+        'vat_type',
         'balance',
         'paid_amount',
         'payment_status',
