@@ -270,8 +270,9 @@ class Reports extends MYTController
         $date_from = $this->request->getVar('date_from');
         $date_to = $this->request->getVar('date_to');
         $payment_status = $this->request->getVar('payment_status');
+        $search_text = $this->request->getVar('search_text');
 
-        if (!$expenses = $this->reportModel->get_expense($expense_type, $date_from, $date_to, $payment_status)) {
+        if (!$expenses = $this->reportModel->get_expense($expense_type, $date_from, $date_to, $payment_status, $search_text)) {
             $response = $this->failNotFound('No report Found');
         } else {
 
@@ -314,8 +315,10 @@ class Reports extends MYTController
         $date_to = $this->request->getVar('date_to') ?? null;
         $customer_id = $this->request->getVar('customer_id') ?? null;
         $distributor_id = $this->request->getVar('distributor_id') ?? null;
+        $anything = $this->request->getVar('anything')?? null;
+        $payment_structure = $this->request->getVar('payment_structure')??null;
 
-        if (!$project_sales = $this->reportModel->get_project_sales($project_id, $date_from, $date_to, $customer_id, $distributor_id)) {
+        if (!$project_sales = $this->reportModel->get_project_sales($project_id, $date_from, $date_to, $customer_id, $distributor_id, $anything, $payment_structure)) {
             $response = $this->failNotFound('No report Found');
         } else {
 
@@ -674,8 +677,14 @@ class Reports extends MYTController
             // ]);
         // }
 
-        $date_from = $this->request->getVar('date_from') ?? date('Y-m-d');
-        $date_to = $this->request->getVar('date_to') ?? date('Y-m-d');
+        $date_from = $this->request->getVar('date_from') ?? date('Y-m');
+        $date_to = $this->request->getVar('date_to') ?? date('Y-m');
+        
+        // Convert date_from to the first day of the month
+        $date_from = date('Y-m-01', strtotime($date_from));
+        
+        // Convert date_to to the last day of the month
+        $date_to = date('Y-m-t', strtotime($date_to));
 
         $data = [];
         $data['sales'] = number_format($this->reportModel->get_sales($date_from, $date_to), 2, '.', "");
@@ -683,6 +692,10 @@ class Reports extends MYTController
         $data['net_sales'] = number_format($data['sales'] - $data['expenses'], 2, '.', "");
         $data['receivables'] = number_format($this->reportModel->get_receivables($date_from, $date_to), 2, '.', "");
         $data['pending_invoice'] = count($this->projectInvoiceModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
+        $data['open_billing'] = count($this->projectInvoiceModel->select('', ['payment_status' => 'open_bill', 'is_deleted' => 0])?:[]);
+        $data['open_suppliesexpense'] = count($this->suppliesExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
+        $data['petty_cash'] = count($this->pettyCashModel->select('', ['is_deleted' => 0])?:[]);
+        $data['pending_po'] = count($this->suppliesReceiveModel->select('', ['balance >' => 0, 'is_deleted' => 0]) ?: []);
         $data['pending_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
 
         $response = $this->respond([
@@ -846,31 +859,168 @@ class Reports extends MYTController
         if (($response = $this->_api_verification('reports', 'financial_report')) !== true)
             return $response;
 
-        $date_from = $this->request->getVar('date_from') ?? null;
-        $date_to   = $this->request->getVar('date_to') ?? null;
+        // $date_from = $this->request->getVar('date_from') ?? null;
+        // $date_to   = $this->request->getVar('date_to') ?? null;
+        $year   = $this->request->getVar('year') ?? null;
+        
+        $jan_total_sales = 0;
+        $feb_total_sales = 0;
+        $mar_total_sales = 0;
+        $apr_total_sales = 0;
+        $may_total_sales = 0;
+        $jun_total_sales = 0;
+        $jul_total_sales = 0;
+        $aug_total_sales = 0;
+        $sep_total_sales = 0;
+        $oct_total_sales = 0;
+        $nov_total_sales = 0;
+        $dec_total_sales = 0;
 
-        if($financial_report = $this->reportModel->get_financial_report($date_from, $date_to)) {
-            $summary = [
-                'total_income' => 0,
-                'total_expense' => 0,
-                'total_profit'   => 0
-            ];
-
-            foreach($financial_report as $row) {
-                $summary['total_income'] += $row['income'];
-                $summary['total_expense'] += $row['expense'];
-                $summary['total_profit'] += ($row['income'] - $row['expense']);
+        $sales = $this->reportModel->get_sales_report(null, null, $year) ?? [];
+        if (!empty($sales)) {
+            foreach ($sales as $i => $sale) {
+                $jan_total_sales += (float)$sale['jan'];
+                $feb_total_sales += (float)$sale['feb'];
+                $mar_total_sales += (float)$sale['mar'];
+                $apr_total_sales += (float)$sale['apr'];
+                $may_total_sales += (float)$sale['may'];
+                $jun_total_sales += (float)$sale['jun'];
+                $jul_total_sales += (float)$sale['jul'];
+                $aug_total_sales += (float)$sale['aug'];
+                $sep_total_sales += (float)$sale['sep'];
+                $oct_total_sales += (float)$sale['oct'];
+                $nov_total_sales += (float)$sale['nov'];
+                $dec_total_sales += (float)$sale['dec'];
             }
-
-            $response = $this->respond([
-                'summary'           => $summary,
-                'financial_report'  => $financial_report,
-                'status'            => 'success',
-            ]);
         }
-        else {
-            $response = $this->failNotFound('No financial report found');
+        
+        // Calculate the total sales for the year
+        $total_sales = $jan_total_sales + $feb_total_sales + $mar_total_sales + 
+                       $apr_total_sales + $may_total_sales + $jun_total_sales + 
+                       $jul_total_sales + $aug_total_sales + $sep_total_sales + 
+                       $oct_total_sales + $nov_total_sales + $dec_total_sales;
+        
+        $expenses_children = [];
+        $total_expenses = 0;
+        $jan_total_expenses = 0;
+        $feb_total_expenses = 0;
+        $mar_total_expenses = 0;
+        $apr_total_expenses = 0;
+        $may_total_expenses = 0;
+        $jun_total_expenses = 0;
+        $jul_total_expenses = 0;
+        $aug_total_expenses = 0;
+        $sep_total_expenses = 0;
+        $oct_total_expenses = 0;
+        $nov_total_expenses = 0;
+        $dec_total_expenses = 0;
+        
+        $expenses = $this->reportModel->get_expenses_report(null, null, $year);
+        if (!empty($expenses)) {
+            foreach ($expenses as $j => $expense) {
+                $total_expenses += (float)$expense['expense_total'];
+                $jan_total_expenses += (float)$expense['jan'];
+                $feb_total_expenses += (float)$expense['feb'];
+                $mar_total_expenses += (float)$expense['mar'];
+                $apr_total_expenses += (float)$expense['apr'];
+                $may_total_expenses += (float)$expense['may'];
+                $jun_total_expenses += (float)$expense['jun'];
+                $jul_total_expenses += (float)$expense['jul'];
+                $aug_total_expenses += (float)$expense['aug'];
+                $sep_total_expenses += (float)$expense['sep'];
+                $oct_total_expenses += (float)$expense['oct'];
+                $nov_total_expenses += (float)$expense['nov'];
+                $dec_total_expenses += (float)$expense['dec'];
+                
+                $expenses_children[] = [
+                    'id' => $expense['doc_no'],
+                    'name' => $expense['expense_type'],
+                    'jan' => (float)$expense['jan'],
+                    'feb' => (float)$expense['feb'],
+                    'mar' => (float)$expense['mar'],
+                    'apr' => (float)$expense['apr'],
+                    'may' => (float)$expense['may'],
+                    'jun' => (float)$expense['jun'],
+                    'jul' => (float)$expense['jul'],
+                    'aug' => (float)$expense['aug'],
+                    'sep' => (float)$expense['sep'],
+                    'oct' => (float)$expense['oct'],
+                    'nov' => (float)$expense['nov'],
+                    'dec' => (float)$expense['dec'],
+                    'total_amount' => (float)$expense['expense_total']
+                ];
+            }
         }
+        
+        // Sort the array, putting "Salary Expense" and "Subscription & Hosting" at the beginning
+        usort($expenses_children, function ($a, $b) {
+            $priority_expenses = ['Salary Expense', 'Subscription & Hosting'];
+    
+            $a_priority = in_array($a['name'], $priority_expenses) ? 0 : 1;
+            $b_priority = in_array($b['name'], $priority_expenses) ? 0 : 1;
+    
+            // Compare by priority first (0 for priority, 1 for others)
+            if ($a_priority === $b_priority) {
+                return 0; // No change in order if both are either priority or non-priority
+            }
+            return ($a_priority < $b_priority) ? -1 : 1;
+        });
+        
+        $response = $this->respond([
+            'status' => 'success',
+            'account_types'   => [
+                [
+                    'name' => 'sales',
+                    'jan' => $jan_total_sales,
+                    'feb' => $feb_total_sales,
+                    'mar' => $mar_total_sales,
+                    'apr' => $apr_total_sales,
+                    'may' => $may_total_sales,
+                    'jun' => $jun_total_sales,
+                    'jul' => $jul_total_sales,
+                    'aug' => $aug_total_sales,
+                    'sep' => $sep_total_sales,
+                    'oct' => $oct_total_sales,
+                    'nov' => $nov_total_sales,
+                    'dec' => $dec_total_sales,
+                    'total_amount' => $total_sales, 
+                ],
+                [
+                    'name' => 'expenses',
+                    'children' => $expenses_children,
+                    'jan' => $jan_total_expenses,
+                    'feb' => $feb_total_expenses,
+                    'mar' => $mar_total_expenses,
+                    'apr' => $apr_total_expenses,
+                    'may' => $may_total_expenses,
+                    'jun' => $jun_total_expenses,
+                    'jul' => $jul_total_expenses,
+                    'aug' => $aug_total_expenses,
+                    'sep' => $sep_total_expenses,
+                    'oct' => $oct_total_expenses,
+                    'nov' => $nov_total_expenses,
+                    'dec' => $dec_total_expenses,
+                    'total_amount' => $total_expenses, 
+                ],
+                [
+                    'name' => 'income/loss',
+                    'jan' => $jan_total_sales - $jan_total_expenses,
+                    'feb' => $feb_total_sales - $feb_total_expenses,
+                    'mar' => $mar_total_sales - $mar_total_expenses,
+                    'apr' => $apr_total_sales - $apr_total_expenses,
+                    'may' => $may_total_sales - $may_total_expenses,
+                    'jun' => $jun_total_sales - $jun_total_expenses,
+                    'jul' => $jul_total_sales - $jul_total_expenses,
+                    'aug' => $aug_total_sales - $aug_total_expenses,
+                    'sep' => $sep_total_sales - $sep_total_expenses,
+                    'oct' => $oct_total_sales - $oct_total_expenses,
+                    'nov' => $nov_total_sales - $nov_total_expenses,
+                    'dec' => $dec_total_sales - $dec_total_expenses,
+                    'total_amount' => $total_sales - $total_expenses, 
+                ]
+            ]
+        ]);
+        
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
@@ -888,6 +1038,8 @@ class Reports extends MYTController
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
         $this->projectExpenseModel        = model('App\Models\Project_expense');
         $this->suppliesExpenseModel       = model('App\Models\Supplies_expense');
+        $this->suppliesReceiveModel       = model('App\Models\Supplies_receive');
+        $this->pettyCashModel             = model('App\Models\Petty_cash');
         $this->expenseTypeModel           = model('App\Models\Expense_type');
         $this->customerModel              = model('App\Models\Customer');
         $this->branchModel                = model('App\Models\Branch');

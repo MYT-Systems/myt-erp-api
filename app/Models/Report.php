@@ -195,112 +195,94 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
-    /**
-     * Get expense
-     */
-    public function get_expense($expense_type = null, $date_from = null, $date_to = null, $payment_status = null)
-    {
-        $database = \Config\Database::connect();
-    
-        $binds = [];
+   /**
+ * Get expense
+ */
+public function get_expense($expense_type = null, $date_from = null, $date_to = null, $payment_status = null, $search_text = null)
+{
+    $database = \Config\Database::connect();
 
-        $sql = <<<EOT
-SELECT *
-FROM (
-    SELECT 
-        supplies_expense.supplies_expense_date AS expense_date, 
-        'Supplies Expense' AS particulars, 
-        supplies_expense.id AS doc_no, 
-        supplies_expense.grand_total AS expense_total, 
-        expense_type.name AS expense_type,
-        CASE 
-            WHEN supplies_expense.grand_total = supplies_receive.paid_amount 
-            THEN 'fully paid'
-            WHEN supplies_expense.grand_total < supplies_receive.paid_amount 
-            THEN 'over paid' 
-            WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_receive.paid_amount 
-            THEN 'partially paid' 
-            ELSE 'unpaid' END AS payment_status, 
-        supplies_expense.doc_no AS reference_no, 
-        IFNULL(supplies_receive.paid_amount, 0) AS paid_amount,
-        (supplies_expense.grand_total - supplies_receive.paid_amount) AS balance,
-        supplies_expense.remarks AS description,
-        supplies_receive.invoice_no,
-        expense_type.id AS expense_type_id
-    FROM supplies_expense
-    LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
-    LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
-    WHERE supplies_expense.is_deleted = 0
-    AND supplies_receive.is_deleted = 0
-    AND supplies_expense.status <> "pending"
-    AND supplies_expense.status <> "for_approval"
-    AND supplies_expense.status <> "disapproved"
-    AND supplies_expense.status <> "deleted"
+    $binds = [];
 
-    UNION
-
-    SELECT 
-        project_expense.project_expense_date AS expense_date, 
-        'Project Expense' AS particulars, 
-        project_expense.id AS doc_no, 
-        project_expense.grand_total AS expense_total, 
-        expense_type.name AS expense_type, 
-        CASE 
-            WHEN project_expense.grand_total = project_expense.paid_amount 
-            THEN 'fully paid' 
-            WHEN project_expense.grand_total < project_expense.paid_amount 
-            THEN 'over paid' 
-            WHEN project_expense.paid_amount > 0 AND project_expense.grand_total > project_expense.paid_amount 
-            THEN 'partially paid' 
-            ELSE 'unpaid' END AS payment_status,
-        project_expense.id AS reference_no, 
-        project_expense.paid_amount AS paid_amount,
-        (project_expense.grand_total - project_expense.paid_amount) AS balance,
-        project_expense.remarks AS description,
-        project_expense.id AS invoice_no,
-        expense_type.id AS expense_type_id
-    FROM project_expense
-    LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
-    WHERE project_expense.is_deleted = 0
-    AND project_expense.status = 'approved'
-) expense
+    $sql = <<<EOT
+SELECT 
+    supplies_expense.supplies_expense_date AS expense_date, 
+    'Supplies Expense' AS particulars, 
+    supplies_expense.id AS doc_no, 
+    supplies_expense.grand_total AS expense_total, 
+    expense_type.name AS expense_type,
+    CASE 
+        WHEN supplies_expense.grand_total = supplies_receive.paid_amount THEN 'fully paid'
+        WHEN supplies_expense.grand_total < supplies_receive.paid_amount THEN 'over paid' 
+        WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_receive.paid_amount THEN 'partially paid' 
+        ELSE 'unpaid' 
+    END AS payment_status, 
+    supplies_expense.doc_no AS reference_no, 
+    IFNULL(supplies_receive.paid_amount, 0) AS paid_amount,
+    (supplies_expense.grand_total - supplies_receive.paid_amount) AS balance,
+    supplies_expense.remarks AS description,
+    supplies_receive.invoice_no,
+    expense_type.id AS expense_type_id
+FROM supplies_expense
+LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
+WHERE supplies_expense.is_deleted = 0
+AND supplies_receive.is_deleted = 0
+AND supplies_expense.status <> "pending"
+AND supplies_expense.status <> "for_approval"
+AND supplies_expense.status <> "disapproved"
+AND supplies_expense.status <> "deleted"
 EOT;
 
-        $sql .= " WHERE expense.expense_type IS NOT NULL AND expense.expense_date IS NOT NULL ";
+    // Removed incorrect check for expense_type, now correctly checking for 'type' column
+    $sql .= " AND supplies_expense.type IS NOT NULL AND supplies_expense.supplies_expense_date IS NOT NULL ";
 
-        if ($expense_type) {
-            $sql .= " AND expense.expense_type_id = ?";
-            $binds[] = $expense_type;
-        }
-
-        if ($date_from) {
-            $sql .= " AND expense.expense_date >= ?";
-            $binds[] = $date_from;
-        }
-
-        if ($date_to) {
-            $sql .= " AND expense.expense_date <= ?";
-            $binds[] = $date_to;
-        }
-
-        if ($payment_status) {
-            $sql .= " AND expense.payment_status = ?";
-            $binds[] = $payment_status;
-        }
-
-        $sql .= <<<EOT
-
-ORDER BY expense.doc_no DESC
-EOT;
-
-        $query = $database->query($sql, $binds);
-        return $query ? $query->getResultArray() : [];
+    if ($expense_type) {
+        $sql .= " AND supplies_expense.type = ?";
+        $binds[] = $expense_type;
     }
 
+    if ($date_from) {
+        $sql .= " AND supplies_expense.supplies_expense_date >= ?";
+        $binds[] = $date_from;
+    }
+
+    if ($date_to) {
+        $sql .= " AND supplies_expense.supplies_expense_date <= ?";
+        $binds[] = $date_to;
+    }
+
+    // Corrected the payment status filter
+    if ($payment_status) {
+        $sql .= " AND CASE 
+                    WHEN supplies_expense.grand_total = supplies_receive.paid_amount THEN 'fully paid'
+                    WHEN supplies_expense.grand_total < supplies_receive.paid_amount THEN 'over paid' 
+                    WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_receive.paid_amount THEN 'partially paid' 
+                    ELSE 'unpaid' END = ?";
+        $binds[] = $payment_status;
+    }
+
+    if ($search_text) {
+        $sql .= " AND LOWER(supplies_expense.remarks) LIKE LOWER(?)";
+        $binds[] = '%' . $search_text . '%'; // Adding % around the search_text for partial matching
+    }
+
+    $sql .= <<<EOT
+ORDER BY supplies_expense.doc_no DESC
+EOT;
+
+    $query = $database->query($sql, $binds);
+    return $query ? $query->getResultArray() : [];
+}
+
+
+
+
+
     /**
      * Get expense
      */
-    public function get_project_sales($project_id, $date_from, $date_to, $customer_id, $distributor_id)
+    public function get_project_sales($project_id, $date_from, $date_to, $customer_id, $distributor_id, $anything, $payment_structure)
     {
         $database = \Config\Database::connect();
     
@@ -350,6 +332,16 @@ EOT;
         if ($distributor_id) {
             $sql .= " AND project.distributor_id = ?";
             $binds[] = $distributor_id;
+        }
+        
+        if ($anything) {
+            $sql .= " AND project.name LIKE ?";
+            $binds[] = '%' . $anything . '%';
+        }
+        
+        if ($payment_structure) {
+            $sql .= " AND project.payment_structure LIKE ?";
+            $binds[] = '%' . $payment_structure . '%';
         }
 
         $sql .= " GROUP BY project.id";
@@ -800,42 +792,38 @@ EOT;
     }
 
     /**
-     * Get expenses
-     */
-    public function get_expenses($date_from, $date_to)
-    {
-        $database = \Config\Database::connect();
-
-        $sql = <<<EOT
-SELECT SUM(expenses) AS expenses
-FROM (
-    SELECT SUM(grand_total) AS expenses
-    FROM project_expense
-    WHERE is_deleted = 0
-
-    UNION
-
-    SELECT SUM(grand_total) AS expenses
-    FROM supplies_expense
-    WHERE is_deleted = 0
-    AND status  IN ('approved', 'printed', 'sent')
-) AS report
-WHERE 1
+ * Get expenses with optional date filtering, excluding project expenses
+ */
+public function get_expenses($date_from = null, $date_to = null)
+{
+    $database = \Config\Database::connect();
+    
+    $sql = <<<EOT
+SELECT SUM(grand_total) AS expenses
+FROM supplies_expense
+WHERE is_deleted = 0
+AND status IN ('approved', 'printed', 'sent')
+{date_filter_supplies}
 EOT;
-$binds = [];
 
-        if($date_from && $date_to) {
-            $sql .= <<<EOT
+    // Initialize bind parameters and date filter
+    $binds = [];
+    $date_filter_supplies = '';
 
-AND DATE(added_on) BETWEEN ? AND ?
-EOT;
-            $binds[] = $date_from;
-            $binds[] = $date_to;
-        }
-
-        $query = $database->query($sql, $binds);
-        return $query ? $query->getResultArray()[0]['expenses'] : 0;
+    if ($date_from && $date_to) {
+        // Add date filter if both date_from and date_to are provided
+        $date_filter_supplies = "AND added_on BETWEEN ? AND ?";
+        $binds = array_merge($binds, [$date_from, $date_to]);
     }
+
+    // Replace placeholder with the appropriate date filter
+    $sql = str_replace('{date_filter_supplies}', $date_filter_supplies, $sql);
+
+    $query = $database->query($sql, $binds);
+    return $query ? $query->getResultArray()[0]['expenses'] : 0;
+}
+
+
 
     /**
      * Get receivables
@@ -994,8 +982,102 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
     }
+    
+    public function get_sales_report($date_from, $date_to, $year)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT 
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 1 THEN project_invoice_payment.paid_amount ELSE 0 END) AS jan,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 2 THEN project_invoice_payment.paid_amount ELSE 0 END) AS feb,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 3 THEN project_invoice_payment.paid_amount ELSE 0 END) AS mar,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 4 THEN project_invoice_payment.paid_amount ELSE 0 END) AS apr,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 5 THEN project_invoice_payment.paid_amount ELSE 0 END) AS may,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 6 THEN project_invoice_payment.paid_amount ELSE 0 END) AS jun,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 7 THEN project_invoice_payment.paid_amount ELSE 0 END) AS jul,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 8 THEN project_invoice_payment.paid_amount ELSE 0 END) AS aug,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 9 THEN project_invoice_payment.paid_amount ELSE 0 END) AS sep,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 10 THEN project_invoice_payment.paid_amount ELSE 0 END) AS oct,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 11 THEN project_invoice_payment.paid_amount ELSE 0 END) AS nov,
+    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 12 THEN project_invoice_payment.paid_amount ELSE 0 END) AS `dec`
+FROM project_invoice_payment
+WHERE project_invoice_payment.is_deleted = 0 
+EOT;
+        $binds = [];
+        
+        if ($year) {
+            $sql .= <<<EOT
+
+AND YEAR(project_invoice_payment.payment_date) = ? 
+EOT;
+            $binds[] = $year;
+        }
+
+        if ($date_from && $date_to) {
+            $sql .= <<<EOT
+
+AND project_invoice_payment.payment_date BETWEEN ? AND ?
+EOT;
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
 
     /**
-     * Get franchisee sales based on date
+     * Get expenses
      */
+    public function get_expenses_report($date_from = null, $date_to = null, $year = null)
+    {
+        $database = \Config\Database::connect();
+        
+        $sql = <<<EOT
+SELECT 
+    supplies_expense.id AS doc_no, 
+    SUM(supplies_expense.grand_total) AS expense_total, 
+    expense_type.name AS expense_type,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 1 THEN supplies_expense.grand_total ELSE 0 END) AS jan,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 2 THEN supplies_expense.grand_total ELSE 0 END) AS feb,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 3 THEN supplies_expense.grand_total ELSE 0 END) AS mar,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 4 THEN supplies_expense.grand_total ELSE 0 END) AS apr,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 5 THEN supplies_expense.grand_total ELSE 0 END) AS may,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 6 THEN supplies_expense.grand_total ELSE 0 END) AS jun,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 7 THEN supplies_expense.grand_total ELSE 0 END) AS jul,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 8 THEN supplies_expense.grand_total ELSE 0 END) AS aug,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 9 THEN supplies_expense.grand_total ELSE 0 END) AS sep,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 10 THEN supplies_expense.grand_total ELSE 0 END) AS oct,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 11 THEN supplies_expense.grand_total ELSE 0 END) AS nov,
+    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 12 THEN supplies_expense.grand_total ELSE 0 END) AS `dec`
+FROM supplies_expense
+LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
+WHERE supplies_expense.is_deleted = 0
+AND supplies_receive.is_deleted = 0
+AND supplies_expense.status <> "pending"
+AND supplies_expense.status <> "for_approval"
+AND supplies_expense.status <> "disapproved"
+AND supplies_expense.status <> "deleted"
+EOT;
+    
+        // Initialize bind parameters and date filter
+        $binds = [];
+        
+        if ($year) {
+            $sql .= " AND YEAR(supplies_expense.supplies_expense_date) = ?";
+            $binds[] = $year;
+        }
+    
+        if ($date_from && $date_to) {
+            $sql .= " AND supplies_expense.supplies_expense_date BETWEEN ? AND ?";
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
+        
+        //$sql .= " GROUP BY supplies_expense.id, expense_type.name";
+        $sql .= " GROUP BY expense_type.name";
+    
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
 }
