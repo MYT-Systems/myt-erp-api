@@ -164,7 +164,7 @@ class Project_invoice_payments extends MYTController
     {
         if (($response = $this->_api_verification('project_invoice_payments', 'search')) !== true)
             return $response;
-
+    
         $project_id         = $this->request->getVar('project_id') ?? null;
         $customer_id        = $this->request->getVar('customer_id') ?? null;
         $project_invoice_id = $this->request->getVar('project_invoice_id') ?? null;
@@ -180,20 +180,23 @@ class Project_invoice_payments extends MYTController
         $branch_name        = $this->request->getVar('branch_name') ?? null;
         $date_from          = $this->request->getVar('date_from') ?? null;
         $date_to            = $this->request->getVar('date_to') ?? null;
-
+    
         if (!$project_invoice_payments = $this->projectInvoicePaymentModel->search($project_id, $customer_id, $project_invoice_id, $payment_method, $payment_date_from, $payment_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name, $date_from, $date_to)) {
             $response = $this->failNotFound('No project invoice sale payment found');
         } else {
+            $total_paid_amount = 0;  // Initialize the total paid amount variable
             foreach ($project_invoice_payments as $key => $project_invoice_payment) {
                 $project_invoice_payments[$key]['project_invoice'] = $this->projectInvoiceModel->get_details_by_id($project_invoice_payment['project_invoice_id']);
+                $total_paid_amount += (float)$project_invoice_payment['paid_amount'];  // Add paid amount to the total
             }
-
+    
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $project_invoice_payments
+                'data'   => $project_invoice_payments,
+                'paid_amount' => $total_paid_amount  // Include the total paid amount in the response
             ]);
         }
-
+    
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }

@@ -15,19 +15,71 @@ class Projects extends MYTController
     }
 
     /**
-     * Get all project type names 
+     * Get all project type names and sort them alphabetically
      */
     public function get_project_type_names()
     {
-        $project_type_names = $this->projectTypeNameModel->select('',[]);
+        // Fetch project type names
+        $project_type_names = $this->projectTypeNameModel->select('', []);
+        
+        // Sort the project type names alphabetically
+        usort($project_type_names, function($a, $b) {
+            return strcmp($a['name'], $b['name']); // Assuming 'name' is the key for the project type name
+        });
+    
+        // Respond with the sorted project type names
         $response = $this->respond([
             'status' => 'success',
             'data'   => $project_type_names
         ]);
-
+    
         return $response;
     }
 
+    
+    
+    /**
+     * Get all recurring and one-time fees that are not yet used (is_occupied = 0)
+     */
+    public function get_all_particulars()
+    {
+        // API verification
+        if (($response = $this->_api_verification('fees', 'get_all_particulars')) !== true) {
+            return $response;
+        }   
+        $project_id = $this->request->getVar('project_id') ? : null;
+        
+        $where = [
+            'project_id'    =>  $project_id,
+            'is_deleted'    =>  0,
+            'is_occupied'   =>  0
+        ];
+        // Fetch all one-time fees and recurring costs where `is_occupied` is 0
+        $one_time_fees = $this->projectOneTimeFeeModel->select('',$where);
+        $recurring_costs = $this->projectRecurringCostModel->select('',$where);
+        
+        if(!$one_time_fees || !$recurring_costs){
+            $response = $this->failNotFound('No particular found.');
+        }
+        
+    
+        $data = array_merge($one_time_fees ?: [], $recurring_costs ?: []);
+
+        // Return the response
+        if (empty($data)) {
+            $response = $this->failNotFound('No available particulars found');
+        } else {
+            $response = $this->respond([
+                'status' => 'success',
+                'data'   => $data
+            ]);
+        }
+    
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    
     /**
      * Get project
      */
@@ -88,7 +140,11 @@ class Projects extends MYTController
         } else {
             foreach ($projects as $key => $project) {
                 $project_attachment = $this->projectAttachmentModel->get_details_by_project_id($project['id']);
+                $project_one_time_fee   = $this->projectOneTimeFeeModel->get_details_by_project_id($project['id']);
+                $project_recurring_cost = $this->projectRecurringCostModel->get_details_by_project_id($project['id']);
                 $projects[$key]['attachment'] = $project_attachment;
+                $projects[$key]['recurring_cost'] = $project_recurring_cost;
+                $projects[$key]['one_time_fee'] = $project_one_time_fee;
             }
 
             $response = $this->respond([
@@ -245,67 +301,160 @@ class Projects extends MYTController
     }
 
     /**
-     * Batch insert project one time fees
+     * Update, insert, or soft delete project one-time fees
      */
     protected function _attempt_generate_project_one_time_fees($project_id)
     {
+        $project_one_time_fee_ids = $this->request->getVar('project_one_time_fee_id') ?? [];
         $project_one_time_fee_descriptions = $this->request->getVar('project_one_time_fee_description') ?? [];
-        $project_one_time_fee_amount = $this->request->getVar('project_one_time_fee_amount') ?? [];
-        $values = [];
-        foreach($project_one_time_fee_descriptions as $i => $project_one_time_fee_description) {
-            $values[] = [
+        $project_one_time_fee_types = $this->request->getVar('project_one_time_fee_type') ?? [];
+        $project_one_time_fee_periods = $this->request->getVar('project_one_time_fee_period') ?? [];
+        $project_one_time_fee_amounts = $this->request->getVar('project_one_time_fee_amount') ?? [];
+    
+        // Define the query to fetch existing records
+        $where = [
+            'project_id' => $project_id,
+            'is_deleted' => 0
+        ];
+        
+        // Retrieve existing fee IDs for the project
+        $existingFeeIds = $this->projectOneTimeFeeModel->select('id', $where);
+        
+        if($existingFeeIds){
+            $existingFeeIds = array_column($existingFeeIds, 'id');
+        
+            // Determine IDs to soft delete (those not in the request)
+            $idsToDelete = array_diff($existingFeeIds, $project_one_time_fee_ids);
+            
+            // Soft delete records that are not in the request
+            if (!empty($idsToDelete)) {
+                $dataToUpdate = [
+                    'is_deleted' => 1,
+                    'updated_by' => $this->requested_by,
+                    'updated_on' => date('Y-m-d H:i:s'),
+                ];
+        
+                // Use standard query format to soft delete
+                foreach ($idsToDelete as $id) {
+                    if (!$this->projectOneTimeFeeModel->update($id, $dataToUpdate)) {
+                        $this->errorMessage = $this->db->error()['message'];
+                        return false;
+                    }
+                }
+            }
+        }
+    
+        // Process each fee in the request
+        foreach ($project_one_time_fee_descriptions as $i => $description) {
+            $id = $project_one_time_fee_ids[$i] ?? null;
+            $data = [
                 'project_id'  => $project_id,
-                'description' => $project_one_time_fee_description,
-                'amount'      => $project_one_time_fee_amount[$i],
+                'description' => $description,
+                'type'        => $project_one_time_fee_types[$i],
+                'period'      => $project_one_time_fee_periods[$i],
+                'amount'      => $project_one_time_fee_amounts[$i],
                 'added_by'    => $this->requested_by,
-                'added_on'    => date('Y-m-d H:i:s')
-            ];
-        }
-
-        if(!$this->projectOneTimeFeeModel->insertBatch($values)) {
-            $this->errorMessage = $this->db->error()['message'];
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Update project_invoices
-     */
-    protected function _attempt_generate_project_recurring_costs($project_id)
-    {
-        $descriptions = $this->request->getVar('descriptions') ?? [];
-        $types = $this->request->getVar('types') ?? [];
-        $periods = $this->request->getVar('periods') ?? [];
-        $prices = $this->request->getVar('prices') ?? [];
-
-        if($descriptions) {
-            $values = [
-                'project_id'         => $project_id,
-                'added_by'           => $this->requested_by,
-                'added_on'           => date('Y-m-d H:i:s'),
+                'added_on'    => date('Y-m-d H:i:s'),
             ];
     
-            $grand_total = 0;
-    
-            foreach ($descriptions as $key => $description) {
-                // checks if it is an item in case an item_name was passed
-                $description = $descriptions[$key];
-                $type = $types[$key];
-                $period = $periods[$key];
-                $price = $prices[$key];
-    
-                $values['description']  = $description;
-                $values['type']         = $type;
-                $values['period']          = $period;
-                $values['price']     = $price;
-    
-                if (!$this->projectRecurringCostModel->insert($values)) {
+            if ($id) {
+                // Update existing record
+                $data['updated_on'] = date('Y-m-d H:i:s');
+                $data['updated_by'] = $this->requested_by;
+                if (!$this->projectOneTimeFeeModel->update($id, $data)) {
+                    $this->errorMessage = $this->db->error()['message'];
+                    return false;
+                }
+            } else {
+                // Insert new record
+                if (!$this->projectOneTimeFeeModel->insert($data)) {
                     $this->errorMessage = $this->db->error()['message'];
                     return false;
                 }
             }
         }
+    
+        return true;
+    }
+
+    /**
+     * Update, insert, or soft delete project recurring costs
+     */
+    protected function _attempt_generate_project_recurring_costs($project_id)
+    {
+        $ids = $this->request->getVar('ids') ?? []; // Get the ids for each record
+        $descriptions = $this->request->getVar('descriptions') ?? [];
+        $types = $this->request->getVar('types') ?? [];
+        $periods = $this->request->getVar('periods') ?? [];
+        $prices = $this->request->getVar('prices') ?? [];
+    
+        // Define the base query to fetch existing records
+        $where = [
+            'project_id' => $project_id,
+            'is_deleted' => 0,
+        ];
+    
+        // Retrieve existing recurring cost IDs for the project
+        $existingCostIds = $this->projectRecurringCostModel->select('id', $where);
+        
+        if($existingCostIds){
+            $existingCostIds = array_column($existingCostIds, 'id');
+    
+            // Determine IDs to soft delete (those not in the request)
+            $idsToDelete = array_diff($existingCostIds, $ids);
+        
+            // Soft delete records that are not in the request
+            if (!empty($idsToDelete)) {
+                $dataToUpdate = [
+                    'is_deleted' => 1,
+                    'updated_by' => $this->requested_by,
+                    'updated_on' => date('Y-m-d H:i:s'),
+                ];
+        
+                // Use standard query format to soft delete
+                foreach ($idsToDelete as $id) {
+                    if (!$this->projectRecurringCostModel->update($id, $dataToUpdate)) {
+                        $this->errorMessage = $this->db->error()['message'];
+                        return false;
+                    }
+                }
+            }
+        }
+    
+        // Process each recurring cost in the request
+        foreach ($descriptions as $key => $description) {
+            $id = $ids[$key] ?? null;
+            $type = $types[$key] ?? null;
+            $period = $periods[$key] ?? null;
+            $price = $prices[$key] ?? null;
+    
+            $data = [
+                'project_id'  => $project_id,
+                'description' => $description,
+                'type'        => $type,
+                'period'      => $period,
+                'price'       => $price,
+                'added_by'    => $this->requested_by,
+                'added_on'    => date('Y-m-d H:i:s'),
+            ];
+    
+            if ($id) {
+                // Update existing record
+                $data['updated_on'] = date('Y-m-d H:i:s');
+                $data['updated_by'] = $this->requested_by;
+                if (!$this->projectRecurringCostModel->update($id, $data)) {
+                    $this->errorMessage = $this->db->error()['message'];
+                    return false;
+                }
+            } else {
+                // Insert new record
+                if (!$this->projectRecurringCostModel->insert($data)) {
+                    $this->errorMessage = $this->db->error()['message'];
+                    return false;
+                }
+            }
+        }
+    
         return true;
     }
 
@@ -358,15 +507,15 @@ class Projects extends MYTController
         } elseif (!$this->_attempt_update($project)) {
             $this->db->transRollback();
             $response = $this->fail(['response' => 'Failed to update project.', 'status' => 'error']);
-        } elseif (!$this->_attempt_delete_recurring_costs($project['id'])) {
-            $this->db->transRollback();
-            $response = $this->fail($this->errorMessage);
+        // } elseif (!$this->_attempt_delete_recurring_costs($project['id'])) {
+        //     $this->db->transRollback();
+        //     $response = $this->fail($this->errorMessage);
         } elseif (!$this->_attempt_generate_project_recurring_costs($project['id'])) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
-        } elseif(!$this->_attempt_delete_project_one_time_fees($project['id'])) {
-            $this->db->transRollback();
-            $response = $this->fail($this->errorMessage);
+        // } elseif(!$this->_attempt_delete_project_one_time_fees($project['id'])) {
+        //     $this->db->transRollback();
+        //     $response = $this->fail($this->errorMessage);
         } elseif (!$this->_attempt_generate_project_one_time_fees($project['id'])) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
@@ -381,6 +530,42 @@ class Projects extends MYTController
             $response = $this->respond(['response' => 'Project updated successfully.', 'status' => 'success']);
         }
 
+        $this->db->close();
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+    
+    /**
+     * Update project
+     */
+    public function update_recurring_is_occupied($id = null)
+    {
+        if (($response = $this->_api_verification('projects', 'update_recurring_is_occupied')) !== true)
+            return $response;
+
+        $where = [
+            'id'         => $this->request->getVar('project_recurring_id'), 
+            'is_deleted' => 0
+        ];
+
+        $this->db = \Config\Database::connect();
+        $this->db->transBegin();
+        
+        $project_recurring_cost = $this->projectRecurringCostModel->select('',$where,1);
+        
+        if(!$project_recurring_cost){
+            $response = $this->failNotFound('project not found');
+        }
+        
+        $update_data = [
+            'is_occupied'   =>  $this->request->getVar('is_occupied')??null,
+            'updated_by'    =>  $this->request->getVar('requester'),
+            'updated_on'    =>  date('Y-m-d H:i:s')
+        ];
+        
+        if(!$result = $this->projectRecurringCostModel->update($where,$update_data)){
+            $response = $this->failNotFound('Update failed.');
+        }
         $this->db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;

@@ -271,11 +271,26 @@ EOT;
             $sql .= ' AND supplies_expense.requisitioner = ?';
             $binds[] = $requisitioner;
         }
-
+    
         if ($status) {
-            $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"';
-            $binds[] = $status;
+            if ($status == 'pending') {
+                // If status is 'pending', fetch pending, for_approval, and approved statuses
+                $sql .= ' AND supplies_expense.status IN (?, ?) AND supplies_expense.order_status = "pending"';
+                $binds[] = 'pending';
+                $binds[] = 'for_approval';
+            } elseif ($status == 'sent') {
+                // If status is 'sent', include 'approved' status
+                $sql .= ' AND supplies_expense.status IN (?, ?) AND supplies_expense.order_status = "pending"';
+                $binds[] = 'sent';
+                $binds[] = 'approved';
+            } else {
+                // Otherwise, only use the provided status
+                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"';
+                $binds[] = $status;
+            }
         }
+
+
 
         if ($order_status && !$anything) {
             $sql .= ' AND supplies_expense.order_status = ?';
