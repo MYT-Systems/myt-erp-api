@@ -14,6 +14,9 @@ class Customer extends MYTModel
         'email',
         'contact_person',
         'tin_no',
+        'lead',
+        'credit_limit',
+        'terms',
         'added_by',
         'added_on',
         'updated_by',
@@ -63,7 +66,6 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
-
     /**
      * Get all customers
      */
@@ -80,7 +82,7 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
-/**
+    /**
      * Get Customer
      */
     public function search($name = null, $company = null, $address = null, $contact_number = null, $email = null, $contact_person = null, $tin_no = null)
@@ -124,7 +126,7 @@ EOT;
             $sql .= " AND customer.contact_person = ?";
             $binds[] = $contact_person;
         }
-          if ($tin_no) {
+        if ($tin_no) {
             $sql .= " AND customer.tin_no = ?";
             $binds[] = $tin_no;
         }
@@ -132,6 +134,25 @@ EOT;
         $sql    .= " ORDER BY customer.name ASC";
 
         $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Get all lead
+     */
+    public function get_all_lead()
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT id, lead
+FROM customer
+WHERE customer.is_deleted = 0
+AND lead IS NOT NULL
+AND lead <> ''
+GROUP BY lead
+ORDER BY customer.lead ASC
+EOT;
+        $query = $database->query($sql);
         return $query ? $query->getResultArray() : false;
     }
 }

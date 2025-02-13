@@ -65,6 +65,29 @@ class Customers extends MYTController
     }
 
     /**
+     * Get all Lead
+     */
+    public function get_all_lead()
+    {
+        if (($response = $this->_api_verification('customers', 'get_all_lead')) !== true)
+            return $response;
+
+        $customers = $this->customerModel->get_all_lead();
+
+        if (!$customers) {
+            $response = $this->failNotFound('No lead found');
+        } else {
+            $response = $this->respond([
+                'status' => 'success',
+                'data'   => $customers
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Create customer
      */
     public function create()
@@ -166,6 +189,9 @@ class Customers extends MYTController
         $contact_number        = $this->request->getVar('contact_number');
         $email                 = $this->request->getVar('email');
         $contact_person        = $this->request->getVar('contact_person');
+        $lead                  = $this->request->getVar('lead');
+        $credit_limit          = $this->request->getVar('credit_limit');
+        $terms                 = $this->request->getVar('terms');
         $tin_no                = $this->request->getVar('tin_no');
 
        if (!$customers = $this->customerModel->search($name, $company, $address, $contact_number, $email, $contact_person, $tin_no)) {
@@ -181,9 +207,32 @@ class Customers extends MYTController
     }
 
     /**
+     * Drop search for lead field
+     */
+    public function drop_search()
+    {
+        if (($response = $this->_api_verification('customers', 'dropsearch')) !== true)
+            return $response;
+
+        $lead = $this->request->getVar('lead');
+
+        if (!$customers = $this->customerModel->searchByLead($lead)) {
+            $response = $this->failNotFound('No customer found for the given lead');
+        } else {
+            $response = $this->respond([
+                'status' => 'success',
+                'data'   => $customers
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+
+    /**
      * Create customers
      */
-
     protected function _attempt_create()
     {
         $values = [
@@ -194,12 +243,16 @@ class Customers extends MYTController
             'contact_number'            => $this->request->getVar('contact_number'),
             'email'                     => $this->request->getVar('email'),
             'tin_no'                    => $this->request->getVar('tin_no'),
+            'lead'                      => $this->request->getVar('lead'),
+            'credit_limit'              => $this->request->getVar('credit_limit'),
+            'terms'                     => $this->request->getVar('terms'),
             'added_by'                  => $this->requested_by,
             'added_on'                  => date('Y-m-d H:i:s'),
         ];
 
         if (!$customer_id = $this->customerModel->insert($values)) {
-           return false;
+            $this->errorMessage = $this->customerModel->error();
+            return false;
         }
 
         return $customer_id;
@@ -218,6 +271,10 @@ class Customers extends MYTController
             'contact_number'            => $this->request->getVar('contact_number'),
             'email'                     => $this->request->getVar('email'),
             'tin_no'                    => $this->request->getVar('tin_no'),
+            'lead_status'               => $this->request->getVar('lead_status'),
+            'credit_limit'              => $this->request->getVar('credit_limit'),
+            'terms'                     => $this->request->getVar('terms'),
+            'lead'                      => $this->request->getVar('lead'),
             'updated_by'                => $this->requested_by,
             'updated_on'                => date('Y-m-d H:i:s')
         ];

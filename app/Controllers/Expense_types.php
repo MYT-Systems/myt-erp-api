@@ -62,6 +62,29 @@ class Expense_types extends MYTController
     }
 
     /**
+     * Get all account_kind
+     */
+    public function get_all_account_kind()
+    {
+        if (($response = $this->_api_verification('expense_types', 'get_all_account_kind')) !== true)
+            return $response;
+
+        $expense_types = $this->expenseTypeModel->get_all_account_kind();
+
+        if (!$expense_types) {
+            $response = $this->failNotFound('No account_kind found');
+        } else {
+            $response = $this->respond([
+                'status' => 'success',
+                'data'   => $expense_types
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Create expense_type
      */
     public function create()
@@ -176,21 +199,25 @@ class Expense_types extends MYTController
     // ------------------------------------------------------------------------
 
     /**
-     * Attempt create expense_types
+     * Attempt to create expense_types
      */
     protected function _attempt_create()
     {
+        $name = $this->request->getVar('name');
+        $description = $this->request->getVar('description');
+
         $values = [
-            'name'        => $this->request->getVar('name'),
-            'description' => $this->request->getVar('description'),            
+            'name'        => $name,
+            'description' => $description,            
             'added_by'    => $this->requested_by,
             'added_on'    => date('Y-m-d H:i:s')
         ];
 
-        if (!$expense_types_id = $this->expenseTypeModel->insert($values)){
+        if (!$expense_types_id = $this->expenseTypeModel->insert($values)) {
             $this->errorMessage = $this->expenseTypeModel->error();
             return false;
         }
+
         return $expense_types_id;
     }
 

@@ -234,6 +234,7 @@ class Users extends MYTController
             'email'       => $this->request->getVar('email') ? : null,
             'type'        => $this->request->getVar('type'),
             'branch_id'   => $this->request->getVar('branch_id') ? : null,
+            'role'        => $this->request->getVar('role') ? : null,
             'status'      => 'active',
             'added_by'    => $this->requested_by,
             'added_on'    => date('Y-m-d H:i:s'),
@@ -290,6 +291,7 @@ class Users extends MYTController
             'email'       => $this->request->getVar('email') ? : $user['email'],
             'type'        => $this->request->getVar('type') ? : $user['type'],
             'status'      => $this->request->getVar('status') ? : $user['status'],
+            'role'        => $this->request->getVar('role') ? : $user['role'],
             'updated_by'  => $this->requested_by,
             'updated_on'  => date('Y-m-d H:i:s')
         ];

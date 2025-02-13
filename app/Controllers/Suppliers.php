@@ -164,6 +164,7 @@ class Suppliers extends MYTController
         $requirements           = $this->request->getVar('requirements');
         $phone_no               = $this->request->getVar('phone_no');
         $email                  = $this->request->getVar('email');
+        $vat_type               = $this->request->getVar('vat_type');
         $contact_person         = $this->request->getVar('contact_person');
         $bank_primary           = $this->request->getVar('bank_primary');
         $primary_account_no     = $this->request->getVar('primary_account_no');
@@ -214,14 +215,41 @@ class Suppliers extends MYTController
             'alternate_account_no'   => $this->request->getVar('alternate_account_no'),
             'alternate_account_name' => $this->request->getVar('alternate_account_name'),
             'payee'                  => $this->request->getVar('payee'), 
+            'vat_type'               => $this->request->getVar('vat_type'),
             'added_by'               => $this->requested_by,
             'added_on'               => date('Y-m-d H:i:s'),
         ];
 
-        if (!$supplier_id = $this->supplierModel->insert($values))
+        if (!$supplier_id = $this->supplierModel->insert($values)) {
+            $this->errorMessage = $this->db->error()['message'];
             return false;
+        } elseif ($this->request->getFile('file') AND
+                !$this-> _attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id])){
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
+        } elseif ($data AND !$this->_save_attachment_from_sync($data, $supplier_id)) {
+            return false;
+        }
 
         return $supplier_id;
+    }
+
+    protected function _save_attachment_from_sync($data, $expense_id)
+    {
+        $values = [];
+        foreach ($data['supplier_attachments'] as $attachment) {
+            $values[] = [
+                'supplier_id' => $supplier_id,
+                // 'name'   => $attachment['file_name'],
+                'base_64'   => $attachment,
+                'added_by'    => $this->requested_by,
+                'added_on'    => date('Y-m-d H:i:s')
+            ];
+        }
+
+        if(count($values) > 0 AND !$this->supplierAttachmentModel->insertBatch($values))
+            return false;
+        return true;
     }
 
     /**
@@ -247,7 +275,8 @@ class Suppliers extends MYTController
             'bank_alternate'         => $this->request->getVar('bank_alternate'),
             'alternate_account_no'   => $this->request->getVar('alternate_account_no'),
             'alternate_account_name' => $this->request->getVar('alternate_account_name'),
-            'payee'                  => $this->request->getVar('payee'), 
+            'payee'                  => $this->request->getVar('payee'),
+            'vat_type'               => $this->request->getVar('vat_type'),
             'updated_by'     => $this->requested_by,
             'updated_on'     => date('Y-m-d H:i:s')
         ];
