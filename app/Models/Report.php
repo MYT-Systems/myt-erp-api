@@ -812,7 +812,7 @@ EOT;
 
     if ($date_from && $date_to) {
         // Add date filter if both date_from and date_to are provided
-        $date_filter_supplies = "AND added_on BETWEEN ? AND ?";
+        $date_filter_supplies = "AND supplies_expense_date BETWEEN ? AND ?";
         $binds = array_merge($binds, [$date_from, $date_to]);
     }
 
