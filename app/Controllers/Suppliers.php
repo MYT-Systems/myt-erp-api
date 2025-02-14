@@ -77,6 +77,37 @@ class Suppliers extends MYTController
 
         if (!$supplier_id = $this->_attempt_create()) {
             $db->transRollback();
+            $response = $this->failServerError('Failed to create supplier: ' . ($this->errorMessage ?? 'Unknown error'));
+        } else {
+            if (($this->request->getFile('file') || $this->request->getFileMultiple('file'))
+                && !$this->_attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id])) {
+                
+                $db->transRollback();
+                $response = $this->respond(['response' => 'Supplier file upload failed']);
+            } else {
+                $db->transCommit();
+                $response = $this->respond([
+                    'response'    => 'Supplier created successfully',
+                    'status'      => 'success',
+                    'supplier_id' => $supplier_id
+                ]);
+            }
+        }
+        
+        $db->close();
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+    {/*public function create()
+    {
+        if (($response = $this->_api_verification('suppliers', 'create')) !== true)
+            return $response;
+            
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        if (!$supplier_id = $this->_attempt_create()) {
+            $db->transRollback();
             $response = $this->failServerError('Failed to create supplier');
         } else {
             $db->transCommit();
@@ -90,7 +121,7 @@ class Suppliers extends MYTController
         $db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
-    }
+    }*/}
 
     /**
      * Update supplier
@@ -214,22 +245,14 @@ class Suppliers extends MYTController
             'bank_alternate'         => $this->request->getVar('bank_alternate'),
             'alternate_account_no'   => $this->request->getVar('alternate_account_no'),
             'alternate_account_name' => $this->request->getVar('alternate_account_name'),
-            'payee'                  => $this->request->getVar('payee'), 
+            'payee'                  => $this->request->getVar('payee'),
             'vat_type'               => $this->request->getVar('vat_type'),
             'added_by'               => $this->requested_by,
             'added_on'               => date('Y-m-d H:i:s'),
         ];
 
-        if (!$supplier_id = $this->supplierModel->insert($values)) {
-            $this->errorMessage = $this->db->error()['message'];
+        if (!$supplier_id = $this->supplierModel->insert($values))
             return false;
-        } elseif ($this->request->getFile('file') AND
-                !$this-> _attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id])){
-            $this->errorMessage = $this->db->error()['message'];
-            return false;
-        } elseif ($data AND !$this->_save_attachment_from_sync($data, $supplier_id)) {
-            return false;
-        }
 
         return $supplier_id;
     }
@@ -277,11 +300,21 @@ class Suppliers extends MYTController
             'alternate_account_name' => $this->request->getVar('alternate_account_name'),
             'payee'                  => $this->request->getVar('payee'),
             'vat_type'               => $this->request->getVar('vat_type'),
-            'updated_by'     => $this->requested_by,
-            'updated_on'     => date('Y-m-d H:i:s')
+            'updated_by'             => $this->requested_by,
+            'updated_on'             => date('Y-m-d H:i:s')
         ];
 
         if (!$this->supplierModel->update($supplier_id, $values)) {
+            return false;
+        }
+
+        if (!$this->supplierAttachmentModel->delete_attachments_by_supplier_id($supplier_id, $this->requested_by)) {
+            return false;
+        }
+
+        if (($this->request->getFile('file') || $this->request->getFileMultiple('file')) 
+            && !$response = $this->_attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id]) 
+            && $response === false) {
             return false;
         }
 
@@ -320,6 +353,7 @@ class Suppliers extends MYTController
      */
     protected function _load_essentials()
     {
+        $this->supplierAttachmentModel = model('App\Models\Supplier_attachment');
         $this->supplierModel       = new Supplier();
         $this->webappResponseModel = new Webapp_response();
     }
