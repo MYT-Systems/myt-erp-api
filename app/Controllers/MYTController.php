@@ -77,6 +77,7 @@ class MYTController extends ResourceController
         ];
 
         $user = $userModel->select('', $where, 1);
+        // var_dump($where); die();
         $this->requested_by = $user ? $user['id'] : 0;
 
         $webappLogModel = new Webapp_log();
@@ -123,6 +124,8 @@ class MYTController extends ResourceController
             'token' => $token ? : "",
             'is_deleted' => 0
         ];
+        
+        // var_dump($where); die();
 
         if (!$this->user = $userModel->select('', $where, 1))
             return false;

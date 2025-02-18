@@ -16,6 +16,10 @@ class Project_invoice extends MYTModel
         'company',
         'remarks',
         'subtotal',
+        'vat_twelve',
+        'vat_net',
+        'wht',
+        'is_wht',
         'service_fee',
         'delivery_fee',
         'grand_total',
@@ -113,71 +117,97 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
-    /**
-     * Search
-     */
-    public function search($project_invoice_id = null, $project_id = null, $invoice_date = null, $address = null, $company = null, $remarks = null, $payment_status = null, $status = null, $fully_paid_on = null, $anything = null)
-    {
-        $database = \Config\Database::connect();
-        $sql = <<<EOT
+     /**
+ * Search
+ */
+public function search($project_invoice_id = null, $project_id = null, $invoice_date = null, $address = null, $company = null, $remarks = null, $payment_status = null, $status = null, $fully_paid_on = null, $anything = null, $date_from = null, $date_to = null)
+{
+    $database = \Config\Database::connect();
+    $sql = <<<EOT
 SELECT project_invoice.*,
     project.name AS project_name,
     CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name,
-    IF (project_invoice.is_closed = 1, 'closed_bill', IF (project_invoice.paid_amount > project_invoice.grand_total, 'overpaid', project_invoice.payment_status)) AS payment_status,
-    project.grand_total AS project_amount
+    IF (project_invoice.is_closed = 1, 'closed_bill', 
+        IF (project_invoice.paid_amount > project_invoice.grand_total, 'overpaid', project_invoice.payment_status)
+    ) AS payment_status,
+    project.grand_total AS project_amount,
+    (SELECT MAX(payment_date) 
+     FROM project_invoice_payment 
+     WHERE project_invoice_payment.project_invoice_id = project_invoice.id) AS payment_date
 FROM project_invoice
 LEFT JOIN project ON project.id = project_invoice.project_id
 LEFT JOIN employee AS adder ON adder.id = project_invoice.added_by
 WHERE project_invoice.is_deleted = 0
 AND project.is_deleted = 0
 EOT;
-        $binds = [];
 
-        if ($project_invoice_id) {
-            $sql .= ' AND project_invoice.id = ?';
-            $binds[] = $project_invoice_id;
-        }
+    $binds = [];
 
-        if ($company) {
-            $sql .= ' AND project_invoice.company = ?';
-            $binds[] = $company;
-        }
+    if ($project_invoice_id) {
+        $sql .= ' AND project_invoice.id = ?';
+        $binds[] = $project_invoice_id;
+    }
 
-        if ($project_id) {
-            $sql .= ' AND project_invoice.project_id = ?';
-            $binds[] = $project_id;
-        }
+    if ($company) {
+        $sql .= ' AND project_invoice.company = ?';
+        $binds[] = $company;
+    }
 
-        if ($payment_status == 'overpaid') {
-            $sql .= ' AND project_invoice.paid_amount > project_invoice.grand_total';
-            $sql .= ' AND (project_invoice.is_closed = 0 OR project_invoice.is_closed IS NULL)'; 
-        } else if ($payment_status) {
-            $sql .= ' AND project_invoice.payment_status = ?';
-            $binds[] = $payment_status;
-        }
+    if ($project_id) {
+        $sql .= ' AND project_invoice.project_id = ?';
+        $binds[] = $project_id;
+    }
 
-        if ($status) {
-            $sql .= ' AND project_invoice.status = ?';
-            $binds[] = $status;
-        }
+    if ($payment_status === 'overpaid') {
+        $sql .= ' AND project_invoice.paid_amount > project_invoice.grand_total';
+        $sql .= ' AND (project_invoice.is_closed = 0 OR project_invoice.is_closed IS NULL)';
+    } elseif ($payment_status) {
+        $sql .= ' AND project_invoice.payment_status = ?';
+        $binds[] = $payment_status;
+    } elseif (empty($payment_status)) {
+        $sql .= ' AND project_invoice.status = "pending"';
+    }
 
-        if ($fully_paid_on) {
-            $sql .= ' AND project_invoice.fully_paid_on = ?';
-            $binds[] = $fully_paid_on;
-        }
+    if ($fully_paid_on) {
+        $sql .= ' AND project_invoice.fully_paid_on = ?';
+        $binds[] = $fully_paid_on;
+    }
 
-        // if ($anything) {
-        //     $sql .= ' AND (project_invoice.id LIKE ? OR project_invoice.sales_invoice_no LIKE ? OR project_invoice.dr_no LIKE ? OR project_invoice.charge_invoice_no LIKE ? OR project_invoice.collection_invoice_no LIKE ? OR project_invoice.address LIKE ? OR project_invoice.remarks LIKE ? OR project_invoice.sales_staff LIKE ? OR project_invoice.status LIKE ? OR project_invoice.fully_paid_on LIKE ? OR project.name LIKE ? OR buyer_branch.name LIKE ? OR seller_branch.name LIKE ? OR sales_staff.first_name LIKE ? OR sales_staff.last_name LIKE ? OR adder.first_name LIKE ? OR adder.last_name LIKE ?)';
-        //     $new_binds = [];
-        //     for ($i = 0; $i < 17; $i++) {
-        //         $new_binds[] = '%' . $anything . '%';
-        //     }
-        //     $binds = array_merge($binds, $new_binds);
-        // }
+    if ($anything) {
+        $sql .= ' AND (
+            project_invoice.company LIKE ? OR 
+            project_invoice.invoice_no LIKE ? OR 
+            project.name LIKE ?
+        )';
 
+        // Correctly bind placeholders with wildcards
+        $wildcard = "%$anything%";
+        $new_binds = array_fill(0, 3, $wildcard);
+        $binds = array_merge($binds, $new_binds);
+    }
+
+    if ($date_from) {
+        $date_from = date('Y-m-d 00:00:00', strtotime($date_from));
+        $sql .= ' AND project_invoice.invoice_date >= ?';
+        $binds[] = $date_from;
+    }
+
+    if ($date_to) {
+        $date_to = date('Y-m-d 23:59:59', strtotime($date_to));
+        $sql .= ' AND project_invoice.invoice_date <= ?';
+        $binds[] = $date_to;
+    }
+
+    try {
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
+    } catch (\mysqli_sql_exception $e) {
+        log_message('error', $e->getMessage());
+        return false;
     }
+}
+
+
 
 
     /*

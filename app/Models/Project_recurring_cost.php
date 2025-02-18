@@ -8,10 +8,12 @@ class Project_recurring_cost extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'project_id',
+        'project_invoice_id',
         'description',
         'type',
         'period',
         'price',
+        'is_occupied',
         'added_by',
         'added_on',
         'updated_by',

@@ -36,7 +36,7 @@ LEFT JOIN distributor ON distributor.id = distributor_client.distributor_id
 LEFT JOIN customer ON customer.id = distributor_client.customer_id
 LEFT JOIN project ON project.id = distributor_client.project_id
     AND distributor.is_deleted = 0
-WHERE distributor_id = ? 
+WHERE distributor_client.distributor_id = ? 
     AND distributor_client.is_deleted = 0
 GROUP BY distributor_client.id
 EOT;

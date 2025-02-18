@@ -8,8 +8,12 @@ class Project_one_time_fee extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'project_id',
+        'project_invoice_id',
         'description',
+        'type',
+        'period',
         'amount',
+        'is_occupied',
         'added_by',
         'added_on',
         'updated_by',
@@ -27,7 +31,7 @@ class Project_one_time_fee extends MYTModel
         $database = \Config\Database::connect();
 
         $sql = <<<EOT
-SELECT description, amount
+SELECT id, description, type, period, amount
 FROM project_one_time_fee
 WHERE project_id = ?
 AND is_deleted = 0

@@ -172,7 +172,7 @@ class Project_expenses extends MYTController
                 'added_by' => $this->requested_by,
                 'added_on' => date('Y-m-d H:i:s'),
             ];
-
+            
             if (!$project_expense_id = $this->projectExpenseModel->insert($values)) {
                 $db->transRollback();
                 $response = $this->fail('Server error');
