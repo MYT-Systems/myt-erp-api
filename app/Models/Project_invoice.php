@@ -28,6 +28,7 @@ class Project_invoice extends MYTModel
         'paid_amount',
         'payment_status',
         'status',
+        'discount',
         'fully_paid_on',
         'is_closed',
         'added_by',
@@ -188,13 +189,17 @@ EOT;
 
     if ($date_from) {
         $date_from = date('Y-m-d 00:00:00', strtotime($date_from));
-        $sql .= ' AND project_invoice.invoice_date >= ?';
+        $sql .= ' AND (SELECT MAX(payment_date) 
+                   FROM project_invoice_payment 
+                   WHERE project_invoice_payment.project_invoice_id = project_invoice.id) >= ?';
         $binds[] = $date_from;
     }
 
     if ($date_to) {
         $date_to = date('Y-m-d 23:59:59', strtotime($date_to));
-        $sql .= ' AND project_invoice.invoice_date <= ?';
+        $sql .= ' AND (SELECT MAX(payment_date) 
+                   FROM project_invoice_payment 
+                   WHERE project_invoice_payment.project_invoice_id = project_invoice.id) <= ?';
         $binds[] = $date_to;
     }
 

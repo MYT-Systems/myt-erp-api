@@ -98,7 +98,7 @@ class Suppliers extends MYTController
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
-    {/*public function create()
+    /*public function create()
     {
         if (($response = $this->_api_verification('suppliers', 'create')) !== true)
             return $response;
@@ -121,7 +121,7 @@ class Suppliers extends MYTController
         $db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
-    }*/}
+    }*/
 
     /**
      * Update supplier

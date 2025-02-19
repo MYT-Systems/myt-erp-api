@@ -13,6 +13,7 @@ class Project_one_time_fee extends MYTModel
         'type',
         'period',
         'amount',
+        'balance',
         'is_occupied',
         'added_by',
         'added_on',

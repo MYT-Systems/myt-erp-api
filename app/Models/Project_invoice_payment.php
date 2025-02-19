@@ -108,6 +108,35 @@ EOT;
     }
 
     /**
+    * get balance from project_invoice
+    */
+    public function get_balance($project_id = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT project_invoice_payment.*, 
+    project.name AS project_name, 
+    customer.name AS customer_name,
+    (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE employee.id = project_invoice_payment.added_by) AS added_by_name,
+    (SELECT name FROM bank WHERE bank.id = project_invoice_payment.from_bank_id) AS from_bank_name,
+    (SELECT name FROM bank WHERE bank.id = project_invoice_payment.to_bank_id) AS to_bank_name
+FROM project_invoice_payment
+LEFT JOIN project ON project.id = project_invoice_payment.project_id
+LEFT JOIN customer ON customer.id = project.customer_id
+WHERE project_invoice_payment.is_deleted = 0
+EOT;
+        $binds = [];
+
+        if ($project_id) {
+            $sql .= ' AND project_invoice_payment.project_id = ?';
+            $binds[] = $project_id;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
      * Search
      */
     public function search($project_id, $customer_id, $project_invoice_id, $payment_method, $payment_date_from, $payment_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name, $date_from, $date_to)

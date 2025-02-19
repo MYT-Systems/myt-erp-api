@@ -35,8 +35,6 @@ class Projects extends MYTController
     
         return $response;
     }
-
-    
     
     /**
      * Get all recurring and one-time fees that are not yet used (is_occupied = 0)
@@ -61,7 +59,6 @@ class Projects extends MYTController
         if(!$one_time_fees || !$recurring_costs){
             $response = $this->failNotFound('No particular found.');
         }
-        
     
         $data = array_merge($one_time_fees ?: [], $recurring_costs ?: []);
 
@@ -69,9 +66,25 @@ class Projects extends MYTController
         if (empty($data)) {
             $response = $this->failNotFound('No available particulars found');
         } else {
+            foreach ($data as $key => $item) {
+                (float)$balance = $item['amount'];
+                $payments = $this->projectInvoicePaymentModel->get_balance($item['project_id']) ?? [];
+                foreach ($payments as $payment) {
+                    //$balance -= $payment['paid_amount'];
+                    $one_time_fee_pinv_items = $this->projectInvoiceItemModel->select('', ['item_id' => $item['id'], 'project_invoice_id' => $payment['project_invoice_id'], 'is_deleted' => 0]) ?? [];
+                    if (!empty($one_time_fee_pinv_items)) {
+                        foreach ($one_time_fee_pinv_items as $pinv_item) {
+                            $balance -= (float)$pinv_item['billed_amount'];
+                        }
+                    }
+                }
+
+                
+                $data[$key]['balance'] = floatval(str_replace(',', '',$balance));
+            }
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $data
+                'data'   => $data,
             ]);
         }
     
@@ -133,7 +146,9 @@ class Projects extends MYTController
         if (($response = $this->_api_verification('projects', 'get_all_project')) !== true)
             return $response;
 
-        $projects = $this->projectModel->get_all_project();
+        $project_id = $this->request->getVar('project_id') ? : null;
+
+        $projects = $this->projectModel->get_all_project($project_id);
 
         if (!$projects) {
             $response = $this->failNotFound('No project found');
@@ -209,6 +224,34 @@ class Projects extends MYTController
     protected function _attempt_generate_project_costs($project_id)
     {
         $project_cost_descriptions = $this->request->getVar('project_cost_description') ?? [];
+        $project_cost_type = $this->request->getVar('project_cost_type') ?? [];
+        $project_cost_amount = $this->request->getVar('project_cost_amount') ?? [];
+
+        $values = [];
+        foreach($project_cost_descriptions as $i => $project_cost_description) {
+            $values[] = [
+                'project_id'  => $project_id,
+                'description' => $project_cost_description,
+                'type'        => $project_cost_type[$i],
+                'amount'      => $project_cost_amount[$i],
+                'added_by'    => $this->request->getVar('requester'),
+                'added_on'    => date('Y-m-d H:i:s')
+            ];
+        }
+
+        if(!$this->projectCostModel->insertBatch($values)) {
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Batch insert project costs
+     */
+    protected function _attempt_generate_change_request($project_id)
+    {
+        $project_change_request_descriptions = $this->request->getVar('project_cost_description') ?? [];
         $project_cost_type = $this->request->getVar('project_cost_type') ?? [];
         $project_cost_amount = $this->request->getVar('project_cost_amount') ?? [];
 
@@ -353,6 +396,7 @@ class Projects extends MYTController
                 'type'        => $project_one_time_fee_types[$i],
                 'period'      => $project_one_time_fee_periods[$i],
                 'amount'      => $project_one_time_fee_amounts[$i],
+                'balance'     => $project_one_time_fee_amounts[$i],
                 'added_by'    => $this->requested_by,
                 'added_on'    => date('Y-m-d H:i:s'),
             ];
@@ -387,6 +431,7 @@ class Projects extends MYTController
         $types = $this->request->getVar('types') ?? [];
         $periods = $this->request->getVar('periods') ?? [];
         $prices = $this->request->getVar('prices') ?? [];
+        $amounts = $this->request->getVar('amounts') ?? [];
     
         // Define the base query to fetch existing records
         $where = [
@@ -427,6 +472,7 @@ class Projects extends MYTController
             $type = $types[$key] ?? null;
             $period = $periods[$key] ?? null;
             $price = $prices[$key] ?? null;
+            $amount = $amounts[$key] ?? null;
     
             $data = [
                 'project_id'  => $project_id,
@@ -434,6 +480,8 @@ class Projects extends MYTController
                 'type'        => $type,
                 'period'      => $period,
                 'price'       => $price,
+                'amount'      => $amount,
+                'balance'     => $amount,
                 'added_by'    => $this->requested_by,
                 'added_on'    => date('Y-m-d H:i:s'),
             ];
@@ -861,9 +909,11 @@ class Projects extends MYTController
     {
         $this->projectModel               = model('App\Models\Project');
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
+        $this->projectInvoicePaymentModel = model('App\Models\Project_invoice_payment');
         $this->projectOneTimeFeeModel     = model('App\Models\Project_one_time_fee');
         $this->projectCostModel           = model('App\Models\Project_cost');
         $this->projectRecurringCostModel  = model('App\Models\Project_recurring_cost');
+        $this->projectInvoiceItemModel    = model('App\Models\Project_invoice_item');
         $this->projectTypeModel           = model('App\Models\Project_type');
         $this->projectTypeNameModel       = model('App\Models\Project_type_name');
         $this->projectAttachmentModel     = model('App\Models\Project_attachment');

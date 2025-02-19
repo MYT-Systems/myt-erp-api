@@ -2,21 +2,25 @@
 
 namespace App\Models;
 
-class Project_recurring_cost extends MYTModel
+class Project_change_request extends MYTModel
 {
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'project_id',
-        'project_invoice_id',
-        'description',
-        'type',
-        'period',
-        'price',
+        'request_date',
+        'request_no',
+        'remarks',
+        'subtotal',
+        'vat_twelve',
+        'vat_net',
+        'wht',
+        'is_wht',
+        'grand_total',
+        'vat_type',
         'balance',
-        'total',
-        'amount',
-        'is_occupied',
+        'paid_amount',
+        'discount',
         'added_by',
         'added_on',
         'updated_by',
@@ -26,24 +30,24 @@ class Project_recurring_cost extends MYTModel
 
     public function __construct()
     {
-        $this->table = 'project_recurring_cost';
+        $this->table = 'project_change_request';
     }
 
     /**
-     * Get project_recurring_cost details by ID
+     * Get project_change_request by ID
      */
-    public function get_details_by_id($project_recurring_cost_id = null)
+    public function get_details_by_id($project_change_request_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT *
-FROM project_recurring_cost
-WHERE project_recurring_cost.is_deleted = 0
+FROM project_change_request
+WHERE project_change_request.is_deleted = 0
 EOT;
         $binds = [];
-        if (isset($project_recurring_cost_id)) {
+        if (isset($project_change_request_id)) {
             $sql .= " AND id = ?";
-            $binds[] = $project_recurring_cost_id;
+            $binds[] = $project_change_request_id;
         }
 
         $query = $database->query($sql, $binds);
@@ -51,15 +55,15 @@ EOT;
     }
 
     /**
-     * Get project_recurring_cost details by project ID
+     * Get project_change_request by ID
      */
     public function get_details_by_project_id($project_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT *
-FROM project_recurring_cost
-WHERE project_recurring_cost.is_deleted = 0
+FROM project_change_request
+WHERE project_change_request.is_deleted = 0
 EOT;
         $binds = [];
         if (isset($project_id)) {
@@ -74,13 +78,13 @@ EOT;
     /**
      * Delete all recurring_cost by project ID
      */
-    public function delete_recurring_costs_by_project_id($project_id = null, $requested_by = null)
+    public function delete_change_requests_by_project_id($project_id = null, $requested_by = null)
     {
         $database = \Config\Database::connect();
 
         $date_now = date('Y-m-d H:i:s');
         $sql = <<<EOT
-UPDATE project_recurring_cost
+UPDATE project_change_request
 SET is_deleted = 1, updated_by = ?, updated_on = ?
 WHERE project_id = ?
     AND is_deleted = 0
