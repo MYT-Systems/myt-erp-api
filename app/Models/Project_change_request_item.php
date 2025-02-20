@@ -74,7 +74,26 @@ FROM project_change_request_item
 WHERE project_change_request_item.is_deleted = 0
     AND project_change_request_item.project_change_request_id = ?
 EOT;
-        $binds = [$project_invoices_id];
+        $binds = [$project_change_request_id];
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Get details by project change request ID
+     */
+    public function get_details_by_project_id($project_id = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT project_change_request_item.*, project_change_request.project_id
+FROM project_change_request_item
+LEFT JOIN project_change_request ON project_change_request.id = project_change_request_item.project_change_request_id
+WHERE project_change_request_item.is_deleted = 0
+    AND project_change_request.project_id = ?
+EOT;
+        $binds = [$project_id];
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;

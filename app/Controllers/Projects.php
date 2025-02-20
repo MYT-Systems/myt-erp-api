@@ -55,12 +55,13 @@ class Projects extends MYTController
         // Fetch all one-time fees and recurring costs where `is_occupied` is 0
         $one_time_fees = $this->projectOneTimeFeeModel->select('',$where);
         $recurring_costs = $this->projectRecurringCostModel->select('',$where);
+        $change_request_item = $this->projectChangeRequestItemModel->get_details_by_project_id($project_id);
         
         if(!$one_time_fees || !$recurring_costs){
             $response = $this->failNotFound('No particular found.');
         }
     
-        $data = array_merge($one_time_fees ?: [], $recurring_costs ?: []);
+        $data = array_merge($one_time_fees ?: [], $recurring_costs ?: [], $change_request_item ?: []);
 
         // Return the response
         if (empty($data)) {
@@ -108,6 +109,13 @@ class Projects extends MYTController
         $project_one_time_fee   = $project_id ? $this->projectOneTimeFeeModel->get_details_by_project_id($project_id) : null;
         $project_recurring_cost = $project_id ? $this->projectRecurringCostModel->get_details_by_project_id($project_id) : null;
         $project_type           = $project_id ? $this->projectTypeModel->get_details_by_project_id($project_id) : null;
+        $project_change_request = $project_id ? $this->projectChangeRequestModel->get_details_by_project_id($project_id) : null;
+
+        if (!empty($project_change_request)) {
+            foreach ($project_change_request as $index => $change_request) {
+                $project_change_request[$index]['project_change_request_item'] = $this->projectChangeRequestItemModel->get_details_by_project_change_requests_id($change_request['id']);
+            }
+        }
 
         if($project_recurring_cost) {
             foreach($project_recurring_cost AS $index => $project_recurring_cost_item) {
@@ -126,7 +134,8 @@ class Projects extends MYTController
             $project[0]['one_time_fee'] = $project_one_time_fee;
             $project[0]['recurring_cost'] = $project_recurring_cost;
             $project[0]['project_types'] = $project_type;
-
+            $project[0]['change_request'] = $project_change_request;
+            //$project[0]['change_request_item'] = $project_change_request_item;
 
             $response = $this->respond([
                 'status' => 'success',
@@ -432,6 +441,7 @@ class Projects extends MYTController
         $periods = $this->request->getVar('periods') ?? [];
         $prices = $this->request->getVar('prices') ?? [];
         $amounts = $this->request->getVar('amounts') ?? [];
+        $totals = $this->request->getVar('totals') ?? [];
     
         // Define the base query to fetch existing records
         $where = [
@@ -473,6 +483,7 @@ class Projects extends MYTController
             $period = $periods[$key] ?? null;
             $price = $prices[$key] ?? null;
             $amount = $amounts[$key] ?? null;
+            $total = $totals[$key] ?? null;
     
             $data = [
                 'project_id'  => $project_id,
@@ -482,6 +493,7 @@ class Projects extends MYTController
                 'price'       => $price,
                 'amount'      => $amount,
                 'balance'     => $amount,
+                'total'       => $total,
                 'added_by'    => $this->requested_by,
                 'added_on'    => date('Y-m-d H:i:s'),
             ];
@@ -915,6 +927,8 @@ class Projects extends MYTController
         $this->projectRecurringCostModel  = model('App\Models\Project_recurring_cost');
         $this->projectInvoiceItemModel    = model('App\Models\Project_invoice_item');
         $this->projectTypeModel           = model('App\Models\Project_type');
+        $this->projectChangeRequestModel  = model('App\Models\Project_change_request');
+        $this->projectChangeRequestItemModel = model('App\Models\Project_change_request_item');
         $this->projectTypeNameModel       = model('App\Models\Project_type_name');
         $this->projectAttachmentModel     = model('App\Models\Project_attachment');
         $this->inventoryGroupDetailModel  = model('App\Models\Inventory_group_detail');

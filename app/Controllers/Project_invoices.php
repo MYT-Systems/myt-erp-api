@@ -532,7 +532,7 @@ class Project_invoices extends MYTController
         }
 
         if (!$this->projectInvoiceModel->update($project_invoice_id, $values)) {
-            $this->errorMessaage = $db->error()['message'];
+            $this->errorMessage = $db->error()['message'];
             return false;
         }
 

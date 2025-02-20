@@ -293,7 +293,7 @@ SELECT
     customer.name AS customer_name, 
     SUM(IFNULL(project_invoice.grand_total, 0)) AS amount, 
     project.paid_amount AS paid_amount, 
-    project.grand_total - project.paid_amount AS receivable, 
+    SUM(IFNULL(project_invoice.grand_total, 0)) - project.paid_amount AS receivable, 
     SUM(IFNULL(project_expense.grand_total, 0)) AS project_expense, 
     project.paid_amount - SUM(IF(project_expense.status = 'approved', 
     IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
