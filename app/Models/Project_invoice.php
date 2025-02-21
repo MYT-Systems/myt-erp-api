@@ -212,7 +212,39 @@ EOT;
     }
 }
 
+    /**
+     * Get project_invoice summary by ID
+     */
+    public function get_summary_by_id($project_id = null){
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT project_invoice.*,
+    project.name AS project_name,
+    CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name,
+    IF (project_invoice.is_closed = 1, 'closed_bill', 
+        IF (project_invoice.paid_amount > project_invoice.grand_total, 'overpaid', project_invoice.payment_status)
+    ) AS payment_status,
+    project.grand_total AS project_amount,
+    (SELECT MAX(payment_date) 
+     FROM project_invoice_payment 
+     WHERE project_invoice_payment.project_invoice_id = project_invoice.id) AS payment_date
+FROM project_invoice
+LEFT JOIN project ON project.id = project_invoice.project_id
+LEFT JOIN employee AS adder ON adder.id = project_invoice.added_by
+WHERE project_invoice.is_deleted = 0
+AND project.is_deleted = 0
+EOT;
 
+        $binds = [];
+
+        if ($project_id) {
+            $sql .= ' AND project_invoice.project_id = ?';
+            $binds[] = $project_id;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
 
 
     /*

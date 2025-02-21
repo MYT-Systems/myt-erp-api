@@ -75,7 +75,7 @@ class Project_change_requests extends MYTController
         if ($this->projectChangeRequestModel->select('', ['request_no' => $this->request->getVar('request_no')], 1)) {
             $db->transRollback();
             $response = $this->fail('Project request number already exists.');
-        } elseif ($this->projectChangeRequestItemModel->select('', ['name' => $this->request->getVar('name')], 1)) {
+        } elseif ($this->projectChangeRequestItemModel->select('', ['name' => $this->request->getVar('names')], 1)) {
             $db->transRollback();
             $response = $this->fail('Project request name already exists.');
         } elseif (!$project_change_request_id = $this->_attempt_create()) {

@@ -81,6 +81,6 @@ EOT;
         $binds = [$requested_by, $date_now, $supplier_id];
 
         $query = $database->query($sql, $binds);
-        return $query ? $query->getResultArray() : false;
+        return $query;
     }
 }

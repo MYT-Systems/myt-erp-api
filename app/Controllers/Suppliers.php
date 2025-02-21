@@ -207,6 +207,9 @@ class Suppliers extends MYTController
         if (!$suppliers = $this->supplierModel->search($trade_name, $trade_address, $bir_name, $bir_number, $bir_address, $tin, $terms, $requirements, $phone_no, $email, $contact_person, $bank_primary, $primary_account_no, $primary_account_name, $bank_alternate, $alternate_account_no, $alternate_account_name)) {
             $response = $this->failNotFound('No supplier found');
         } else {
+            foreach ($suppliers as $key => $supplier) {
+                $suppliers[$key]['attachments'] = $this->supplierAttachmentModel->get_details_by_supplier_id($supplier['id']);
+            }
             $response = $this->respond([
                 'response' => 'suppliers found',
                 'status'   => 'success',
@@ -308,15 +311,26 @@ class Suppliers extends MYTController
             return false;
         }
 
-        if (!$this->supplierAttachmentModel->delete_attachments_by_supplier_id($supplier_id, $this->requested_by)) {
-            return false;
+        // Check if file parameter is present and not empty
+        $file = $this->request->getFile('file');
+        if ($file !== null && !empty($file->getName())) {
+            if (!$this->supplierAttachmentModel->delete_attachment_by_supplier_id($supplier_id, $this->requested_by)) {
+                return false;
+            } elseif(($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id]) AND
+                    $response === false) {
+                return false;
+            }
         }
 
-        if (($this->request->getFile('file') || $this->request->getFileMultiple('file')) 
-            && !$response = $this->_attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id]) 
-            && $response === false) {
-            return false;
-        }
+        // if (!$this->supplierAttachmentModel->delete_attachment_by_supplier_id($supplier_id, $this->requested_by)) {
+        //     return false;
+        // }
+
+        // if (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id]) &&
+        //     $response === false) {
+        //     $db->transRollback();
+        //     $response = $this->respond(['response' => 'supplier attachment file upload failed']);
+        //     }
 
         return true;
     }
