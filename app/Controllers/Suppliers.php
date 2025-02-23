@@ -134,6 +134,7 @@ class Suppliers extends MYTController
         $supplier_id = $this->request->getVar('supplier_id');
         $where       = ['id' => $supplier_id, 'is_deleted' => 0];
 
+
         $db = \Config\Database::connect();
         $db->transBegin();
         
@@ -312,14 +313,12 @@ class Suppliers extends MYTController
         }
 
         // Check if file parameter is present and not empty
-        $file = $this->request->getFile('file');
-        if ($file !== null && !empty($file->getName())) {
-            if (!$this->supplierAttachmentModel->delete_attachment_by_supplier_id($supplier_id, $this->requested_by)) {
-                return false;
-            } elseif(($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id]) AND
-                    $response === false) {
-                return false;
-            }
+        $file = $this->request->getFileMultiple('file');
+        if (!$this->supplierAttachmentModel->delete_attachment_by_supplier_id($supplier_id, $this->requested_by)) {
+            return false;
+        } elseif($file AND !$response = $this->_attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id]) AND
+                $response === false) {
+            return false;
         }
 
         // if (!$this->supplierAttachmentModel->delete_attachment_by_supplier_id($supplier_id, $this->requested_by)) {
