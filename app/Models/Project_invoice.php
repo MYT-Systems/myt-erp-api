@@ -75,7 +75,7 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT project_invoice.*,
+SELECT project_invoice.*, project_invoice.balance AS invoice_balance,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = project_invoice.added_by) AS added_by_name, project_invoice_item_name.name AS project_invoice_item_name, SUM(project_invoice_payment.paid_amount) AS paid_amount, project.invoice_amount - IF(SUM(project_invoice_payment.paid_amount) IS NULL, 0, SUM(project_invoice_payment.paid_amount)) AS balance
 FROM project_invoice
 LEFT JOIN project ON project.id = project_invoice.project_id

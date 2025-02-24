@@ -60,14 +60,16 @@ SELECT project_expense.*,
     expense_type.name AS expense_type_name, 
     project.name AS project_name, 
     partner.name AS partner_name,
-    supplier.trade_name AS supplier_name
+    supplier.trade_name AS supplier_name,
+    requester_name.name AS requester_name
 FROM project_expense
 LEFT JOIN project ON project.id = project_expense.project_id
 LEFT JOIN expense_type ON expense_type.id = project_expense.expense_type_id
 LEFT JOIN partner ON partner.id = project_expense.partner_id
 LEFT JOIN supplier ON supplier.id = project_expense.supplier_id
+LEFT JOIN requester_name ON requester_name.id = project_expense.requester_name_id
 WHERE project_expense.is_deleted = 0
-    AND project_expense.id = ?
+AND project_expense.id = ?;
 EOT;
         $binds = [$project_expense_id];
 

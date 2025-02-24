@@ -291,12 +291,11 @@ SELECT
     project.start_date AS start_date,
     distributor.name AS distributor_name, 
     customer.name AS customer_name, 
-    SUM(IFNULL(project_invoice.grand_total, 0)) AS amount, 
+    SUM(DISTINCT IFNULL(project_invoice.grand_total, 0)) AS amount, 
     project.paid_amount AS paid_amount, 
-    SUM(IFNULL(project_invoice.grand_total, 0)) - project.paid_amount AS receivable, 
-    SUM(IFNULL(project_expense.grand_total, 0)) AS project_expense, 
-    project.paid_amount - SUM(IF(project_expense.status = 'approved', 
-    IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
+    SUM(DISTINCT IFNULL(project_invoice.grand_total, 0)) - project.paid_amount AS receivable, 
+    SUM(DISTINCT IF(project_expense.status = 'approved', IFNULL(project_expense.grand_total, 0), 0)) AS project_expense,
+    project.paid_amount - SUM(DISTINCT IF(project_expense.status = 'approved', IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
 FROM project
 LEFT JOIN project_invoice ON project_invoice.project_id = project.id
 LEFT JOIN customer ON customer.id = project.customer_id
@@ -363,12 +362,11 @@ SELECT
     project.start_date AS start_date,
     distributor.name AS distributor_name, 
     customer.name AS customer_name, 
-    SUM(IFNULL(project_invoice.grand_total, 0)) AS amount, 
+    SUM(DISTINCT IFNULL(project_invoice.grand_total, 0)) AS amount, 
     project.paid_amount AS paid_amount, 
-    SUM(IFNULL(project_invoice.grand_total, 0)) - project.paid_amount AS receivable, 
-    SUM(IFNULL(project_expense.grand_total, 0)) AS project_expense, 
-    project.paid_amount - SUM(IF(project_expense.status = 'approved', 
-    IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
+    SUM(DISTINCT IFNULL(project_invoice.grand_total, 0)) - project.paid_amount AS receivable, 
+    SUM(DISTINCT IF(project_expense.status = 'approved', IFNULL(project_expense.grand_total, 0), 0)) AS project_expense,
+    project.paid_amount - SUM(DISTINCT IF(project_expense.status = 'approved', IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
 FROM project
 LEFT JOIN project_invoice ON project_invoice.project_id = project.id
 LEFT JOIN customer ON customer.id = project.customer_id

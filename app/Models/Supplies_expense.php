@@ -21,6 +21,7 @@ class Supplies_expense extends MYTModel
         'doc_no',
         'grand_total',
         'remarks',
+        'payment_method',
         'requisitioner',
         'status',
         'order_status',

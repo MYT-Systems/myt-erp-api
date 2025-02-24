@@ -26,7 +26,7 @@ class Requester extends MYTModel
         $database = \Config\Database::connect();
 
         $sql = <<<EOT
-SELECT requester_name_id, project_type_name.name AS project_type_name
+SELECT requester_name_id, requester_name.name AS requester_name
 FROM requester
 LEFT JOIN requester_name ON requester_name.id = requester.requester_name_id
 WHERE project_expense_id = ?
@@ -35,5 +35,25 @@ EOT;
         $binds = [$project_expense_id];
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Delete all attachment by project_invoice ID
+     */
+    public function delete_requester_by_project_expense_id($project_expense_id = null, $requested_by = null)
+    {
+        $database = \Config\Database::connect();
+
+        $date_now = date('Y-m-d H:i:s');
+        $sql = <<<EOT
+UPDATE requester
+SET is_deleted = 1, updated_by = ?, updated_on = ?
+WHERE project_expense_id = ?
+    AND is_deleted = 0
+EOT;
+        $binds = [$requested_by, $date_now, $project_expense_id];
+
+        $query = $database->query($sql, $binds);
+        return $query;
     }
 }
