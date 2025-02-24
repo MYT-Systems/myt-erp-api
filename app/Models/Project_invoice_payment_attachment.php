@@ -7,7 +7,7 @@ class Project_invoice_payment_attachment extends MYTModel
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $allowedFields = [
-        'project_expense_id',
+        'project_invoice_payment_id',
         'name',
         'file_url',
         'base_64',
