@@ -31,11 +31,11 @@ class Database extends Config
      * @var array
      */
     public $default = [
-        'DSN'      => 'mysql:host=localhost;port=3306;dbname=myt_erp_db',
+        'DSN'      => 'mysql:host=localhost;port=3306;dbname=myt_erp',
         'hostname' => 'localhost',
         'username' => 'root',
         'password' => '',
-        'database' => 'myt_erp_db',
+        'database' => 'myt_erp',
          'DBDriver' => 'MySQLi',
         'DBPrefix' => '',
         'pConnect' => false,

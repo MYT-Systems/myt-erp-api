@@ -328,6 +328,7 @@ class Supplies_expenses extends MYTController
             'delivery_address'      => $this->request->getVar('delivery_address') ? : null,
             // 'delivery_date'         => $this->request->getVar('delivery_date') ? : null,
             // 'doc_no'                => $this->request->getVar('doc_no') ? : null,
+            'payment_method'        => $this->request->getVar('payment_method') ? : null,
             'remarks'               => $this->request->getVar('remarks') ? : null,
             'requisitioner'         => $this->request->getVar('requisitioner') ? : null,
             // 'status'                => $this->request->getVar('is_save') ? 'pending' : 'for_approval',

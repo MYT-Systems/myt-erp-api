@@ -28,6 +28,7 @@ class Project_invoice extends MYTModel
         'paid_amount',
         'payment_status',
         'status',
+        'discount',
         'fully_paid_on',
         'is_closed',
         'added_by',
@@ -74,7 +75,7 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *,
+SELECT project_invoice.*, project_invoice.balance AS invoice_balance,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = project_invoice.added_by) AS added_by_name, project_invoice_item_name.name AS project_invoice_item_name, SUM(project_invoice_payment.paid_amount) AS paid_amount, project.invoice_amount - IF(SUM(project_invoice_payment.paid_amount) IS NULL, 0, SUM(project_invoice_payment.paid_amount)) AS balance
 FROM project_invoice
 LEFT JOIN project ON project.id = project_invoice.project_id
@@ -188,13 +189,17 @@ EOT;
 
     if ($date_from) {
         $date_from = date('Y-m-d 00:00:00', strtotime($date_from));
-        $sql .= ' AND project_invoice.invoice_date >= ?';
+        $sql .= ' AND (SELECT MAX(payment_date) 
+                   FROM project_invoice_payment 
+                   WHERE project_invoice_payment.project_invoice_id = project_invoice.id) >= ?';
         $binds[] = $date_from;
     }
 
     if ($date_to) {
         $date_to = date('Y-m-d 23:59:59', strtotime($date_to));
-        $sql .= ' AND project_invoice.invoice_date <= ?';
+        $sql .= ' AND (SELECT MAX(payment_date) 
+                   FROM project_invoice_payment 
+                   WHERE project_invoice_payment.project_invoice_id = project_invoice.id) <= ?';
         $binds[] = $date_to;
     }
 
@@ -207,7 +212,39 @@ EOT;
     }
 }
 
+    /**
+     * Get project_invoice summary by ID
+     */
+    public function get_summary_by_id($project_id = null){
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT project_invoice.*,
+    project.name AS project_name,
+    CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name,
+    IF (project_invoice.is_closed = 1, 'closed_bill', 
+        IF (project_invoice.paid_amount > project_invoice.grand_total, 'overpaid', project_invoice.payment_status)
+    ) AS payment_status,
+    project.grand_total AS project_amount,
+    (SELECT MAX(payment_date) 
+     FROM project_invoice_payment 
+     WHERE project_invoice_payment.project_invoice_id = project_invoice.id) AS payment_date
+FROM project_invoice
+LEFT JOIN project ON project.id = project_invoice.project_id
+LEFT JOIN employee AS adder ON adder.id = project_invoice.added_by
+WHERE project_invoice.is_deleted = 0
+AND project.is_deleted = 0
+EOT;
 
+        $binds = [];
+
+        if ($project_id) {
+            $sql .= ' AND project_invoice.project_id = ?';
+            $binds[] = $project_id;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
 
 
     /*

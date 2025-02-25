@@ -180,16 +180,23 @@ EOT;
     /**
      * Get all projects
      */
-    public function get_all_project()
+    public function get_all_project($project_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT project.*
 FROM project
 WHERE project.is_deleted = 0
-GROUP BY project.id
 EOT;
-        $query = $database->query($sql);
+        $binds = [];
+        if ($project_id) {
+            $sql .= ' AND project.id = ?';
+            $binds[] = $project_id;
+        }
+
+        $sql .= ' GROUP BY project.id';
+
+        $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
 

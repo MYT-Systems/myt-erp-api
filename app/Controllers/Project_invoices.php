@@ -30,6 +30,29 @@ class Project_invoices extends MYTController
         if (!$project_invoice) {
             $response = $this->failNotFound('No project_invoice found');
         } else {
+            foreach ($project_invoice as $key => $pinv) {
+                $one_time_fees = $this->projectOneTimeFeeModel->select('',['project_invoice_id' => $pinv['id'], 'project_id' => $pinv['project_id'], 'is_deleted' => 0]) ?? [];
+                $recurring_costs = $this->projectRecurringCostModel->select('',['project_invoice_id' => $pinv['id'], 'project_id' => $pinv['project_id'], 'is_deleted' => 0]) ?? [];
+                $data = array_merge($one_time_fees ?: [], $recurring_costs ?: []);
+                if (!empty($data)) {
+                    foreach ($data as $jey => $item) {
+                        (float)$balance = $item['amount'];
+                        $payments = $this->projectInvoicePaymentModel->get_balance($item['project_id']) ?? [];
+                        foreach ($payments as $payment) {
+                            //$balance -= $payment['paid_amount'];
+                            $one_time_fee_pinv_items = $this->projectInvoiceItemModel->select('', ['item_id' => $item['id'], 'project_invoice_id' => $payment['project_invoice_id'], 'is_deleted' => 0]) ?? [];
+                            if (!empty($one_time_fee_pinv_items)) {
+                                foreach ($one_time_fee_pinv_items as $pinv_item) {
+                                    $balance -= (float)$pinv_item['billed_amount'];
+                                }
+                            }
+                        }
+                        $data[$jey]['balance'] = $balance;
+                    }
+                }
+                $project_invoice[$key]['particulars'] = $data;
+            }
+
             $project_invoice[0]['project_invoice_payments'] = $project_invoice_payments;
             $project_invoice[0]['project_invoice_items']    = $project_invoice_items;
             $response = $this->respond([
@@ -400,10 +423,10 @@ class Project_invoices extends MYTController
             'company'               => $this->request->getVar('company'),
             'remarks'               => $this->request->getVar('remarks'),
             'subtotal'              => $this->request->getVar('subtotal'),
-            'vat_twelve'              => $this->request->getVar('vat_twelve'),
-            'vat_net'              => $this->request->getVar('vat_net'),
-            'wht'              => $this->request->getVar('wht'),
-            'is_wht'              => $this->request->getVar('is_wht'),
+            'vat_twelve'            => $this->request->getVar('vat_twelve'),
+            'vat_net'               => $this->request->getVar('vat_net'),
+            'wht'                   => $this->request->getVar('wht'),
+            'is_wht'                => $this->request->getVar('is_wht'),
             'service_fee'           => $this->request->getVar('service_fee'),
             'delivery_fee'          => $this->request->getVar('delivery_fee'),
             'grand_total'           => $this->request->getVar('grand_total'),
@@ -411,6 +434,7 @@ class Project_invoices extends MYTController
             'balance'               => 0,
             'paid_amount'           => 0,
             'payment_status'        => 'pending',
+            'discount'              => $this->request->getVar('discount'),
             'added_by'              => $this->requested_by,
             'added_on'              => date('Y-m-d H:i:s'),
         ];
@@ -428,11 +452,14 @@ class Project_invoices extends MYTController
     {
         $item_ids     = $this->request->getVar('item_ids')??[];
         $item_names   = $this->request->getVar('item_names') ?? [];
+        $item_balances   = $this->request->getVar('item_balances') ?? [];
         $units      = $this->request->getVar('units') ?? [];
         $prices     = $this->request->getVar('prices') ?? [];
-        $quantities = $this->request->getVar('quantities') ?? [];
+        $subtotal   = $this->request->getVar('subtotal') ?? 0;
+        // $quantities = $this->request->getVar('quantities') ?? [];
         $grand_total = $this->request->getVar('grand_total') ?? 0;
         $project_id = $this->request->getVar('project_id')??null;
+        $billed_amounts = $this->request->getVar('billed_amounts') ?? [];
         $values = [
             'project_invoice_id' => $project_invoice_id,
             'added_by'           => $this->requested_by,
@@ -440,12 +467,11 @@ class Project_invoices extends MYTController
         ];
 
         foreach ($item_names as $key => $item_name) {
-            $subtotal = $prices[$key] * $quantities[$key];
-
             // checks if it is an item in case an item_name was passed
             $item_name = $item_names[$key];
             $item_unit = $units[$key];
-            $item_id = $item_ids[$key];
+            $item_id = $item_ids[$key]; 
+            $item_balance = $item_balances[$key]; 
 
             // check if the item_name key exist
             if (array_key_exists($key, $item_names)) {
@@ -459,22 +485,26 @@ class Project_invoices extends MYTController
                 
             ];
             $update_occupied = [
-                'is_occupied'   =>  1,
+                //'is_occupied'   =>  1,
                 'project_invoice_id' => $project_invoice_id
             ];
         
+            $updated_change_requests = $this->projectChangeRequestItemModel->custom_update($update_occupied_where, $update_occupied);
             $updated_one_time_fees = $this->projectOneTimeFeeModel->custom_update($update_occupied_where,$update_occupied);
             $updated_recurring_costs = $this->projectRecurringCostModel->custom_update($update_occupied_where,$update_occupied);
-            if(!$updated_one_time_fees && !$updated_recurring_costs){
+            if(!$updated_one_time_fees && !$updated_recurring_costs && !$updated_change_requests){
                 $this->errorMessage = $db->error()['message'];
                 return false;
             }
         
+            $values['item_id']    = $item_id;
             $values['item_name']    = $item_name;
+            $values['item_balance']    = $item_balance;
             $values['unit']         = $units[$key];
             $values['price']        = $prices[$key];
-            $values['qty']          = $quantities[$key];
+            // $values['qty']          = $quantities[$key];
             $values['subtotal']     = $subtotal;
+            $values['billed_amount'] = $billed_amounts[$key];
 
             if (!$this->projectInvoiceItemModel->insert($values)) {
                 $this->errorMessage = $db->error()['message'];
@@ -502,7 +532,7 @@ class Project_invoices extends MYTController
         }
 
         if (!$this->projectInvoiceModel->update($project_invoice_id, $values)) {
-            $this->errorMessaage = $db->error()['message'];
+            $this->errorMessage = $db->error()['message'];
             return false;
         }
 
@@ -1038,6 +1068,7 @@ class Project_invoices extends MYTController
         $this->projectInvoiceAttachmentModel = model('App\Models\Project_invoice_attachment');
         $this->projectOneTimeFeeModel     = model('App\Models\Project_one_time_fee');
         $this->projectRecurringCostModel  = model('App\Models\Project_recurring_cost');
+        $this->projectChangeRequestItemModel     = model('App\Models\Project_change_request_item');
         $this->projectModel               = model('App\Models\Project');
         $this->itemUnitModel              = model('App\Models\Item_unit');
         $this->inventoryModel             = model('App\Models\Inventory');

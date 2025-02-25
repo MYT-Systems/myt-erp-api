@@ -93,16 +93,47 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *,
+SELECT project_invoice_payment.*,
     (SELECT name FROM project WHERE project.id = project_invoice_payment.project_id) AS project_name,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user AS employee WHERE employee.id = project_invoice_payment.added_by) AS added_by_name,
     (SELECT name FROM bank WHERE bank.id = project_invoice_payment.from_bank_id) AS from_bank_name,
-    (SELECT name FROM bank WHERE bank.id = project_invoice_payment.to_bank_id) AS to_bank_name
+    (SELECT name FROM bank WHERE bank.id = project_invoice_payment.to_bank_id) AS to_bank_name,
+    project_invoice_payment_attachment.*
 FROM project_invoice_payment
+LEFT JOIN project_invoice_payment_attachment ON project_invoice_payment_attachment.project_invoice_payment_id = project_invoice_payment.id
 WHERE project_invoice_payment.is_deleted = 0
     AND project_invoice_payment.project_invoice_id = ?
 EOT;
         $binds = [$project_invoice_id];
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+    * get balance from project_invoice
+    */
+    public function get_balance($project_id = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT project_invoice_payment.*, 
+    project.name AS project_name, 
+    customer.name AS customer_name,
+    (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE employee.id = project_invoice_payment.added_by) AS added_by_name,
+    (SELECT name FROM bank WHERE bank.id = project_invoice_payment.from_bank_id) AS from_bank_name,
+    (SELECT name FROM bank WHERE bank.id = project_invoice_payment.to_bank_id) AS to_bank_name
+FROM project_invoice_payment
+LEFT JOIN project ON project.id = project_invoice_payment.project_id
+LEFT JOIN customer ON customer.id = project.customer_id
+WHERE project_invoice_payment.is_deleted = 0
+EOT;
+        $binds = [];
+
+        if ($project_id) {
+            $sql .= ' AND project_invoice_payment.project_id = ?';
+            $binds[] = $project_id;
+        }
+
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }

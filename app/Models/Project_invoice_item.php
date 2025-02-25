@@ -9,10 +9,13 @@ class Project_invoice_item extends MYTModel
     protected $allowedFields = [
         'project_invoice_id',
         'item_name',
+        'item_id',
+        'item_balance',
         'unit',
         'price',
         'qty',
         'subtotal',
+        'billed_amount',
         'added_by',
         'added_on',
         'updated_by',

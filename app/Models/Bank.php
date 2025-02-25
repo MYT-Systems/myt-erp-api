@@ -10,6 +10,7 @@ class Bank extends MYTModel
         'name',
         'account_name',
         'account_no',
+        'beginning_bal',
         'check_template_id',
         'added_by',
         'added_on',
@@ -32,6 +33,7 @@ class Bank extends MYTModel
         $sql = <<<EOT
 SELECT bank.*, 
     bank.name as bank_name,
+    bank.beginning_bal as bank_beginning_bal,
     check_template.id as check_template_id, 
     check_template.name as check_template_name, 
     check_template.file_name as check_template_file_name, 
@@ -64,6 +66,7 @@ EOT;
         $sql = <<<EOT
 SELECT bank.*,
     bank.name as bank_name, 
+    bank.beginning_bal as bank_beginning_bal,
     check_template.id as check_template_id, 
     check_template.name as check_template_name, 
     check_template.file_name as check_template_file_name, 
@@ -91,6 +94,7 @@ EOT;
         $sql = <<<EOT
 SELECT bank.*,
     bank.name as bank_name, 
+    bank.beginning_bal as bank_beginning_bal,
     check_template.id as check_template_id, 
     check_template.name as check_template_name, 
     check_template.file_name as check_template_file_name, 

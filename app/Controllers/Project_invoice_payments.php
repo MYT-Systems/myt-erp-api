@@ -82,6 +82,10 @@ class Project_invoice_payments extends MYTController
         if (!$project_invoice_payment_id = $this->_attempt_create()) {
             $this->db->transRollback();
             $response = $this->fail($this->errorMessage);
+        } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectInvoicePaymentAttachmentModel, ['project_invoice_payment_id' => $project_invoice_payment_id]) AND
+            $response === false) {
+            $db->transRollback();
+            $response = $this->respond(['response' => 'project_invoice_payment_attachment file upload failed']);
         } else {
             $this->db->transCommit();
             $response = $this->respond([
@@ -410,6 +414,26 @@ class Project_invoice_payments extends MYTController
             return false;
         }
 
+        //handle update balance
+        // $where = [
+        //     'project_id'    =>  $project_id,
+        //     'is_deleted'    =>  0,
+        //     'is_occupied'   =>  0
+        // ];
+        // // Fetch all one-time fees and recurring costs where `is_occupied` is 0
+        // $one_time_fees = $this->projectOneTimeFeeModel->select('',$where);
+        // $recurring_costs = $this->projectRecurringCostModel->select('',$where);
+
+        // if (!$this->projectInvoiceModel->update($project_invoice['id'], $update_values)) {
+        //     $this->errorMessage = $this->db->error()['message'];
+        //     return false;
+        // }
+
+        // if (!$this->projectInvoiceModel->update($project_invoice['id'], $update_values)) {
+        //     $this->errorMessage = $this->db->error()['message'];
+        //     return false;
+        // }
+
         // if (!$this->_update_credit_limit($project_invoice, $values['paid_amount'])) {
         //     return false;
         // }
@@ -488,7 +512,10 @@ class Project_invoice_payments extends MYTController
         $this->projectInvoicePaymentModel = model('App\Models\Project_invoice_payment');
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
         $this->projectInvoiceItemModel    = model('App\Models\Project_invoice_item');
-        $this->projectModel            = model('App\Models\Project');
+        $this->projectModel               = model('App\Models\Project');
+        $this->projectOneTimeFeeModel     = model('App\Models\Project_one_time_fee');
+        $this->projectRecurringCostModel  = model('App\Models\Project_recurring_cost');
+        $this->projectInvoicePaymentAttachmentModel = model('App\Models\Project_invoice_payment_attachment');
         $this->itemUnitModel              = model('App\Models\Item_unit');
         $this->inventoryModel             = model('App\Models\Inventory');
         $this->webappResponseModel        = model('App\Models\Webapp_response');

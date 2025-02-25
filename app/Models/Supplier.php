@@ -25,6 +25,7 @@ class Supplier extends MYTModel
         'alternate_account_no',
         'alternate_account_name',
         'payee',
+        'vat_type',
         'added_by',
         'added_on',
         'updated_by',

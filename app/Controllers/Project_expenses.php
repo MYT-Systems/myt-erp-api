@@ -19,6 +19,28 @@ class Project_expenses extends MYTController
     }
 
     /**
+     * Get all project type names and sort them alphabetically
+     */
+    public function get_requester_names()
+    {
+        // Fetch project type names
+        $requester_names = $this->requesterNameModel->select('', []);
+        
+        // Sort the project type names alphabetically
+        usort($requester_names, function($a, $b) {
+            return strcmp($a['name'], $b['name']); // Assuming 'name' is the key for the project type name
+        });
+    
+        // Respond with the sorted project type names
+        $response = $this->respond([
+            'status' => 'success',
+            'data'   => $requester_names
+        ]);
+    
+        return $response;
+    }
+
+    /**
      * Get project_expense
      */
     public function get_project_expense()
@@ -29,11 +51,13 @@ class Project_expenses extends MYTController
         $project_expense_id         = $this->request->getVar('project_expense_id') ? : null;
         $project_expense            = $project_expense_id ? $this->projectExpenseModel->get_details_by_id($project_expense_id) : null;
         $project_expense_attachment = $project_expense_id ? $this->projectExpenseAttachmentModel->get_details_by_project_expense_id($project_expense_id) : null;
+        $requester_name_ids         = $project_expense_id ? $this->requesterModel->get_details_by_project_expense_id($project_expense_id) : null;
 
         if (!$project_expense) {
             $response = $this->failNotFound('No project_expense found');
         } else {
             $project_expense[0]['attachment'] = $project_expense_attachment;
+            $project_expense[0]['requester_name_ids'] = $requester_name_ids;
 
             $response           = [];
             $response['data']   = $project_expense;
@@ -164,6 +188,7 @@ class Project_expenses extends MYTController
                 'expense_type_id' => $this->request->getVar('expense_type_id'),
                 'partner_id' => $partner_id,
                 'supplier_id' => $this->request->getVar('supplier_id'),
+                'requester_name_id' => $this->request->getVar('requester_name_id'),
                 'remarks' => $this->request->getVar('remarks'),
                 'amount' => $this->request->getVar('amount'),
                 'other_fees' => $this->request->getVar('other_fees'),
@@ -176,6 +201,9 @@ class Project_expenses extends MYTController
             if (!$project_expense_id = $this->projectExpenseModel->insert($values)) {
                 $db->transRollback();
                 $response = $this->fail('Server error');
+            } elseif (!$this->_attempt_generate_requesters($project_expense_id)) {
+                $this->db->transRollback();
+                $response = $this->fail($this->errorMessage);
             } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
                    $response === false) {
                 $db->transRollback();
@@ -299,6 +327,7 @@ class Project_expenses extends MYTController
             'expense_type_id' => $this->request->getVar('expense_type_id'),
             'partner_id' => $this->request->getVar('partner_id'),
             'supplier_id' => $this->request->getVar('supplier_id'),
+            'requester_name_id' => $this->request->getVar('requester_name_id'),
             'remarks' => $this->request->getVar('remarks'),
             'amount' => $this->request->getVar('amount'),
             'other_fees' => $this->request->getVar('other_fees'),
@@ -311,11 +340,15 @@ class Project_expenses extends MYTController
         if (!$this->projectExpenseModel->update($project_expense_id, $values))
             return false;
 
+        if(!$this->requesterModel->delete_requester_by_project_expense_id($project_expense_id, $this->requested_by)) {
+            return false;
+        } elseif ($this->request->getVar('requester_name_ids') AND !$this->_attempt_generate_requesters($project_expense_id)) {
+            return false;
+        } 
+
         if (!$this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense_id, $this->requested_by)) {
             return false;
-        } elseif ($this->request->getFile('file') AND
-                  $this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense_id, $this->requested_by)
-        ) {
+        } elseif ($this->request->getFile('file') AND $this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense_id, $this->requested_by)) {
             return false;
             // $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['expense_id' => $expense_id]);
         } elseif(($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
@@ -345,11 +378,40 @@ class Project_expenses extends MYTController
     }
 
     /**
+     * Batch Insert Project Types
+     */
+    protected function _attempt_generate_requesters($project_expense_id)
+    {
+        $requester_name_ids = $this->request->getVar('requester_name_ids') ?? [];
+
+        if($requester_name_ids) {
+            $values = [];
+            foreach($requester_name_ids as $requester_name_id) {
+                $values[] = [
+                    'project_expense_id' => $project_expense_id,
+                    'requester_name_id' => $requester_name_id,
+                    'added_by' => $this->requested_by,
+                    'added_on' => date('Y-m-d H:i:s')
+                ];
+            }
+
+            if(!$this->requesterModel->insertBatch($values)) {
+                $this->errorMessage = $this->db->error()['message'];
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Load all essential models and helpers
      */
     protected function _load_essentials()
     {
         $this->projectExpenseAttachmentModel = model('App\Models\Project_expense_attachment');
+        $this->requesterNameModel = model('App\Models\Requester_name');
+        $this->requesterModel = model('App\Models\Requester');
         $this->projectExpenseModel = new Project_expense();
         $this->partnerModel = new Partner();
         $this->webappResponseModel  = new Webapp_response();

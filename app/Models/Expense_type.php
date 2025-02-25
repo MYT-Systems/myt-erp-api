@@ -104,5 +104,22 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
-
+    /**
+     * Get all account kinds
+     */
+    public function get_all_account_kind()
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT id, description
+FROM expense_type
+WHERE is_deleted = 0
+AND description IS NOT NULL
+AND description <> ''
+GROUP BY description
+ORDER BY description ASC;
+EOT;
+        $query = $database->query($sql);
+        return $query ? $query->getResultArray() : false;
+    }
 }

@@ -21,6 +21,7 @@ class Supplies_expense extends MYTModel
         'doc_no',
         'grand_total',
         'remarks',
+        'payment_method',
         'requisitioner',
         'status',
         'order_status',
@@ -290,13 +291,22 @@ EOT;
             }
         }
 
-
+        // if ($order_status && !$anything) {
+        //     $sql .= ' AND supplies_expense.order_status = ?';
+        //     $binds[] = $order_status;
+        // }
 
         if ($order_status && !$anything) {
-            $sql .= ' AND supplies_expense.order_status = ?';
-            $binds[] = $order_status;
+            if ($order_status === 'complete') {
+                $sql .= ' AND supplies_expense.order_status = "complete" 
+                          AND MONTH(supplies_expense.supplies_expense_date) = MONTH(CURRENT_DATE())
+                          AND YEAR(supplies_expense.supplies_expense_date) = YEAR(CURRENT_DATE())';
+            } else {
+                $sql .= ' AND supplies_expense.order_status = ?';
+                $binds[] = $order_status;
+            }
         }
-
+        
         if ($se_date_from) {
             $sql .= 'AND DATE(supplies_expense.supplies_expense_date) >= ?';
             $binds[] = $se_date_from;

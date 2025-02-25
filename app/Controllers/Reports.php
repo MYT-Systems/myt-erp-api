@@ -317,6 +317,8 @@ class Reports extends MYTController
         $distributor_id = $this->request->getVar('distributor_id') ?? null;
         $anything = $this->request->getVar('anything')?? null;
         $payment_structure = $this->request->getVar('payment_structure')??null;
+        $project_invoice = $this->projectInvoiceModel->get_details_by_project_id($project_id);
+        $invoice_summary = $this->reportModel->get_invoice_summary($project_id);
 
         if (!$project_sales = $this->reportModel->get_project_sales($project_id, $date_from, $date_to, $customer_id, $distributor_id, $anything, $payment_structure)) {
             $response = $this->failNotFound('No report Found');
@@ -337,8 +339,10 @@ class Reports extends MYTController
             // $expenses['summary'] = $summary;
 
             $response = $this->respond([
+                'invoice_summary' => $invoice_summary,
                 'project_sales' => $project_sales,
                 'summary' => $summary,
+                'project_invoice' => $project_invoice,
                 'status'  => 'success'
             ]);
         }
