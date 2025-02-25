@@ -1080,4 +1080,149 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
     }
+
+    public function get_recurring_je_sales_report($date_from = null, $date_to = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT 
+    project_invoice_payment.payment_date, 
+    project_invoice_payment.remarks AS description, 
+    'Revenue' AS account_type, bank.name AS bank_name, 
+    project_invoice_payment.paid_amount AS income, 
+    0 AS expense
+FROM project_invoice_payment
+LEFT JOIN bank ON bank.id = project_invoice_payment.to_bank_id
+WHERE project_invoice_payment.is_deleted = 0 
+EOT;
+        $binds = [];
+        
+        if ($date_from) {
+            $sql .= " AND project_invoice_payment.payment_date >= ?";
+            $binds[] = $date_from;
+        }
+
+        if ($date_to) {
+            $sql .= " AND project_invoice_payment.payment_date <= ?";
+            $binds[] = $date_to;
+        }
+
+        $sql .= " ORDER BY project_invoice_payment.payment_date";
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
+
+    public function get_recurring_je_expenses_report($date_from = null, $date_to = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT 
+    supplies_expense.supplies_expense_date AS payment_date, 
+    supplies_expense.remarks AS description,
+    expense_type.name AS account_type,
+    ' - ' AS bank_name,
+    0 AS income,
+    supplies_expense.grand_total AS expense
+FROM supplies_expense
+LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
+WHERE supplies_expense.is_deleted = 0
+AND supplies_receive.is_deleted = 0
+AND supplies_expense.status <> "pending"
+AND supplies_expense.status <> "for_approval"
+AND supplies_expense.status <> "disapproved"
+AND supplies_expense.status <> "deleted"
+EOT;
+
+        // Removed incorrect check for expense_type, now correctly checking for 'type' column
+        $sql .= " AND supplies_expense.type IS NOT NULL AND supplies_expense.supplies_expense_date IS NOT NULL ";
+        
+        $binds = [];
+        
+        if ($date_from) {
+            $sql .= " AND supplies_expense.supplies_expense_date >= ?";
+            $binds[] = $date_from;
+        }
+
+        if ($date_to) {
+            $sql .= " AND supplies_expense.supplies_expense_date <= ?";
+            $binds[] = $date_to;
+        }
+
+        $sql .= " ORDER BY supplies_expense.supplies_expense_date";
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
+
+    public function get_previous_je_sales_report($date_from = null, $date_to = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT 
+    '' AS payment_date, 
+    'Opening' AS description, 
+    '' AS account_type, 
+    '' AS bank_name, 
+    SUM(project_invoice_payment.paid_amount) AS income, 
+    0 AS expense
+FROM project_invoice_payment
+LEFT JOIN bank ON bank.id = project_invoice_payment.to_bank_id
+WHERE project_invoice_payment.is_deleted = 0
+EOT;
+        $binds = [];
+        
+        if ($date_from) {
+            $sql .= " AND project_invoice_payment.payment_date < ?
+                        AND YEAR(project_invoice_payment.payment_date) = YEAR(?)";
+            $binds[] = $date_from;
+            $binds[] = $date_from;
+        }
+
+        $sql .= " ORDER BY project_invoice_payment.payment_date";
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
+
+    public function get_previous_je_expenses_report($date_from = null, $date_to = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT 
+    '' AS payment_date, 
+    'Opening' AS description,
+    '' AS account_type,
+    '' AS bank_name,
+    0 AS income,
+    SUM(supplies_expense.grand_total) AS expense
+FROM supplies_expense
+LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
+WHERE supplies_expense.is_deleted = 0
+AND supplies_receive.is_deleted = 0
+AND supplies_expense.status <> "pending"
+AND supplies_expense.status <> "for_approval"
+AND supplies_expense.status <> "disapproved"
+AND supplies_expense.status <> "deleted"
+EOT;
+
+        // Removed incorrect check for expense_type, now correctly checking for 'type' column
+        $sql .= " AND supplies_expense.type IS NOT NULL AND supplies_expense.supplies_expense_date IS NOT NULL ";
+        
+        $binds = [];
+        
+        if ($date_from) {
+            $sql .= " AND supplies_expense.supplies_expense_date < ?
+                        AND YEAR(supplies_expense.supplies_expense_date) = YEAR(?)";
+            $binds[] = $date_from;
+            $binds[] = $date_from;
+        }
+
+        $sql .= " ORDER BY supplies_expense.supplies_expense_date";
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
 }

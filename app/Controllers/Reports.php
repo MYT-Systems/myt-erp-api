@@ -1024,6 +1024,90 @@ class Reports extends MYTController
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
+    
+    /*
+    * Get journal entry
+    */
+    public function get_journal_entries()
+    {
+        if (($response = $this->_api_verification('reports', 'get_journal_entries')) !== true)
+            return $response;
+
+        $date_from = $this->request->getVar('date_from') ?? null;
+        $date_to   = $this->request->getVar('date_to') ?? null;
+
+        $recurring_sales = $this->reportModel->get_recurring_je_sales_report($date_from, $date_to) ?? [];
+        $recurring_expenses = $this->reportModel->get_recurring_je_expenses_report($date_from, $date_to) ?? [];
+        $previous_sales = $this->reportModel->get_previous_je_sales_report($date_from, $date_to) ?? [];
+        $previous_expenses = $this->reportModel->get_previous_je_expenses_report($date_from, $date_to) ?? [];
+        
+        $opening_datas[] = [
+            'payment_date' => '',
+            'description' => 'Opening',
+            'account_type' => '',
+            'bank_name' => '',
+            'income' => $previous_sales[0]['income'] ?? 0,
+            'expense' => $previous_expenses[0]['expense'] ?? 0,
+            'total' => $previous_sales[0]['income'] - $previous_expenses[0]['expense']
+        ];
+        $datas = array_merge($opening_datas, $recurring_sales, $recurring_expenses);
+
+        if (!$datas) {
+            $response = $this->failNotFound('No report Found');
+        } else {
+            
+            //sort by data
+            usort($datas, function ($a, $b) {
+                return strtotime($a['payment_date']) <=> strtotime($b['payment_date']);
+            });
+            
+            // Calculate total for each entry except the first one
+            $previous_total = $opening_datas[0]['total']; // Start with the total from previous_datas
+            
+            foreach ($datas as $key => &$data) {
+                if ($key === 0) {
+                    continue;
+                }
+            
+                $datas[$key]['total'] = ($previous_total + ($data['income'] ?? 0)) - ($data['expense'] ?? 0);
+                $previous_total = $datas[$key]['total'];
+            }
+            
+            unset($data); // Unset reference to avoid issues
+            
+            $income_total = 0;
+            $expense_total = 0;
+            
+            foreach ($datas as $jey => $data) {
+                // if ($jey === 0) {
+                //     continue;
+                // }
+                $income_total += $data['income'];
+                $expense_total += $data['expense'];
+            }
+            
+            //calculate closing data
+            $closing_datas[] = [
+                'payment_date' => '',
+                'description' => 'Closing',
+                'account_type' => '',
+                'bank_name' => '',
+                'income' => $income_total,
+                'expense' => $expense_total,
+                'total' => $income_total - $expense_total
+            ];
+            
+            $filtered_datas = array_merge($datas, $closing_datas);
+
+            $response = $this->respond([
+                'data' => $filtered_datas,
+                'status'  => 'success'
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
 
     // ------------------------------------------------------------------------
     // Private Functions
