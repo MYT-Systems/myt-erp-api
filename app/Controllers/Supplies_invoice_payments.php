@@ -69,7 +69,7 @@ class Supplies_invoice_payments extends MYTController
     }
 
     /**
-     * Create project_invoice_payment
+     * Create supplies_invoice_payment
      */
     public function create()
     {
@@ -100,7 +100,7 @@ class Supplies_invoice_payments extends MYTController
     }
 
     /**
-     * Update project_invoice_payment
+     * Update supplies_invoice_payment
      */
     public function update($id = null)
     {
@@ -162,7 +162,7 @@ class Supplies_invoice_payments extends MYTController
     }
 
     /**
-     * Search project_invoice_payments based on parameters passed
+     * Search supplies_invoice_payments based on parameters passed
      */
     public function search()
     {
@@ -209,61 +209,7 @@ class Supplies_invoice_payments extends MYTController
     // --------------------------------------------------------------------
 
     /**
-     * record inventory 
-     */
-    private function _record_inventory($project_invoice)
-    {
-        $project_invoice_items = $this->projectInvoiceItemModel->get_details_by_project_invoices_id($project_invoice['id']);
-        foreach ($project_invoice_items as $project_invoice_item) {
-            if ($item_unit = $this->itemUnitModel->get_details_by_item_id_and_unit($project_invoice['seller_project_id'], $project_invoice_item['item_id'], $project_invoice_item['unit'])) {
-                if ($seller_inventory = $this->inventoryModel->get_inventory_detail($project_invoice_item['item_id'], $project_invoice['seller_project_id'], $item_unit[0]['id'])) {
-                    $new_values = [
-                        'current_qty' => $seller_inventory[0]['current_qty'] - $project_invoice_item['qty'],
-                        'updated_by'  => $this->requested_by,
-                        'updated_on'  => date('Y-m-d H:i:s'),
-                    ];
-    
-                    if (!$this->inventoryModel->update($seller_inventory[0]['id'], $new_values)) {
-                        $this->errorMessage = $this->db->error()['message'];
-                        return false;
-                    }
-                }
-    
-                if ($buyer_inventory = $this->inventoryModel->get_inventory_detail($project_invoice_item['item_id'], $project_invoice['buyer_project_id'], $item_unit[0]['id'])) {
-                    $new_values = [
-                        'current_qty' => $buyer_inventory[0]['current_qty'] + $project_invoice_item['qty'],
-                        'updated_by'  => $this->requested_by,
-                        'updated_on'  => date('Y-m-d H:i:s'),
-                    ];
-    
-                    if (!$this->inventoryModel->update($buyer_inventory[0]['id'], $new_values)) {
-                        $this->errorMessage = $this->db->error()['message'];
-                        return false;
-                    }
-                } else {
-                    $new_values = [
-                        'item_id'       => $project_invoice_item['item_id'],
-                        'project_id'     => $project_invoice['buyer_project_id'],
-                        'item_unit_id'  => $item_unit[0]['id'],
-                        'beginning_qty' => 0,
-                        'current_qty'   => $project_invoice_item['qty'],
-                        'added_by'      => $this->requested_by,
-                        'added_on'      => date('Y-m-d H:i:s'),
-                    ];
-    
-                    if (!$this->inventoryModel->insert($new_values)) {
-                        $this->errorMessage = $this->db->error()['message'];
-                        return false;
-                    }
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Create project_invoice_payments
+     * Create supplies_invoice_payments
      */
     private function _attempt_create()
     {        
@@ -343,11 +289,6 @@ class Supplies_invoice_payments extends MYTController
             return false;
         }
         
-        // Restore the credit limit back
-        // if (!$this->_update_credit_limit($project_invoice, (float)$project_invoice_payment['paid_amount'] * -1)) {
-        //     return false;
-        // }
-
         $values = [
             'supplies_expense_id'      => $this->request->getVar('supplies_expense_id'),
             'supplies_invoice_payment_id' => $supplies_invoice_payment_id,
@@ -393,7 +334,7 @@ class Supplies_invoice_payments extends MYTController
     }
 
     /**
-     * Record Project Sale Payment
+     * Record Supplies Sale Payment
      */
     protected function _record_sale_payment($supplies_receive, $values) {
         $update_values = [
@@ -413,30 +354,6 @@ class Supplies_invoice_payments extends MYTController
             return false;
         }
 
-        //handle update balance
-        // $where = [
-        //     'project_id'    =>  $project_id,
-        //     'is_deleted'    =>  0,
-        //     'is_occupied'   =>  0
-        // ];
-        // // Fetch all one-time fees and recurring costs where `is_occupied` is 0
-        // $one_time_fees = $this->projectOneTimeFeeModel->select('',$where);
-        // $recurring_costs = $this->projectRecurringCostModel->select('',$where);
-
-        // if (!$this->projectInvoiceModel->update($project_invoice['id'], $update_values)) {
-        //     $this->errorMessage = $this->db->error()['message'];
-        //     return false;
-        // }
-
-        // if (!$this->projectInvoiceModel->update($project_invoice['id'], $update_values)) {
-        //     $this->errorMessage = $this->db->error()['message'];
-        //     return false;
-        // }
-
-        // if (!$this->_update_credit_limit($project_invoice, $values['paid_amount'])) {
-        //     return false;
-        // }
-        
         return true;
     }
 
@@ -472,30 +389,6 @@ class Supplies_invoice_payments extends MYTController
         }
 
         if (!$this->suppliesReceiveModel->update($supplies_receive['id'], $new_values)) {
-            $this->errorMessage = $this->db->error()['message'];
-            return false;
-        }
-
-        // if (!$this->_update_credit_limit($project_invoice, (float)$project_invoice_payment['paid_amount'] * -1)) {
-        //     return false;
-        // }
-
-        return true;
-    }
-
-    /**
-     * Increase credit limit
-     */
-    private function _update_credit_limit($project_invoice, $amount) {
-        $project = $this->projectModel->get_details_by_id($project_invoice['project_id'])[0];
-        
-        $new_values = [
-            // 'current_credit_limit' => (float)$project['current_credit_limit'] + (float)$amount,
-            'updated_by'           => $this->requested_by,
-            'updated_on'           => date('Y-m-d H:i:s'),
-        ];
-
-        if (!$this->projectModel->update($project['id'], $new_values)) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
