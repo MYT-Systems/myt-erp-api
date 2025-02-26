@@ -2,3 +2,5 @@
 writable/
 vendor/
 ignored_files/
+Config/Database.php
+Config/App.php
