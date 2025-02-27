@@ -47,7 +47,7 @@ EOT;
     /**
      * Get project_invoice_payment_attachment details by project_invoice ID
      */
-    public function get_details_by_project_invoice_id($project_invoice_id = null)
+    public function get_details_by_project_invoice_payment_id($project_invoice_payment_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -56,9 +56,9 @@ FROM project_invoice_payment_attachment
 WHERE project_invoice_payment_attachment.is_deleted = 0
 EOT;
         $binds = [];
-        if (isset($project_expense_id)) {
-            $sql .= " AND project_invoice_id = ?";
-            $binds[] = $project_invoice_id;
+        if (isset($project_invoice_payment_id)) {
+            $sql .= " AND project_invoice_payment_id = ?";
+            $binds[] = $project_invoice_payment_id;
         }
 
         $query = $database->query($sql, $binds);

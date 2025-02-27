@@ -47,7 +47,7 @@ EOT;
     /**
      * Get supplies_invoice_payment_attachment details by project_invoice ID
      */
-    public function get_details_by_supplies_receive_id($supplies_receive_id = null)
+    public function get_details_by_supplies_invoice_payment_id($supplies_invoice_payment_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -56,9 +56,9 @@ FROM supplies_invoice_payment_attachment
 WHERE supplies_invoice_payment_attachment.is_deleted = 0
 EOT;
         $binds = [];
-        if (isset($project_expense_id)) {
-            $sql .= " AND supplies_receive_id = ?";
-            $binds[] = $supplies_receive_id;
+        if (isset($supplies_invoice_payment_id)) {
+            $sql .= " AND supplies_invoice_payment_id = ?";
+            $binds[] = $supplies_invoice_payment_id;
         }
 
         $query = $database->query($sql, $binds);

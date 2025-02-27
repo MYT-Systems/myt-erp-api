@@ -93,16 +93,17 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT project_invoice_payment.*,
-    (SELECT name FROM project WHERE project.id = project_invoice_payment.project_id) AS project_name,
-    (SELECT CONCAT(first_name, ' ', last_name) FROM user AS employee WHERE employee.id = project_invoice_payment.added_by) AS added_by_name,
+SELECT 
+    project_invoice_payment.*, 
+    project.name AS project_name,
+    CONCAT(user.first_name, ' ', user.last_name) AS added_by_name,
     (SELECT name FROM bank WHERE bank.id = project_invoice_payment.from_bank_id) AS from_bank_name,
-    (SELECT name FROM bank WHERE bank.id = project_invoice_payment.to_bank_id) AS to_bank_name,
-    project_invoice_payment_attachment.*
+    (SELECT name FROM bank WHERE bank.id = project_invoice_payment.to_bank_id) AS to_bank_name
 FROM project_invoice_payment
-LEFT JOIN project_invoice_payment_attachment ON project_invoice_payment_attachment.project_invoice_payment_id = project_invoice_payment.id
+LEFT JOIN project ON project.id = project_invoice_payment.project_id
+LEFT JOIN user ON user.id = project_invoice_payment.added_by
 WHERE project_invoice_payment.is_deleted = 0
-    AND project_invoice_payment.project_invoice_id = ?
+    AND project_invoice_payment.project_invoice_id = ?;
 EOT;
         $binds = [$project_invoice_id];
         $query = $database->query($sql, $binds);
