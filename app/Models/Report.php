@@ -285,24 +285,43 @@ EOT;
         $binds = [];
 
         $sql = <<<EOT
-SELECT
+SELECT 
     project.id AS project_id,
     project.name AS name, 
     project.start_date AS start_date,
     distributor.name AS distributor_name, 
     customer.name AS customer_name, 
-    SUM(DISTINCT IFNULL(project_invoice.grand_total, 0)) AS amount, 
-    project.paid_amount AS paid_amount, 
-    SUM(DISTINCT IFNULL(project_invoice.grand_total, 0)) - project.paid_amount AS receivable, 
-    SUM(DISTINCT IF(project_expense.status = 'approved', IFNULL(project_expense.grand_total, 0), 0)) AS project_expense,
-    project.paid_amount - SUM(DISTINCT IF(project_expense.status = 'approved', IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
+    
+    (SELECT COALESCE(SUM(project_invoice.grand_total), 0) 
+     FROM project_invoice 
+     WHERE project_invoice.project_id = project.id 
+       AND project_invoice.is_deleted = 0) AS amount, 
+
+    COALESCE(project.paid_amount, 0) AS paid_amount, 
+
+    ((SELECT COALESCE(SUM(project_invoice.grand_total), 0) 
+      FROM project_invoice 
+      WHERE project_invoice.project_id = project.id 
+        AND project_invoice.is_deleted = 0) 
+      - COALESCE(project.paid_amount, 0)) AS receivable, 
+
+    (SELECT COALESCE(SUM(project_expense.grand_total), 0) 
+     FROM project_expense 
+     WHERE project_expense.project_id = project.id 
+       AND project_expense.status = 'approved' 
+       AND project_expense.is_deleted = 0) AS project_expense,
+
+    (COALESCE(project.paid_amount, 0) - 
+     (SELECT COALESCE(SUM(project_expense.grand_total), 0) 
+      FROM project_expense 
+      WHERE project_expense.project_id = project.id 
+        AND project_expense.status = 'approved' 
+        AND project_expense.is_deleted = 0)) AS total_sales
 FROM project
-LEFT JOIN project_invoice ON project_invoice.project_id = project.id
 LEFT JOIN customer ON customer.id = project.customer_id
 LEFT JOIN distributor ON distributor.id = project.distributor_id
-LEFT JOIN project_expense ON project_expense.project_id = project.id AND project_expense.is_deleted = 0
-WHERE customer.is_deleted = 0
-AND project.is_deleted = 0
+WHERE project.is_deleted = 0 
+AND customer.is_deleted = 0
 EOT;
 
         if ($project_id) {
@@ -356,24 +375,43 @@ EOT;
         $binds = [];
 
         $sql = <<<EOT
-SELECT
+SELECT 
     project.id AS project_id,
     project.name AS name, 
     project.start_date AS start_date,
     distributor.name AS distributor_name, 
     customer.name AS customer_name, 
-    SUM(DISTINCT IFNULL(project_invoice.grand_total, 0)) AS amount, 
-    project.paid_amount AS paid_amount, 
-    SUM(DISTINCT IFNULL(project_invoice.grand_total, 0)) - project.paid_amount AS receivable, 
-    SUM(DISTINCT IF(project_expense.status = 'approved', IFNULL(project_expense.grand_total, 0), 0)) AS project_expense,
-    project.paid_amount - SUM(DISTINCT IF(project_expense.status = 'approved', IFNULL(project_expense.grand_total, 0), 0)) AS total_sales
+    
+    (SELECT COALESCE(SUM(project_invoice.grand_total), 0) 
+     FROM project_invoice 
+     WHERE project_invoice.project_id = project.id 
+       AND project_invoice.is_deleted = 0) AS amount, 
+
+    COALESCE(project.paid_amount, 0) AS paid_amount, 
+
+    ((SELECT COALESCE(SUM(project_invoice.grand_total), 0) 
+      FROM project_invoice 
+      WHERE project_invoice.project_id = project.id 
+        AND project_invoice.is_deleted = 0) 
+      - COALESCE(project.paid_amount, 0)) AS receivable, 
+
+    (SELECT COALESCE(SUM(project_expense.grand_total), 0) 
+     FROM project_expense 
+     WHERE project_expense.project_id = project.id 
+       AND project_expense.status = 'approved' 
+       AND project_expense.is_deleted = 0) AS project_expense,
+
+    (COALESCE(project.paid_amount, 0) - 
+     (SELECT COALESCE(SUM(project_expense.grand_total), 0) 
+      FROM project_expense 
+      WHERE project_expense.project_id = project.id 
+        AND project_expense.status = 'approved' 
+        AND project_expense.is_deleted = 0)) AS total_sales
 FROM project
-LEFT JOIN project_invoice ON project_invoice.project_id = project.id
 LEFT JOIN customer ON customer.id = project.customer_id
 LEFT JOIN distributor ON distributor.id = project.distributor_id
-LEFT JOIN project_expense ON project_expense.project_id = project.id AND project_expense.is_deleted = 0
-WHERE customer.is_deleted = 0
-AND project.is_deleted = 0
+WHERE project.is_deleted = 0 
+AND customer.is_deleted = 0
 EOT;
 
         if ($project_id) {

@@ -256,7 +256,7 @@ class Supplies_receives extends MYTController
         if (($response = $this->_api_verification('supplies_receive', 'get_all_invoice_payments')) !== true)
             return $response;
     
-        $supplies_receive_id            = $this->request->getVar('se_id') ? : null;
+        $supplies_receive_id            = $this->request->getVar('supplies_receive_id') ? : null;
         $invoice_payments = $supplies_receive_id ? $this->suppliesInvoicePaymentModel->get_details_by_supplies_receive_id($supplies_receive_id) : null;
 
         foreach ($invoice_payments as $key => $payment) {
