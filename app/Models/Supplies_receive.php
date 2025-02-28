@@ -181,103 +181,112 @@ EOT;
     /**
      * Get supplies_receives based on supplies_receive name, contact_person, phone_no, tin_no, bir_no, email
      */
-   public function search($branch_name, $se_id, $supplier_id, $vendor_id, $supplies_receive_date, $waybill_no, $invoice_no, $dr_no, $remarks, $purchase_date_from, $purchase_date_to, $se_receive_date_from, $se_receive_date_to, $bill_type)
-   {
-       $database = \Config\Database::connect();
-       $sql = <<<EOT
-SELECT *, supplies_receive.se_id AS se_receive_id,
-    IF(supplies_receive.balance > 0, 'open', 'closed') as payment_status, 
-    (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_receive.forwarder_id) AS forwarder_name, 
-    (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS supplier_name,
-    (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_receive.vendor_id) AS vendor_name,
-    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_receive.added_by) AS prepared_by,
-    (SELECT supplier.contact_person FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS contact_person,
-    (SELECT supplier.phone_no FROM supplier WHERE supplier.id = supplies_receive.supplier_id) AS phone_no,
-    (SELECT se_bank_slip.reference_no FROM se_bank_slip LEFT JOIN se_bank_entry ON se_bank_slip.id = se_bank_entry.se_bank_slip_id WHERE se_bank_entry.se_id = supplies_receive.se_id) AS reference_no,
+    public function search($branch_name, $se_id, $supplier_id, $vendor_id, $supplies_receive_date, $waybill_no, $invoice_no, $dr_no, $remarks, $purchase_date_from, $purchase_date_to, $se_receive_date_from, $se_receive_date_to, $bill_type)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT 
+    supplies_receive.*, 
+    supplies_receive.se_id AS se_receive_id,
+    IF(supplies_receive.balance > 0, 'open', 'closed') AS payment_status, 
+    forwarder.name AS forwarder_name, 
+    supplier.trade_name AS supplier_name,
+    vendor.trade_name AS vendor_name,
+    CONCAT(user.first_name, ' ', user.last_name) AS prepared_by,
+    supplier.contact_person,
+    supplier.phone_no,
+    supplies_invoice_payment.reference_number AS reference_no,
     CONCAT('Invoice No. ', supplies_receive.invoice_no, ' - ', supplies_receive.grand_total) AS invoice_label 
 FROM supplies_receive
-WHERE is_deleted = 0
+LEFT JOIN forwarder ON forwarder.id = supplies_receive.forwarder_id
+LEFT JOIN supplier ON supplier.id = supplies_receive.supplier_id
+LEFT JOIN vendor ON vendor.id = supplies_receive.vendor_id
+LEFT JOIN user ON user.id = supplies_receive.added_by
+LEFT JOIN supplies_invoice_payment ON supplies_invoice_payment.supplies_receive_id = supplies_receive.se_id
+WHERE supplies_receive.is_deleted = 0 
 EOT;
-
+    
         $binds = [];
         if ($branch_name) {
             $sql .= " AND branch_name = ?";
             $binds[] = $branch_name;
         }
-
+    
         if ($se_id) {
             $sql .= " AND se_id = ?";
             $binds[] = $se_id;
         }
-
+    
         if ($supplier_id) {
             $sql .= " AND supplier_id = ?";
             $binds[] = $supplier_id;
         }
-
+    
         if ($vendor_id) {
             $sql .= " AND vendor_id = ?";
             $binds[] = $vendor_id;
         }
-
+    
         if ($supplies_receive_date) {
             $sql .= " AND supplies_receive_date = ?";
             $binds[] = $supplies_receive_date;
         }
-
+    
         if ($waybill_no) {
             $sql .= " AND waybill_no = ?";
             $binds[] = $waybill_no;
         }
-
+    
         if ($invoice_no) {
             $sql .= " AND invoice_no = ?";
             $binds[] = $invoice_no;
         }
-
+    
         if ($dr_no) {
             $sql .= " AND dr_no = ?";
             $binds[] = $dr_no;
         }
-
+    
         if ($remarks) {
             $sql .= " AND remarks REGEXP ?";
             $name    = str_replace(' ', '|', $remarks);
             $binds[] = $remarks;
         }
-
+    
         if ($purchase_date_from != '') {
             $sql .= ' AND CAST(supplies_receive.purchase_date AS DATE) >= ?';
             $binds[] = $purchase_date_from;
         }
-
+    
         if ($purchase_date_to != '') {
             $sql .= ' AND CAST(supplies_receive.purchase_date AS DATE) <= ?';
             $binds[] = $purchase_date_to;
         }
-
+    
         if ($se_receive_date_from != '') {
             $sql .= ' AND CAST(supplies_receive.supplies_receive_date AS DATE) >= ?';
             $binds[] = $se_receive_date_from;
         }
-
+    
         if ($se_receive_date_to != '') {
             $sql .= ' AND CAST(supplies_receive.supplies_receive_date AS DATE) <= ?';
             $binds[] = $se_receive_date_to;
         }
-
+    
         switch ($bill_type) {
             case 'open':
-                $sql .= " AND balance > 0";
+                $sql .= " AND supplies_receive.balance > 0";
                 break;
             case 'close':
-                $sql .= " AND balance < 1";
+                $sql .= " AND supplies_receive.balance < 1";
                 break;
         }
         
         $query = $database->query($sql, $binds);
+        //die($database->getLastQuery());
         return $query ? $query->getResultArray() : false;
-   }
+    }
+    
 
     /**
     * Get all receive by purchase order id

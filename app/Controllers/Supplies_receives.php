@@ -256,14 +256,18 @@ class Supplies_receives extends MYTController
         if (($response = $this->_api_verification('supplies_receive', 'get_all_invoice_payments')) !== true)
             return $response;
     
-        $se_id            = $this->request->getVar('se_id') ? : null;
-        $invoice_payments = $se_id ? $this->suppliesPaymentModel->get_all_payment_by_se($se_id) : null;
+        $supplies_receive_id            = $this->request->getVar('supplies_receive_id') ? : null;
+        $invoice_payments = $supplies_receive_id ? $this->suppliesInvoicePaymentModel->get_details_by_supplies_receive_id($supplies_receive_id) : null;
+
+        foreach ($invoice_payments as $key => $payment) {
+            $invoice_payments[$key]['attachment'] = $this->suppliesInvoicePaymentAttachmentModel->get_details_by_supplies_invoice_payment_id($payment['id']);
+        }
 
         if (!$invoice_payments) {
             $response = $this->failNotFound('No invoice payments found');
         } else {
             $response = $this->respond([
-                'se_id'  => $se_id,
+                'se_id'  => $supplies_receive_id,
                 'data'   => $invoice_payments,
                 'status' => 'success'
             ]);
@@ -728,6 +732,8 @@ class Supplies_receives extends MYTController
         $this->suppliesReceiveModel              = model('App\Models\Supplies_receive');
         $this->suppliesReceiveItemModel          = model('App\Models\Supplies_receive_item');
         $this->suppliesExpenseModel              = model('App\Models\Supplies_expense');
+        $this->suppliesInvoicePaymentModel       = model('App\Models\Supplies_invoice_payment');
+        $this->suppliesInvoicePaymentAttachmentModel = model('App\Models\Supplies_invoice_payment_attachment');
         $this->suppliesPaymentModel              = model('App\Models\SE_payment');
         $this->seItemModel                       = model('App\Models\SE_item');
         $this->SECashSlipModel                   = model('App\Models\SE_cash_slip');

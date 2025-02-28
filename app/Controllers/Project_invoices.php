@@ -26,6 +26,10 @@ class Project_invoices extends MYTController
         $project_invoice          = $project_invoice_id ? $this->projectInvoiceModel->get_details_by_id($project_invoice_id) : null;
         $project_invoice_payments = $project_invoice_id ? $this->projectInvoicePaymentModel->get_details_by_project_invoices_id($project_invoice_id) : null;
         $project_invoice_items    = $project_invoice_id ? $this->projectInvoiceItemModel->get_details_by_project_invoices_id($project_invoice_id) : null;
+
+        foreach ($project_invoice_payments as $key => $payment) {
+            $project_invoice_payments[$key]['attachment'] = $this->projectInvoicePaymentAttachmentModel->get_details_by_project_invoice_payment_id($payment['id']);
+        }
         
         if (!$project_invoice) {
             $response = $this->failNotFound('No project_invoice found');
@@ -1065,6 +1069,7 @@ class Project_invoices extends MYTController
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
         $this->projectInvoiceItemModel    = model('App\Models\Project_invoice_item');
         $this->projectInvoicePaymentModel = model('App\Models\Project_invoice_payment');
+        $this->projectInvoicePaymentAttachmentModel = model('App\Models\Project_invoice_payment_attachment');
         $this->projectInvoiceAttachmentModel = model('App\Models\Project_invoice_attachment');
         $this->projectOneTimeFeeModel     = model('App\Models\Project_one_time_fee');
         $this->projectRecurringCostModel  = model('App\Models\Project_recurring_cost');

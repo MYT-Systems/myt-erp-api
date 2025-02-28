@@ -73,41 +73,54 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *,
-    (SELECT trade_name FROM supplier LEFT JOIN supplies_expense ON supplies_expense.supplier_id = supplier.id WHERE supplies_expense.id = supplies_invoice_payment.supplies_expense_id) AS project_name,
-    (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE employee.id = supplies_invoice_payment.added_by) AS added_by_name,
-    (SELECT name FROM bank WHERE bank.id = supplies_invoice_payment.from_bank_id) AS from_bank_name,
-    (SELECT name FROM bank WHERE bank.id = supplies_invoice_payment.to_bank_id) AS to_bank_name
+SELECT 
+    supplies_invoice_payment.*, 
+    supplier.trade_name AS project_name,
+    CONCAT(employee.first_name, ' ', employee.last_name) AS added_by_name,
+    from_bank.name AS from_bank_name,
+    to_bank.name AS to_bank_name,
+    credit_from.name AS credit_from
 FROM supplies_invoice_payment
-WHERE is_deleted = 0
+LEFT JOIN supplies_expense ON supplies_expense.id = supplies_invoice_payment.supplies_expense_id
+LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
+LEFT JOIN employee ON employee.id = supplies_invoice_payment.added_by
+LEFT JOIN bank AS from_bank ON from_bank.id = supplies_invoice_payment.from_bank_id
+LEFT JOIN bank AS to_bank ON to_bank.id = supplies_invoice_payment.to_bank_id
+LEFT JOIN bank AS credit_from ON credit_from.id = supplies_invoice_payment.from_bank_id  -- Changed from to_bank_id to from_bank_id
+WHERE supplies_invoice_payment.is_deleted = 0;
 EOT;
 
         $query = $database->query($sql);
         return $query ? $query->getResultArray() : false;
     }
 
-    /**
-     * Get all project_invoice_payment by project_invoice_id
-     */
     public function get_details_by_supplies_receive_id($supplies_receive_id = null)
-    {
-        $database = \Config\Database::connect();
-        $sql = <<<EOT
-SELECT supplies_invoice_payment.*,
-    (SELECT trade_name FROM supplier LEFT JOIN supplies_expense ON supplies_expense.supplier_id = supplier.id WHERE supplies_expense.id = supplies_invoice_payment.supplies_expense_id) AS project_name,
-    (SELECT CONCAT(first_name, ' ', last_name) FROM employee WHERE employee.id = supplies_invoice_payment.added_by) AS added_by_name,
-    (SELECT name FROM bank WHERE bank.id = supplies_invoice_payment.from_bank_id) AS from_bank_name,
-    (SELECT name FROM bank WHERE bank.id = supplies_invoice_payment.to_bank_id) AS to_bank_name,
-    supplies_invoice_payment_attachment.*
+{
+    $database = \Config\Database::connect();
+    $sql = <<<EOT
+SELECT 
+    supplies_invoice_payment.*, 
+    supplier.trade_name AS project_name,
+    CONCAT(employee.first_name, ' ', employee.last_name) AS added_by_name,
+    from_bank.name AS from_bank_name,
+    to_bank.name AS to_bank_name,
+    credit_from.name AS credit_from
 FROM supplies_invoice_payment
-LEFT JOIN supplies_invoice_payment_attachment ON supplies_invoice_payment_attachment.supplies_invoice_payment_id = supplies_invoice_payment.id
+LEFT JOIN supplies_expense ON supplies_expense.id = supplies_invoice_payment.supplies_expense_id
+LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
+LEFT JOIN employee ON employee.id = supplies_invoice_payment.added_by
+LEFT JOIN bank AS from_bank ON from_bank.id = supplies_invoice_payment.from_bank_id
+LEFT JOIN bank AS to_bank ON to_bank.id = supplies_invoice_payment.to_bank_id
+LEFT JOIN bank AS credit_from ON credit_from.id = supplies_invoice_payment.from_bank_id  -- Changed from to_bank_id to from_bank_id
 WHERE supplies_invoice_payment.is_deleted = 0
     AND supplies_invoice_payment.supplies_receive_id = ?
 EOT;
-        $binds = [$supplies_receive_id];
-        $query = $database->query($sql, $binds);
-        return $query ? $query->getResultArray() : false;
-    }
+    
+    $binds = [$supplies_receive_id];
+    $query = $database->query($sql, $binds);
+    return $query ? $query->getResultArray() : [];
+}
+
 
     /**
     * get balance from project_invoice

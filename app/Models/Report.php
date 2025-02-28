@@ -285,35 +285,43 @@ EOT;
         $binds = [];
 
         $sql = <<<EOT
-SELECT
+SELECT 
     project.id AS project_id,
     project.name AS name, 
     project.start_date AS start_date,
     distributor.name AS distributor_name, 
     customer.name AS customer_name, 
-    COALESCE(SUM(DISTINCT CASE WHEN project_invoice.is_deleted = 0 THEN project_invoice.grand_total ELSE 0 END), 0) AS amount, 
-    project.paid_amount AS paid_amount, 
-    COALESCE(SUM(DISTINCT CASE WHEN project_invoice.is_deleted = 0 THEN project_invoice.grand_total ELSE 0 END), 0) 
-    - project.paid_amount AS receivable, 
-    COALESCE(SUM(DISTINCT CASE 
-        WHEN project_expense.status = 'approved' AND project_expense.is_deleted = 0 
-        THEN project_expense.grand_total 
-        ELSE 0 
-    END), 0) AS project_expense,
-    project.paid_amount - COALESCE(SUM(DISTINCT CASE 
-        WHEN project_expense.status = 'approved' AND project_expense.is_deleted = 0 
-        THEN project_expense.grand_total 
-        ELSE 0 
-    END), 0) AS total_sales
+    
+    (SELECT COALESCE(SUM(project_invoice.grand_total), 0) 
+     FROM project_invoice 
+     WHERE project_invoice.project_id = project.id 
+       AND project_invoice.is_deleted = 0) AS amount, 
+
+    COALESCE(project.paid_amount, 0) AS paid_amount, 
+
+    ((SELECT COALESCE(SUM(project_invoice.grand_total), 0) 
+      FROM project_invoice 
+      WHERE project_invoice.project_id = project.id 
+        AND project_invoice.is_deleted = 0) 
+      - COALESCE(project.paid_amount, 0)) AS receivable, 
+
+    (SELECT COALESCE(SUM(project_expense.grand_total), 0) 
+     FROM project_expense 
+     WHERE project_expense.project_id = project.id 
+       AND project_expense.status = 'approved' 
+       AND project_expense.is_deleted = 0) AS project_expense,
+
+    (COALESCE(project.paid_amount, 0) - 
+     (SELECT COALESCE(SUM(project_expense.grand_total), 0) 
+      FROM project_expense 
+      WHERE project_expense.project_id = project.id 
+        AND project_expense.status = 'approved' 
+        AND project_expense.is_deleted = 0)) AS total_sales
 FROM project
-LEFT JOIN project_invoice ON project_invoice.project_id = project.id 
-  AND project_invoice.is_deleted = 0 
 LEFT JOIN customer ON customer.id = project.customer_id
 LEFT JOIN distributor ON distributor.id = project.distributor_id
-LEFT JOIN project_expense ON project_expense.project_id = project.id 
-  AND project_expense.is_deleted = 0 
-WHERE customer.is_deleted = 0
-AND project.is_deleted = 0
+WHERE project.is_deleted = 0 
+AND customer.is_deleted = 0
 EOT;
 
         if ($project_id) {
@@ -367,36 +375,45 @@ EOT;
         $binds = [];
 
         $sql = <<<EOT
-SELECT
+SELECT 
     project.id AS project_id,
     project.name AS name, 
     project.start_date AS start_date,
     distributor.name AS distributor_name, 
     customer.name AS customer_name, 
-    COALESCE(SUM(DISTINCT CASE WHEN project_invoice.is_deleted = 0 THEN project_invoice.grand_total ELSE 0 END), 0) AS amount, 
-    project.paid_amount AS paid_amount, 
-    COALESCE(SUM(DISTINCT CASE WHEN project_invoice.is_deleted = 0 THEN project_invoice.grand_total ELSE 0 END), 0) 
-    - project.paid_amount AS receivable, 
-    COALESCE(SUM(DISTINCT CASE 
-        WHEN project_expense.status = 'approved' AND project_expense.is_deleted = 0 
-        THEN project_expense.grand_total 
-        ELSE 0 
-    END), 0) AS project_expense,
-    project.paid_amount - COALESCE(SUM(DISTINCT CASE 
-        WHEN project_expense.status = 'approved' AND project_expense.is_deleted = 0 
-        THEN project_expense.grand_total 
-        ELSE 0 
-    END), 0) AS total_sales
+    
+    (SELECT COALESCE(SUM(project_invoice.grand_total), 0) 
+     FROM project_invoice 
+     WHERE project_invoice.project_id = project.id 
+       AND project_invoice.is_deleted = 0) AS amount, 
+
+    COALESCE(project.paid_amount, 0) AS paid_amount, 
+
+    ((SELECT COALESCE(SUM(project_invoice.grand_total), 0) 
+      FROM project_invoice 
+      WHERE project_invoice.project_id = project.id 
+        AND project_invoice.is_deleted = 0) 
+      - COALESCE(project.paid_amount, 0)) AS receivable, 
+
+    (SELECT COALESCE(SUM(project_expense.grand_total), 0) 
+     FROM project_expense 
+     WHERE project_expense.project_id = project.id 
+       AND project_expense.status = 'approved' 
+       AND project_expense.is_deleted = 0) AS project_expense,
+
+    (COALESCE(project.paid_amount, 0) - 
+     (SELECT COALESCE(SUM(project_expense.grand_total), 0) 
+      FROM project_expense 
+      WHERE project_expense.project_id = project.id 
+        AND project_expense.status = 'approved' 
+        AND project_expense.is_deleted = 0)) AS total_sales
 FROM project
-LEFT JOIN project_invoice ON project_invoice.project_id = project.id 
-  AND project_invoice.is_deleted = 0 
 LEFT JOIN customer ON customer.id = project.customer_id
 LEFT JOIN distributor ON distributor.id = project.distributor_id
-LEFT JOIN project_expense ON project_expense.project_id = project.id 
-  AND project_expense.is_deleted = 0 
-WHERE customer.is_deleted = 0
-AND project.is_deleted = 0
+WHERE project.is_deleted = 0 
+AND customer.is_deleted = 0
 EOT;
+
         if ($project_id) {
             $sql .= " AND project.id = ?";
             $binds[] = $project_id;
@@ -1135,151 +1152,6 @@ EOT;
         //$sql .= " GROUP BY supplies_expense.id, expense_type.name";
         $sql .= " GROUP BY expense_type.name";
     
-        $query = $database->query($sql, $binds);
-        return $query ? $query->getResultArray() : [];
-    }
-
-    public function get_recurring_je_sales_report($date_from = null, $date_to = null)
-    {
-        $database = \Config\Database::connect();
-        $sql = <<<EOT
-SELECT 
-    project_invoice_payment.payment_date, 
-    project_invoice_payment.remarks AS description, 
-    'Revenue' AS account_type, bank.name AS bank_name, 
-    project_invoice_payment.paid_amount AS income, 
-    0 AS expense
-FROM project_invoice_payment
-LEFT JOIN bank ON bank.id = project_invoice_payment.to_bank_id
-WHERE project_invoice_payment.is_deleted = 0 
-EOT;
-        $binds = [];
-        
-        if ($date_from) {
-            $sql .= " AND project_invoice_payment.payment_date >= ?";
-            $binds[] = $date_from;
-        }
-
-        if ($date_to) {
-            $sql .= " AND project_invoice_payment.payment_date <= ?";
-            $binds[] = $date_to;
-        }
-
-        $sql .= " ORDER BY project_invoice_payment.payment_date";
-
-        $query = $database->query($sql, $binds);
-        return $query ? $query->getResultArray() : [];
-    }
-
-    public function get_recurring_je_expenses_report($date_from = null, $date_to = null)
-    {
-        $database = \Config\Database::connect();
-        $sql = <<<EOT
-SELECT 
-    supplies_expense.supplies_expense_date AS payment_date, 
-    supplies_expense.remarks AS description,
-    expense_type.name AS account_type,
-    ' - ' AS bank_name,
-    0 AS income,
-    supplies_expense.grand_total AS expense
-FROM supplies_expense
-LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
-LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
-WHERE supplies_expense.is_deleted = 0
-AND supplies_receive.is_deleted = 0
-AND supplies_expense.status <> "pending"
-AND supplies_expense.status <> "for_approval"
-AND supplies_expense.status <> "disapproved"
-AND supplies_expense.status <> "deleted"
-EOT;
-
-        // Removed incorrect check for expense_type, now correctly checking for 'type' column
-        $sql .= " AND supplies_expense.type IS NOT NULL AND supplies_expense.supplies_expense_date IS NOT NULL ";
-        
-        $binds = [];
-        
-        if ($date_from) {
-            $sql .= " AND supplies_expense.supplies_expense_date >= ?";
-            $binds[] = $date_from;
-        }
-
-        if ($date_to) {
-            $sql .= " AND supplies_expense.supplies_expense_date <= ?";
-            $binds[] = $date_to;
-        }
-
-        $sql .= " ORDER BY supplies_expense.supplies_expense_date";
-
-        $query = $database->query($sql, $binds);
-        return $query ? $query->getResultArray() : [];
-    }
-
-    public function get_previous_je_sales_report($date_from = null, $date_to = null)
-    {
-        $database = \Config\Database::connect();
-        $sql = <<<EOT
-SELECT 
-    '' AS payment_date, 
-    'Opening' AS description, 
-    '' AS account_type, 
-    '' AS bank_name, 
-    SUM(project_invoice_payment.paid_amount) AS income, 
-    0 AS expense
-FROM project_invoice_payment
-LEFT JOIN bank ON bank.id = project_invoice_payment.to_bank_id
-WHERE project_invoice_payment.is_deleted = 0
-EOT;
-        $binds = [];
-        
-        if ($date_from) {
-            $sql .= " AND project_invoice_payment.payment_date < ?
-                        AND YEAR(project_invoice_payment.payment_date) = YEAR(?)";
-            $binds[] = $date_from;
-            $binds[] = $date_from;
-        }
-
-        $sql .= " ORDER BY project_invoice_payment.payment_date";
-
-        $query = $database->query($sql, $binds);
-        return $query ? $query->getResultArray() : [];
-    }
-
-    public function get_previous_je_expenses_report($date_from = null, $date_to = null)
-    {
-        $database = \Config\Database::connect();
-        $sql = <<<EOT
-SELECT 
-    '' AS payment_date, 
-    'Opening' AS description,
-    '' AS account_type,
-    '' AS bank_name,
-    0 AS income,
-    SUM(supplies_expense.grand_total) AS expense
-FROM supplies_expense
-LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
-LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
-WHERE supplies_expense.is_deleted = 0
-AND supplies_receive.is_deleted = 0
-AND supplies_expense.status <> "pending"
-AND supplies_expense.status <> "for_approval"
-AND supplies_expense.status <> "disapproved"
-AND supplies_expense.status <> "deleted"
-EOT;
-
-        // Removed incorrect check for expense_type, now correctly checking for 'type' column
-        $sql .= " AND supplies_expense.type IS NOT NULL AND supplies_expense.supplies_expense_date IS NOT NULL ";
-        
-        $binds = [];
-        
-        if ($date_from) {
-            $sql .= " AND supplies_expense.supplies_expense_date < ?
-                        AND YEAR(supplies_expense.supplies_expense_date) = YEAR(?)";
-            $binds[] = $date_from;
-            $binds[] = $date_from;
-        }
-
-        $sql .= " ORDER BY supplies_expense.supplies_expense_date";
-
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
     }
