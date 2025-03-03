@@ -354,9 +354,9 @@ EOT;
             $binds[] = '%' . $anything . '%';
         }
         
-        if ($payment_structure) {
-            $sql .= " AND project.payment_structure LIKE ?";
-            $binds[] = '%' . $payment_structure . '%';
+        if ($payment_structure && $payment_structure !== "All") {
+            $sql .= " AND project.payment_structure = ?";
+            $binds[] = $payment_structure;
         }
 
         $sql .= " GROUP BY project.id";

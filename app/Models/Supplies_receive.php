@@ -283,7 +283,6 @@ EOT;
         }
         
         $query = $database->query($sql, $binds);
-        //die($database->getLastQuery());
         return $query ? $query->getResultArray() : false;
     }
     
