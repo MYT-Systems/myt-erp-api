@@ -239,7 +239,6 @@ class Login extends MYTController
         $this->attendanceModel        = model('App\Models\Attendance');
         $this->attendanceEntryModel   = model('App\Models\Attendance_entry');
         $this->employeeModel          = model('App\Models\Employee');
-
         $this->userModel              = model('App\Models\User');
         $this->branchModel            = model('App\Models\Branch');
         $this->discountModel          = model('App\Models\Discount');

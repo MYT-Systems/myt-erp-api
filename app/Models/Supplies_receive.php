@@ -281,6 +281,8 @@ EOT;
                 $sql .= " AND supplies_receive.balance < 1";
                 break;
         }
+
+        $sql .= " GROUP BY supplies_receive.se_id";
         
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
