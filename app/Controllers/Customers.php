@@ -131,7 +131,7 @@ class Customers extends MYTController
 
         if (!$customer = $this->customerModel->select('', $where, 1)) {
             $response = $this->failNotFound('customer not found');
-        } elseif (!$this->_attempt_update($customer)) {
+        } elseif (!$this->_attempt_update($customer_id)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to update customer.', 'status' => 'error']);
         } else {
