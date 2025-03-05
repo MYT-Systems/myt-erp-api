@@ -20,6 +20,7 @@ class Project_invoice extends MYTModel
         'vat_net',
         'wht',
         'is_wht',
+        'wht_percent',
         'service_fee',
         'delivery_fee',
         'grand_total',
