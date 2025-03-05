@@ -208,7 +208,7 @@ class Supplies_receives extends MYTController
             return $response;
         
         $se_id                 = $this->request->getVar('se_id') ? : null;
-        $branch_name             = $this->request->getVar('branch_name') ? : null;
+        $branch_name           = $this->request->getVar('branch_name') ? : null;
         $supplier_id           = $this->request->getVar('supplier_id') ? : null;
         $vendor_id             = $this->request->getVar('vendor_id') ? : null;
         $supplies_receive_date = $this->request->getVar('supplies_receive_date') ? : null;
@@ -220,7 +220,7 @@ class Supplies_receives extends MYTController
         $purchase_date_to      = $this->request->getVar('purchase_date_to') ? : null;
         $se_receive_date_from  = $this->request->getVar('se_receive_date_from') ? : null;
         $se_receive_date_to    = $this->request->getVar('se_receive_date_to') ? : null;
-        $bill_type   = $this->request->getVar('bill_type') ? : null;
+        $bill_type             = $this->request->getVar('bill_type') ? : null;
 
         if (!$receives = $this->suppliesReceiveModel->search($branch_name, $se_id, $supplier_id, $vendor_id, $supplies_receive_date, $waybill_no, $invoice_no, $dr_no, $remarks, $purchase_date_from, $purchase_date_to, $se_receive_date_from, $se_receive_date_to, $bill_type)) {
             $response = $this->failNotFound('No receive found');
