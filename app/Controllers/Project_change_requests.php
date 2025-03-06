@@ -17,20 +17,28 @@ class Project_change_requests extends MYTController
     /**
      * Get project_change_request
      */
-    public function get_project_change_request()
+    public function get_project_change_request_items()
     {
-        if (($response = $this->_api_verification('project_change_request', 'get_project_change_request')) !== true)
+        if (($response = $this->_api_verification('project_change_requests', 'get_project_change_request_items')) !== true)
             return $response;
 
-        $project_change_request_id       = $this->request->getVar('project_change_request_id') ? : null;
-        $project_change_request          = $project_change_request_id ? $this->projectChangeRequestModel->get_details_by_id($project_change_request_id) : null;
+        $project_id                      = $this->request->getVar('project_id') ? : null;
+        $project                         = $project_id ? $this->projectModel->get_details_by_id($project_id) : null;
+        $project_change_request          = $project_id ? $this->projectChangeRequestModel->get_details_by_project_id($project_id) : null;
+
+        if (!empty($project_change_request)) {
+            foreach ($project_change_request as $index => $change_request) {
+                $project_change_request[$index]['project_change_request_item'] = $this->projectChangeRequestItemModel->get_details_by_project_change_requests_id($change_request['id']);
+            }
+        }
         
-        if (!$project_change_request) {
-            $response = $this->failNotFound('No project_change_request found');
+        if (!$project) {
+            $response = $this->failNotFound('No project found');
         } else {
+            $project[0]['change_request'] = $project_change_request;
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $project_change_request
+                'data'   => $project
             ]);
         }
 
@@ -116,7 +124,13 @@ class Project_change_requests extends MYTController
 
         $project_change_request = $this->projectChangeRequestModel->select('', $where, 1);
         if (!$project_change_request = $this->projectChangeRequestModel->select('', $where, 1)) {
-            $response = $this->failNotFound('project not found');
+            $response = $this->failNotFound('project_change_request not found');
+        } elseif (!$this->_attempt_update($project_change_request['id'])) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to update project_change_request.', 'status' => 'error']);
+        } elseif (!$this->_attempt_update_project_change_request_items($project_change_request, $db)) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to update project_change items.', 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'project change request updated successfully.', 'status' => 'success']);
@@ -212,6 +226,7 @@ class Project_change_requests extends MYTController
             'vat_net'               => $this->request->getVar('vat_net'),
             'wht'                   => $this->request->getVar('wht'),
             'is_wht'                => 0,
+            'wht_percent'           => $this->request->getVar('wht_percent'),
             'grand_total'           => $this->request->getVar('grand_total'),
             'vat_type'              => $this->request->getVar('vat_type'),
             'discount'              => $this->request->getVar('discount'),
@@ -247,7 +262,7 @@ class Project_change_requests extends MYTController
             'vat_twelve'            => $this->request->getVar('vat_twelve'),
             'vat_net'               => $this->request->getVar('vat_net'),
             'wht'                   => $this->request->getVar('wht'),
-            'is_wht'                => $this->request->getVar('is_wht'),
+            'is_wht'                => 0,
             'grand_total'           => $this->request->getVar('grand_total'),
             'vat_type'              => $this->request->getVar('vat_type'),
             'updated_by'            => $this->requested_by,
@@ -295,7 +310,7 @@ class Project_change_requests extends MYTController
     }
 
     /**
-     * Update, s
+     * Attempt generate project_change_request_items
      */
     protected function _attempt_generate_project_change_request_items($project_change_request_id)
     {
@@ -369,6 +384,49 @@ class Project_change_requests extends MYTController
             }
         }
     
+        return true;
+    }
+
+    /**
+     * Attempt generate project invoices items
+     */
+    protected function _attempt_update_project_change_request_items($project_change_request, $db)
+    {
+        $old_grand_total  = $project_invoice['grand_total'];
+
+        // if (!$this->_revert_project_item($project_invoice['id'])) {
+        //     var_dump("failed to revert and delete");
+        //     return false;
+        // }
+
+        if (!$this->projectChangeRequestItemModel->delete_by_project_change_request_id($project_change_request['id'], $this->requested_by, $db)) {
+            return false;
+        }
+
+        // Reset the credit limit
+        // if ($project_invoice['status'] != 'quoted') {
+        //     var_dump("failed to restore credit limit");
+        //     return false;
+        // }
+
+        // insert new project invoice items
+        if (!$grand_total = $this->_attempt_generate_project_invoice_items($project_invoice['id'], $db)) {
+            var_dump("Error in generating project invoice items");
+            return false;
+        }
+
+        // Check if new grand total is under credit limit
+        // if ($project_invoice['status'] != 'quoted') {
+        //     var_dump("New grand total is over the credit limit");
+        //     return false;
+        // }
+
+        // Record the new credit limit
+        // if ($project_invoice['status'] != 'quoted' && !$this->_record_credit_limit($project_invoice['project_id'], $grand_total)) {
+        //     var_dump("record credit limit failed");
+        //     return false;
+        // }
+
         return true;
     }
 

@@ -111,13 +111,13 @@ class Projects extends MYTController
         $project_type           = $project_id ? $this->projectTypeModel->get_details_by_project_id($project_id) : null;
         $project_change_request = $project_id ? $this->projectChangeRequestModel->get_details_by_project_id($project_id) : null;
 
-        if (!empty($project_change_request)) {
-            foreach ($project_change_request as $index => $change_request) {
-                $project_change_request[$index]['project_change_request_item'] = $this->projectChangeRequestItemModel->get_details_by_project_change_requests_id($change_request['id']);
-            }
-        }
+        // if (!empty($project_change_request)) {
+        //     foreach ($project_change_request as $index => $change_request) {
+        //         $project_change_request[$index]['project_change_request_item'] = $this->projectChangeRequestItemModel->get_details_by_project_change_requests_id($change_request['id']);
+        //     }
+        // }
 
-        if($project_recurring_cost) {
+        if($project_recurring_cost) {   
             foreach($project_recurring_cost AS $index => $project_recurring_cost_item) {
                 $project_recurring_cost[$index]['descriptions'] = $project_recurring_cost[$index]['description'];
                 $project_recurring_cost[$index]['types'] = $project_recurring_cost[$index]['type'];
@@ -741,6 +741,7 @@ class Projects extends MYTController
             'vat_twelve' => $this->request->getVar('vat_twelve'),
             'vat_net' => $this->request->getVar('vat_net'),
             'withholding_tax' => $this->request->getVar('withholding_tax'),
+            'wht_percent' => $this->request->getVar('wht_percent'),
             'grand_total' => $this->request->getVar('grand_total'),
             'balance' => $this->request->getVar('grand_total'),
             'recurring_cost_total' => $this->request->getVar('recurring_cost_total'),
@@ -808,6 +809,7 @@ class Projects extends MYTController
             'vat_twelve' => $this->request->getVar('vat_twelve'),
             'vat_net' => $this->request->getVar('vat_net'),
             'withholding_tax' => $this->request->getVar('withholding_tax'),
+            'wht_percent' => $this->request->getVar('wht_percent'),
             'grand_total' => $this->request->getVar('grand_total'),
             'balance' => $this->request->getVar('grand_total'),
             'recurring_cost_total' => $this->request->getVar('recurring_cost_total'),

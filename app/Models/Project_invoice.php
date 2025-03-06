@@ -100,6 +100,27 @@ EOT;
     }
 
     /**
+     * Get the last invoice_no for the current year
+     */
+    public function get_last_invoice_no_by_year()
+    {
+        $database = \Config\Database::connect();
+        $currentYear = date('Y') . '-%'; // Format YYYY-
+
+    $sql = <<<EOT
+SELECT invoice_no
+FROM project_invoice
+WHERE is_deleted = 0 AND invoice_no LIKE ?
+ORDER BY invoice_no DESC
+LIMIT 1
+EOT;
+
+        $query = $database->query($sql, [$currentYear]);
+        return $query ? $query->getRowArray() : false;
+    }
+
+
+    /**
      * Get all project_invoice
      */
     public function get_all()

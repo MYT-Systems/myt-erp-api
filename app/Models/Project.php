@@ -24,6 +24,7 @@ class Project extends MYTModel
         'vat_twelve',
         'vat_net',
         'withholding_tax',
+        'wht_percent',
         'grand_total',
         'balance',
         'recurring_cost_total',
