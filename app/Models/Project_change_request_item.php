@@ -65,7 +65,7 @@ EOT;
     /**
      * Get details by project change request ID
      */
-    public function get_details_by_project_change_requests_id($project_change_request_id = null)
+    public function get_details_by_project_change_request_id($project_change_request_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -110,8 +110,8 @@ EOT;
         $sql = <<<EOT
 UPDATE project_change_request_item
 SET is_deleted = 1, updated_by = ?, updated_on = ?
-WHERE project_change_request_item.is_deleted = 0
-    AND project_change_request_item.project_change_request_id = ?
+WHERE project_change_request_id = ?
+    AND is_deleted = 0
 EOT;
         $binds = [$requested_by, $date_now, $project_change_request_id];
 
