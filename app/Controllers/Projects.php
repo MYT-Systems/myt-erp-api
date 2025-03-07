@@ -492,7 +492,7 @@ class Projects extends MYTController
                 'period'      => $period,
                 'price'       => $price,
                 'amount'      => $amount,
-                'balance'     => $amount,
+                'balance'     => $total,
                 'total'       => $total,
                 'added_by'    => $this->requested_by,
                 'added_on'    => date('Y-m-d H:i:s'),
