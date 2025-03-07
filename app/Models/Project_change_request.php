@@ -16,6 +16,7 @@ class Project_change_request extends MYTModel
         'vat_net',
         'wht',
         'is_wht',
+        'wht_percent',
         'grand_total',
         'vat_type',
         'balance',

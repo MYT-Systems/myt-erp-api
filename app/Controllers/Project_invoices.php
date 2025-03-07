@@ -417,10 +417,22 @@ class Project_invoices extends MYTController
      */
     private function _attempt_create()
     {
+        $invoice_no = $this->projectInvoiceModel->get_last_invoice_no_by_year();
+        
+        if ($invoice_no && isset($invoice_no['invoice_no'])) {
+            $last_invoice_no = $invoice_no['invoice_no']; 
+            $last_number = (int) substr($last_invoice_no, 5);
+        } else {
+            $last_number = 0; 
+        }
+        
+        $next_number = str_pad($last_number + 1, 4, '0', STR_PAD_LEFT);
+        $invoice_no = date('Y') . '-' . $next_number; 
+
         $values = [
             'project_id'            => $this->request->getVar('project_id'),
             'invoice_date'          => $this->request->getVar('invoice_date'),
-            'invoice_no'            => $this->request->getVar('invoice_no'),
+            'invoice_no'            => $invoice_no,
             'project_date'          => $this->request->getVar('project_date'),
             'due_date'              => $this->request->getVar('due_date'),
             'address'               => $this->request->getVar('address'),
