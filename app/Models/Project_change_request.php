@@ -95,4 +95,72 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query;
     }
+
+    /**
+     * Search 
+     */
+    public function search($project_change_request_id = null, $customer_id = null, $project_id = null, $name = null, $request_date = null, $address = null, $company = null, $remarks = null, $anything = null)
+    {
+        $database = \Config\Database::connect();
+        
+        $sql = <<<EOT
+SELECT project.*, 
+       project_change_request.*, 
+       customer.name AS customer_name
+FROM project_change_request
+LEFT JOIN project ON project.id = project_change_request.project_id
+LEFT JOIN customer ON customer.id = project.customer_id
+WHERE project_change_request.is_deleted = 0
+EOT;
+
+        $binds = [];
+
+        if ($project_change_request_id) {
+            $sql .= ' AND project_change_request.id = ?';
+            $binds[] = $project_change_request_id;
+        }
+
+        if ($project_id) {
+            $sql .= ' AND project_change_request.project_id = ?';
+            $binds[] = $project_id;
+        }
+
+        if ($customer_id) {
+            $sql .= ' AND project.customer_id = ?';
+            $binds[] = $customer_id;
+        }
+
+        if ($request_date) {
+            $sql .= ' AND project_change_request.request_date = ?';
+            $binds[] = $request_date;
+        }
+
+        if ($address) {
+            $sql .= ' AND project.address REGEXP ?';
+            $address = str_replace(' ', '|', $address);
+            $binds[] = $address;
+        }
+
+        if ($name) {
+            $sql .= ' AND project.name REGEXP ?';
+            $name    = str_replace(' ', '|', $name);
+            $binds[] = $name;
+        }
+
+        if ($company) {
+            $sql .= ' AND project.company REGEXP ?';
+            $company = str_replace(' ', '|', $company);
+            $binds[] = $company;
+        }
+
+        if ($remarks) {
+            $sql .= ' AND project_change_request.remarks LIKE ?';
+            $binds[] = '%' . $remarks . '%';
+        }
+
+        $sql .= ' ORDER BY project_change_request.request_date DESC';
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
 }
