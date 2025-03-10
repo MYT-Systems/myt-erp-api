@@ -15,27 +15,26 @@ class Project_change_requests extends MYTController
     }
 
     /**
-     * Get project_change_request
+     * Get project_change_request_item by ID
      */
-    public function get_project_change_request_items()
+    public function get_project_change_request_item()
     {
-        if (($response = $this->_api_verification('project_change_requests', 'get_project_change_request_items')) !== true)
+        if (($response = $this->_api_verification('project_change_requests', 'get_project_change_request_item')) !== true)
             return $response;
 
-        $project_id                      = $this->request->getVar('project_id') ? : null;
+        $change_request_id               = $this->request->getVar('change_request_id') ?: null;
+        $project_change_request          = $change_request_id ? $this->projectChangeRequestModel->get_details_by_id($change_request_id) : null;
+        $project_change_request_items    = $change_request_id ? $this->projectChangeRequestItemModel->get_details_by_project_change_request_id($change_request_id) : null;
+        $project_id = (!empty($project_change_request) && isset($project_change_request[0]['project_id'])) 
+        ? $project_change_request[0]['project_id'] 
+        : null;
         $project                         = $project_id ? $this->projectModel->get_details_by_id($project_id) : null;
-        $project_change_request          = $project_id ? $this->projectChangeRequestModel->get_details_by_project_id($project_id) : null;
 
-        if (!empty($project_change_request)) {
-            foreach ($project_change_request as $index => $change_request) {
-                $project_change_request[$index]['project_change_request_item'] = $this->projectChangeRequestItemModel->get_details_by_project_change_requests_id($change_request['id']);
-            }
-        }
-        
         if (!$project) {
             $response = $this->failNotFound('No project found');
         } else {
             $project[0]['change_request'] = $project_change_request;
+            $project[0]['change_request_items'] = $project_change_request_items;
             $response = $this->respond([
                 'status' => 'success',
                 'data'   => $project
@@ -115,7 +114,7 @@ class Project_change_requests extends MYTController
             return $response;
 
         $where = [
-            'id'         => $this->request->getVar('project_change_request_id'), 
+            'id'         => $this->request->getVar('change_request_id'), 
             'is_deleted' => 0
         ];
 
@@ -160,9 +159,12 @@ class Project_change_requests extends MYTController
 
         if (!$project_change_request = $this->projectChangeRequestModel->select('', $where, 1)) {
             $response = $this->failNotFound('project_change_request not found');
-        } elseif (!$this->_attempt_delete($project_change_request, $db)) {
+        } elseif (!$this->_attempt_delete($project_change_request['id'])) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to delete project_change_request.', 'status' => 'error']);
+        } elseif (!$this->_attempt_delete_project_change_request_items($project_change_request['id'])) {
+            $db->transRollback();
+            $response = $this->fail($this->errorMessage);
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'project_invoice deleted successfully.', 'status' => 'success']);
@@ -181,19 +183,23 @@ class Project_change_requests extends MYTController
         if (($response = $this->_api_verification('project_change_requests', 'search')) !== true)
             return $response;
 
-        $project_invoice_id = $this->request->getVar('project_change_request_id');
+        $name = $this->request->getVar('name');
+        $project_change_request_id = $this->request->getVar('project_change_request_id');
         $project_id = $this->request->getVar('project_id');
+        $customer_id = $this->request->getVar('customer_id');
+        $address = $this->request->getVar('address');
+        $company = $this->request->getVar('company');
         $request_date = $this->request->getVar('request_date');
-        $change_request_no = $this->request->getVar('change_request_no');
+        $request_no = $this->request->getVar('request_no');
         $change_request_name = $this->request->getVar('change_request_name');
         $description = $this->request->getVar('description');
         $remarks = $this->request->getVar('remarks');
         $anything = $this->request->getVar('anything') ?? null;
-        $date_from = $this->request->getVar('date_from')??null;
-        $date_to = $this->request->getVar('date_to')??null;
+        $request_no = $this->request->getVar('request_no') ?? null;
+        // $date_from = $this->request->getVar('date_from')??null;
+        // $date_to = $this->request->getVar('date_to')??null;
 
-
-        if (!$project_change_requests = $this->projectChangeRequestModel->search($project_change_request_id, $project_id, $request_date, $address, $company, $remarks, $payment_status, $status, $fully_paid_on, $anything)) {
+        if (!$project_change_requests = $this->projectChangeRequestModel->search($project_change_request_id, $project_id, $customer_id, $name, $request_date, $address, $company, $remarks, $request_no, $anything)) {
             $response = $this->failNotFound('No project_change_request found');
         } else {
 
@@ -254,7 +260,7 @@ class Project_change_requests extends MYTController
             'project_id'            => $this->request->getVar('project_id'),
             'project_invoice_id'    => $this->request->getVar('project_invoice_id'),
             'request_date'          => $this->request->getVar('request_date'),
-            'change_request_no'     => $this->request->getVar('change_request_no'),
+            'request_no'            => $this->request->getVar('request_no'),
             'change_request_name'   => $this->request->getVar('change_request_name'),
             'description'           => $this->request->getVar('description'),
             'remarks'               => $this->request->getVar('remarks'),
@@ -263,6 +269,7 @@ class Project_change_requests extends MYTController
             'vat_net'               => $this->request->getVar('vat_net'),
             'wht'                   => $this->request->getVar('wht'),
             'is_wht'                => 0,
+            'wht_percent'           => $this->request->getVar('wht_percent'),
             'grand_total'           => $this->request->getVar('grand_total'),
             'vat_type'              => $this->request->getVar('vat_type'),
             'updated_by'            => $this->requested_by,
@@ -280,31 +287,28 @@ class Project_change_requests extends MYTController
     /**
      * Attempt delete
      */
-    protected function _attempt_delete($project_change_request, $db)
+    protected function _attempt_delete($project_change_request_id)
     {
-
-        // if (!$this->_revert_project_item($project_invoice['id'])) {
-        //     var_dump("failed to revert and delete");
-        //     return false;
-        // } else
-        
-        $update_occupied_where = [
-            'project_change_request_id'    =>  $project_change_request['id']
-        ];
-        
-        $update_occupied = [
-            'is_occupied'   =>  0,
-            'project_change_request_id' => NULL
-        ];
-        
         $values = [
             'is_deleted' => 1,
             'updated_by' => $this->requested_by,
             'updated_on' => date('Y-m-d H:i:s')
         ];
 
-        if (!$this->projectChangeRequestModel->update($project_change_request['id'], $values))
+        if (!$this->projectChangeRequestModel->update($project_change_request_id, $values))
             return false;
+
+        return true;
+    }
+
+    /**
+     * Attempt delete
+     */
+    protected function _attempt_delete_project_change_request_items($project_change_request_id)
+    {
+        if (!$this->projectChangeRequestItemModel->delete_by_project_change_request_id($project_change_request_id, $this->requested_by)) {
+            return false;
+        }
 
         return true;
     }
@@ -392,7 +396,7 @@ class Project_change_requests extends MYTController
      */
     protected function _attempt_update_project_change_request_items($project_change_request, $db)
     {
-        $old_grand_total  = $project_invoice['grand_total'];
+        $old_grand_total  = $project_change_request['grand_total'];
 
         // if (!$this->_revert_project_item($project_invoice['id'])) {
         //     var_dump("failed to revert and delete");
@@ -410,8 +414,7 @@ class Project_change_requests extends MYTController
         // }
 
         // insert new project invoice items
-        if (!$grand_total = $this->_attempt_generate_project_invoice_items($project_invoice['id'], $db)) {
-            var_dump("Error in generating project invoice items");
+        if (!$grand_total = $this->_attempt_generate_project_change_request_items($project_change_request['id'], $db)) {
             return false;
         }
 

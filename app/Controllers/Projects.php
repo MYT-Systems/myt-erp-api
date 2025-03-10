@@ -111,11 +111,11 @@ class Projects extends MYTController
         $project_type           = $project_id ? $this->projectTypeModel->get_details_by_project_id($project_id) : null;
         $project_change_request = $project_id ? $this->projectChangeRequestModel->get_details_by_project_id($project_id) : null;
 
-        // if (!empty($project_change_request)) {
-        //     foreach ($project_change_request as $index => $change_request) {
-        //         $project_change_request[$index]['project_change_request_item'] = $this->projectChangeRequestItemModel->get_details_by_project_change_requests_id($change_request['id']);
-        //     }
-        // }
+        if (!empty($project_change_request)) {
+            foreach ($project_change_request as $index => $change_request) {
+                $project_change_request[$index]['project_change_request_item'] = $this->projectChangeRequestItemModel->get_details_by_project_change_request_id($change_request['id']);
+            }
+        }
 
         if($project_recurring_cost) {   
             foreach($project_recurring_cost AS $index => $project_recurring_cost_item) {
