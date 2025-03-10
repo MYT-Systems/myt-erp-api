@@ -99,7 +99,7 @@ EOT;
     /**
      * Search 
      */
-    public function search($project_change_request_id = null, $customer_id = null, $project_id = null, $name = null, $request_date = null, $address = null, $company = null, $remarks = null, $anything = null)
+    public function search($project_change_request_id = null, $customer_id = null, $project_id = null, $name = null, $request_date = null, $address = null, $company = null, $remarks = null, $request_no = null, $anything = null)
     {
         $database = \Config\Database::connect();
         
@@ -156,6 +156,11 @@ EOT;
         if ($remarks) {
             $sql .= ' AND project_change_request.remarks LIKE ?';
             $binds[] = '%' . $remarks . '%';
+        }
+
+        if ($request_no) {
+            $sql .= ' AND project_change_request.request_no LIKE ?';
+            $binds[] = '%' . $request_no . '%';
         }
 
         $sql .= ' ORDER BY project_change_request.request_date DESC';
