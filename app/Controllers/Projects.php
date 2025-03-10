@@ -68,6 +68,7 @@ class Projects extends MYTController
             $response = $this->failNotFound('No available particulars found');
         } else {
             foreach ($data as $key => $item) {
+                //var_dump($item); die();
                 (float)$balance = $item['amount'];
                 $payments = $this->projectInvoicePaymentModel->get_balance($item['project_id']) ?? [];
                 foreach ($payments as $payment) {
@@ -81,7 +82,7 @@ class Projects extends MYTController
                 }
 
                 
-                $data[$key]['balance'] = floatval(str_replace(',', '',$balance));
+                //$data[$key]['balance'] = floatval(str_replace(',', '',$balance));
             }
             $response = $this->respond([
                 'status' => 'success',
