@@ -114,7 +114,7 @@ class Project_change_requests extends MYTController
             return $response;
 
         $where = [
-            'id'         => $this->request->getVar('project_change_request_id'), 
+            'id'         => $this->request->getVar('change_request_id'), 
             'is_deleted' => 0
         ];
 
@@ -190,15 +190,16 @@ class Project_change_requests extends MYTController
         $address = $this->request->getVar('address');
         $company = $this->request->getVar('company');
         $request_date = $this->request->getVar('request_date');
-        $change_request_no = $this->request->getVar('change_request_no');
+        $request_no = $this->request->getVar('request_no');
         $change_request_name = $this->request->getVar('change_request_name');
         $description = $this->request->getVar('description');
         $remarks = $this->request->getVar('remarks');
         $anything = $this->request->getVar('anything') ?? null;
+        $request_no = $this->request->getVar('request_no') ?? null;
         // $date_from = $this->request->getVar('date_from')??null;
         // $date_to = $this->request->getVar('date_to')??null;
 
-        if (!$project_change_requests = $this->projectChangeRequestModel->search($project_change_request_id, $project_id, $customer_id, $name, $request_date, $address, $company, $remarks, $anything)) {
+        if (!$project_change_requests = $this->projectChangeRequestModel->search($project_change_request_id, $project_id, $customer_id, $name, $request_date, $address, $company, $remarks, $request_no, $anything)) {
             $response = $this->failNotFound('No project_change_request found');
         } else {
 
@@ -259,7 +260,7 @@ class Project_change_requests extends MYTController
             'project_id'            => $this->request->getVar('project_id'),
             'project_invoice_id'    => $this->request->getVar('project_invoice_id'),
             'request_date'          => $this->request->getVar('request_date'),
-            'change_request_no'     => $this->request->getVar('change_request_no'),
+            'request_no'            => $this->request->getVar('request_no'),
             'change_request_name'   => $this->request->getVar('change_request_name'),
             'description'           => $this->request->getVar('description'),
             'remarks'               => $this->request->getVar('remarks'),
