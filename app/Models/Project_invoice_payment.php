@@ -225,17 +225,17 @@ EOT;
         }
 
         if ($date_from && $date_to) {
-            $sql .= <<<EOT
-
-AND project_invoice_payment.payment_date BETWEEN ? AND ?
-EOT;
+            $sql .= ' AND project_invoice_payment.payment_date BETWEEN ? AND ?';
             $binds[] = $date_from;
             $binds[] = $date_to;
         }
 
+        $sql .= ' ORDER BY project_invoice_payment.payment_date DESC';
+
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
+
 
     /**
      * Delete project_invoice_payment by project_invoice_id
