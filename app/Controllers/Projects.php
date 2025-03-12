@@ -68,20 +68,22 @@ class Projects extends MYTController
             $response = $this->failNotFound('No available particulars found');
         } else {
             foreach ($data as $key => $item) {
-                (float)$balance = $item['amount'];
+                //var_dump($item); die();
+                $balance = $item['amount'];
                 $payments = $this->projectInvoicePaymentModel->get_balance($item['project_id']) ?? [];
                 foreach ($payments as $payment) {
                     //$balance -= $payment['paid_amount'];
                     $one_time_fee_pinv_items = $this->projectInvoiceItemModel->select('', ['item_id' => $item['id'], 'project_invoice_id' => $payment['project_invoice_id'], 'is_deleted' => 0]) ?? [];
+                    
                     if (!empty($one_time_fee_pinv_items)) {
                         foreach ($one_time_fee_pinv_items as $pinv_item) {
-                            $balance -= (float)$pinv_item['billed_amount'];
+                            $balance -= $pinv_item['billed_amount'];
                         }
                     }
                 }
 
                 
-                $data[$key]['balance'] = floatval(str_replace(',', '',$balance));
+                $data[$key]['balance'] = $balance;
             }
             $response = $this->respond([
                 'status' => 'success',

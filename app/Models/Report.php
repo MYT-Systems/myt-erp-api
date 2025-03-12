@@ -683,13 +683,13 @@ EOT;
         $database = \Config\Database::connect();
 
         $sql = <<<EOT
-SELECT supplier_id, supplier_name, GROUP_CONCAT(cur SEPARATOR ',') AS cur, GROUP_CONCAT(one_to_thirthy SEPARATOR ',') AS one_to_thirthy, GROUP_CONCAT(thirtyone_to_sixty SEPARATOR ',') AS thirtyone_to_sixty, GROUP_CONCAT(sixty_to_ninety SEPARATOR ',') AS sixty_to_ninety, GROUP_CONCAT(above_ninety SEPARATOR ',') AS above_ninety, SUM(total) AS total, SUM(total_paid) AS total_paid
+SELECT supplier_id, supplier_name, GROUP_CONCAT(cur SEPARATOR ',') AS cur, GROUP_CONCAT(one_to_thirty SEPARATOR ',') AS one_to_thirty, GROUP_CONCAT(thirtyone_to_sixty SEPARATOR ',') AS thirtyone_to_sixty, GROUP_CONCAT(sixty_to_ninety SEPARATOR ',') AS sixty_to_ninety, GROUP_CONCAT(above_ninety SEPARATOR ',') AS above_ninety, SUM(total) AS total, SUM(total_paid) AS total_paid
 FROM (
   SELECT supplier.id AS supplier_id, supplies_expense.id, supplier.trade_name AS supplier_name,
     CASE
     WHEN (supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date))- supplier.terms <= 0) THEN GROUP_CONCAT(CONCAT("Exp. ",supplies_expense.id,' - ',supplies_expense.grand_total))END AS cur,
     CASE
-    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms > 0 AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms <= 30  THEN CONCAT("Exp. ",supplies_expense.id,' - ',supplies_expense.grand_total) END AS one_to_thirthy,
+    WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms > 0 AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms <= 30  THEN CONCAT("Exp. ",supplies_expense.id,' - ',supplies_expense.grand_total) END AS one_to_thirty,
     CASE
     WHEN supplies_expense.grand_total > supplies_expense.paid_amount AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms > 30 AND DATEDIFF(CURDATE(), IF(supplies_expense.due_date IS NULL, supplies_expense.supplies_expense_date, supplies_expense.due_date)) - supplier.terms <= 60  THEN CONCAT("Exp. ",supplies_expense.id,' - ',supplies_expense.grand_total) END AS thirtyone_to_sixty,
     CASE
@@ -737,13 +737,13 @@ EOT;
         $database = \Config\Database::connect();
 
         $sql = <<<EOT
-SELECT customer_id, customer_name, GROUP_CONCAT(cur SEPARATOR ',') AS cur, GROUP_CONCAT(one_to_thirthy SEPARATOR ',') AS one_to_thirthy, GROUP_CONCAT(thirtyone_to_sixty SEPARATOR ',') AS thirtyone_to_sixty, GROUP_CONCAT(sixty_to_ninety SEPARATOR ',') AS sixty_to_ninety, GROUP_CONCAT(above_ninety SEPARATOR ',') AS above_ninety, SUM(total) AS total, SUM(total_paid) AS total_paid
+SELECT customer_id, customer_name, GROUP_CONCAT(cur SEPARATOR ',') AS cur, GROUP_CONCAT(one_to_thirty SEPARATOR ',') AS one_to_thirty, GROUP_CONCAT(thirtyone_to_sixty SEPARATOR ',') AS thirtyone_to_sixty, GROUP_CONCAT(sixty_to_ninety SEPARATOR ',') AS sixty_to_ninety, GROUP_CONCAT(above_ninety SEPARATOR ',') AS above_ninety, SUM(total) AS total, SUM(total_paid) AS total_paid
 FROM (
   SELECT customer.id AS customer_id, project_invoice.id, customer.name AS customer_name,
     CASE
     WHEN (project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date))- customer.terms <= 0) THEN GROUP_CONCAT(CONCAT("INV. ",project_invoice.invoice_no,'-(',project_invoice.grand_total, ')'))END AS cur,
     CASE
-    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 0 AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms <= 30  THEN CONCAT("INV. ",project_invoice.invoice_no,'-(',project_invoice.grand_total, ')') END AS one_to_thirthy,
+    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 0 AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms <= 30  THEN CONCAT("INV. ",project_invoice.invoice_no,'-(',project_invoice.grand_total, ')') END AS one_to_thirty,
     CASE
     WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 30 AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms <= 60  THEN CONCAT("INV. ",project_invoice.invoice_no,'-(',project_invoice.grand_total, ')') END AS thirtyone_to_sixty,
     CASE
