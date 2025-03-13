@@ -695,7 +695,7 @@ class Project_invoices extends MYTController
     }
 
     /**
-     * Attempt delete
+     * Attempt send to client
      */
     protected function _attempt_send_to_client($project_invoice, $db)
     {        
