@@ -20,6 +20,7 @@ class Supplies_expense extends MYTModel
         'delivery_date',
         'doc_no',
         'grand_total',
+        'balance',
         'remarks',
         'payment_method',
         'requisitioner',
@@ -87,7 +88,7 @@ EOT;
     /**
      * Get all supplies_expenses.
      */
-    public function get_all_supplies_expense()
+    public function get_all_supplies_expense($supplier_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -108,9 +109,17 @@ FROM supplies_expense
 WHERE supplies_expense.is_deleted = 0
 EOT;
 
-        $query = $database->query($sql);
+        $binds = [];
+
+        if ($supplier_id) {
+            $sql .= " AND supplies_expense.supplier_id = ?";
+            $binds[] = $supplier_id;
+        }
+
+        $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
+
 
     /**
      * Get receive details by ID
@@ -274,20 +283,26 @@ EOT;
         }
     
         if ($status) {
-            if ($status == 'pending') {
-                // If status is 'pending', fetch pending, for_approval, and approved statuses
-                $sql .= ' AND supplies_expense.status IN (?, ?) AND supplies_expense.order_status = "pending"';
-                $binds[] = 'pending';
-                $binds[] = 'for_approval';
-            } elseif ($status == 'sent') {
-                // If status is 'sent', include 'approved' status
-                $sql .= ' AND supplies_expense.status IN (?, ?) AND supplies_expense.order_status = "pending"';
-                $binds[] = 'sent';
-                $binds[] = 'approved';
-            } else {
-                // Otherwise, only use the provided status
+            if ($status == 'for_approval') {
                 $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"';
-                $binds[] = $status;
+                // $binds[] = 'pending';
+                $binds[] = 'for_approval';
+            } elseif ($status == 'approved') {
+                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"';
+                // $binds[] = 'sent';
+                $binds[] = 'approved';
+            } elseif ($status == 'disapproved') {
+                $sql .= ' AND supplies_expense.status = ?';
+                // $binds[] = 'sent';
+                $binds[] = 'disapproved';
+            } elseif ($status == 'all') {
+                $sql .= ' AND supplies_expense.status IN (?, ?) 
+                          AND supplies_expense.order_status IN (?, ?, ?)';
+                $binds[] = 'approved';
+                $binds[] = 'disapproved';
+                $binds[] = 'complete';
+                $binds[] = 'incomplete';
+                $binds[] = 'pending';
             }
         }
 
