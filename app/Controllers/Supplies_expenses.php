@@ -55,7 +55,8 @@ class Supplies_expenses extends MYTController
         if (($response = $this->_api_verification('supplies_expenses', 'get_all_supplies_expense')) !== true)
             return $response;
 
-        $supplies_expenses = $this->suppliesExpenseModel->get_all_supplies_expense();
+        $supplier_id = $this->request->getVar('supplier_id') ? : null;
+        $supplies_expenses = $this->suppliesExpenseModel->get_all_supplies_expense($supplier_id);
 
         if (!$supplies_expenses) {
             $response = $this->failNotFound('No supplies expense found');
@@ -85,9 +86,6 @@ class Supplies_expenses extends MYTController
 
         $db = \Config\Database::connect();
         $db->transBegin();
-
-        // var_dump($this->_attempt_create());
-        // die();
     
         if (!$supplies_expense_id = $this->_attempt_create()) {
             $db->transRollback();
@@ -259,9 +257,9 @@ class Supplies_expenses extends MYTController
         ];
         $new_status = $this->request->getVar('new_status');
 
-        if (!$suppplies_expense = $this->suppliesExpenseModel->select('', $where, 1)) {
+        if (!$supplies_expense = $this->suppliesExpenseModel->select('', $where, 1)) {
             $response = $this->respond(['response' => 'Supplies expense not found']);
-        } elseif (!$this->_attempt_change_status($suppplies_expense, $new_status)) {
+        } elseif (!$this->_attempt_change_status($supplies_expense, $new_status)) {
             $response = $this->fail('Server error');
         } else {
             $response = $this->respond(['response' => 'Supplies expense status changed successfully']);
@@ -331,7 +329,7 @@ class Supplies_expenses extends MYTController
             'payment_method'        => $this->request->getVar('payment_method') ? : null,
             'remarks'               => $this->request->getVar('remarks') ? : null,
             'requisitioner'         => $this->request->getVar('requisitioner') ? : null,
-            // 'status'                => $this->request->getVar('is_save') ? 'pending' : 'for_approval',
+            'status'                => 'for_approval',
             'prepared_by'           => $this->requested_by,
             'added_by'              => $this->requested_by,
             'added_on'              => date('Y-m-d H:i:s'),
@@ -382,6 +380,7 @@ class Supplies_expenses extends MYTController
 
         $values = [
             'grand_total' => $grand_total,
+            'balance'     => $grand_total,
             'updated_by'  => $this->requested_by,
             'updated_on'  => date('Y-m-d H:i:s')
         ];
