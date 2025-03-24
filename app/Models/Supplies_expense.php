@@ -297,13 +297,10 @@ EOT;
                 // $binds[] = 'sent';
                 $binds[] = 'disapproved';
             } elseif ($status == 'all') {
-                $sql .= ' AND supplies_expense.status IN (?, ?) 
-                          AND supplies_expense.order_status IN (?, ?, ?)';
+                $sql .= ' AND supplies_expense.status IN (?, ?, ?)';
+                $binds[] = 'for_approval';
                 $binds[] = 'approved';
                 $binds[] = 'disapproved';
-                $binds[] = 'complete';
-                $binds[] = 'incomplete';
-                $binds[] = 'pending';
             }
         }
 
