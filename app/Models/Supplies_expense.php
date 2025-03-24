@@ -20,6 +20,7 @@ class Supplies_expense extends MYTModel
         'delivery_date',
         'doc_no',
         'grand_total',
+        'paid_amount',
         'balance',
         'remarks',
         'payment_method',
