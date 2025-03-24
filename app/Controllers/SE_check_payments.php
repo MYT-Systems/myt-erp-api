@@ -515,20 +515,23 @@ class Se_check_payments extends MYTController
             ];
 
             if (!$this->checkEntryModel->insert($data)) {
-                var_dump("Failed to insert se_check_entry");
                 return false;
             }
 
-            if ($receive = $this->seReceiveModel->get_details_by_id($se_id)) {
-                $receive_data = [
-                    'paid_amount' => $receive[0]['paid_amount'] + $amounts[$key],
-                    'balance'     => $receive[0]['balance'] - $amounts[$key],
-                    'updated_on'  => date('Y-m-d H:i:s'),
-                    'updated_by'  => $this->requested_by
+            if ($supplies_expense = $this->suppliesExpenseModel->get_details_by_id($se_id)) {
+                $new_balance = $supplies_expense[0]['balance'] - $amounts[$key];
+
+                $order_status = ($new_balance <= 0) ? 'complete' : 'incomplete';
+
+                $supplies_expense_data = [
+                    'paid_amount' => $supplies_expense[0]['paid_amount'] + $amounts[$key],
+                    'balance'     => $new_balance,
+                    'order_status' => $order_status,
+                    'updated_on' => date('Y-m-d H:i:s'),
+                    'updated_by' => $this->requested_by
                 ];
 
-                if (!$this->seReceiveModel->update($se_id, $receive_data)) {
-                    var_dump("Failed to update se_receive");
+                if (!$this->suppliesExpenseModel->update($se_id, $supplies_expense_data)) {
                     return false;
                 }
             } else {
@@ -702,6 +705,7 @@ class Se_check_payments extends MYTController
     {
         $this->checkEntryModel     = new SE_check_entry();
         $this->checkSlipModel      = new SE_check_slip();
+        $this->suppliesExpenseModel     = model('App\Models\Supplies_expense');
         $this->checkSlipAttachmentModel      = new SE_check_slip_attachment();
         $this->seReceiveModel      = new Supplies_receive();
         $this->webappResponseModel = new Webapp_response();
