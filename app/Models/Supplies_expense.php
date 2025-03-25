@@ -93,7 +93,7 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT supplies_expense.*,
+SELECT supplies_expense.*, 
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.prepared_by) AS prepared_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.approved_by) AS approved_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.printed_by) AS printed_by_name,
@@ -104,10 +104,10 @@ SELECT supplies_expense.*,
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_expense.supplier_id) AS supplier_trade_name,
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_expense.forwarder_id) AS forwarder_name,
     (SELECT expense_type.name FROM expense_type WHERE expense_type.id = supplies_expense.type) AS expense_name,
-    (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_trade_name,
-    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requisitioner_name
+    (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_trade_name
 FROM supplies_expense
-WHERE supplies_expense.is_deleted = 0
+WHERE supplies_expense.is_deleted = 0 
+AND supplies_expense.status = 'approved'
 EOT;
 
         $binds = [];
@@ -120,7 +120,6 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
-
 
     /**
      * Get receive details by ID
@@ -297,10 +296,12 @@ EOT;
                 // $binds[] = 'sent';
                 $binds[] = 'disapproved';
             } elseif ($status == 'all') {
-                $sql .= ' AND supplies_expense.status IN (?, ?, ?)';
-                $binds[] = 'for_approval';
-                $binds[] = 'approved';
-                $binds[] = 'disapproved';
+                $sql .= ' AND (
+                    (supplies_expense.status = "for_approval" AND (supplies_expense.approved_by IS NULL OR supplies_expense.approved_by = "")) 
+                    OR supplies_expense.status = "approved" 
+                    OR supplies_expense.status = "disapproved" 
+                    OR (supplies_expense.status = "approved" AND supplies_expense.order_status IN ("complete", "incomplete", "pending"))
+                )';
             }
         }
 
