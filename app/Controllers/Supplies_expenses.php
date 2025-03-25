@@ -184,7 +184,7 @@ class Supplies_expenses extends MYTController
         $purpose               = $this->request->getVar('purpose') ? : null;
         $requisitioner         = $this->request->getVar('requisitioner') ? : null;
         $status                = $this->request->getVar('status') ? : null;
-        $order_status          = $this->request->getVar('order_status') ? : 'pending'; //assume pending
+        $order_status          = $this->request->getVar('order_status') ? : null;
         $se_date_from          = $this->request->getVar('se_date_from') ? : null;
         $se_date_to            = $this->request->getVar('se_date_to') ? : null;
         $delivery_date_from    = $this->request->getVar('delivery_date_from') ? : null;
