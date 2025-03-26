@@ -238,7 +238,7 @@ EOT;
         }
     
         if ($invoice_no) {
-            $sql .= " AND invoice_no = ?";
+            $sql .= " AND supplies_receive.invoice_no = ?";
             $binds[] = $invoice_no;
         }
     

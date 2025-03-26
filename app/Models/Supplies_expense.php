@@ -20,6 +20,8 @@ class Supplies_expense extends MYTModel
         'delivery_date',
         'doc_no',
         'grand_total',
+        'paid_amount',
+        'balance',
         'remarks',
         'payment_method',
         'requisitioner',
@@ -87,11 +89,11 @@ EOT;
     /**
      * Get all supplies_expenses.
      */
-    public function get_all_supplies_expense()
+    public function get_all_supplies_expense($supplier_id = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT supplies_expense.*,
+SELECT supplies_expense.*, 
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.prepared_by) AS prepared_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.approved_by) AS approved_by_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.printed_by) AS printed_by_name,
@@ -102,13 +104,20 @@ SELECT supplies_expense.*,
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = supplies_expense.supplier_id) AS supplier_trade_name,
     (SELECT forwarder.name FROM forwarder WHERE forwarder.id = supplies_expense.forwarder_id) AS forwarder_name,
     (SELECT expense_type.name FROM expense_type WHERE expense_type.id = supplies_expense.type) AS expense_name,
-    (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_trade_name,
-    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requisitioner_name
+    (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_trade_name
 FROM supplies_expense
-WHERE supplies_expense.is_deleted = 0
+WHERE supplies_expense.is_deleted = 0 
+AND supplies_expense.status = 'approved'
 EOT;
 
-        $query = $database->query($sql);
+        $binds = [];
+
+        if ($supplier_id) {
+            $sql .= " AND supplies_expense.supplier_id = ?";
+            $binds[] = $supplier_id;
+        }
+
+        $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
 
@@ -274,20 +283,25 @@ EOT;
         }
     
         if ($status) {
-            if ($status == 'pending') {
-                // If status is 'pending', fetch pending, for_approval, and approved statuses
-                $sql .= ' AND supplies_expense.status IN (?, ?) AND supplies_expense.order_status = "pending"';
-                $binds[] = 'pending';
-                $binds[] = 'for_approval';
-            } elseif ($status == 'sent') {
-                // If status is 'sent', include 'approved' status
-                $sql .= ' AND supplies_expense.status IN (?, ?) AND supplies_expense.order_status = "pending"';
-                $binds[] = 'sent';
-                $binds[] = 'approved';
-            } else {
-                // Otherwise, only use the provided status
+            if ($status == 'for_approval') {
                 $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"';
-                $binds[] = $status;
+                // $binds[] = 'pending';
+                $binds[] = 'for_approval';
+            } elseif ($status == 'approved') {
+                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"';
+                // $binds[] = 'sent';
+                $binds[] = 'approved';
+            } elseif ($status == 'disapproved') {
+                $sql .= ' AND supplies_expense.status = ?';
+                // $binds[] = 'sent';
+                $binds[] = 'disapproved';
+            } elseif ($status == 'all') {
+                $sql .= ' AND (
+                    (supplies_expense.status = "for_approval" AND (supplies_expense.approved_by IS NULL OR supplies_expense.approved_by = "")) 
+                    OR supplies_expense.status = "approved" 
+                    OR supplies_expense.status = "disapproved" 
+                    OR (supplies_expense.status = "approved" AND supplies_expense.order_status IN ("complete", "incomplete", "pending"))
+                )';
             }
         }
 
