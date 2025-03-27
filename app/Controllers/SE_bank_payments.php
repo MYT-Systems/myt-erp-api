@@ -13,6 +13,7 @@ class Se_bank_payments extends MYTController
 
     public function __construct()
     {
+        helper('filesystem');
         // Headers
         $this->api_key = $_SERVER['HTTP_API_KEY'];
         $this->user_key = $_SERVER['HTTP_USER_KEY'];
@@ -279,9 +280,12 @@ class Se_bank_payments extends MYTController
         if (!$se_bank_slip_id = $this->_attempt_create_slip()) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to create slip.', 'status' => 'error']);
-        } elseif (!$this->_attempt_generate_entry($se_bank_slip_id)) {
+        } elseif (($error_message = $this->_attempt_generate_entry($se_bank_slip_id)) !== true) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to generate bank entry.', 'status' => 'error']);
+            return $this->respond([
+                "response" => $error_message,  
+                "status" => "error"            
+            ]);
         } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_bank_slip_id, 'assets/se_bank_payments/')) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
@@ -313,7 +317,7 @@ class Se_bank_payments extends MYTController
             $response = $this->failNotFound('Supplies expense bank slip not found');
         } elseif (!$this->_attempt_update_slip($se_bank_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense bankentry updated unsuccessfully']);
+            $response = $this->respond(['response' => 'Supplies expense bank entry updated unsuccessfully']);
         } elseif (!$this->_attempt_update_entry($se_bank_slip_id)) {
             $db->transRollback();
             $response = $this->respond(['response' => 'Supplies expense bank entry updated unsuccessfully']);
@@ -488,41 +492,69 @@ class Se_bank_payments extends MYTController
     {
         $se_ids = $this->request->getVar('se_ids');
         $amounts = $this->request->getVar('amounts');
+        $bank_from = $this->request->getVar('bank_from');
+        $transaction_fee = $this->request->getVar('transaction_fee');
 
-        $total = 0;
+        $bank = $this->bankModel->get_details_by_id($bank_from);
+        if (!$bank) {
+            return "Bank account not found.";
+        }
+
+        $bank_balance = $bank[0]['current_bal'];
+        $total = array_sum($amounts) + $transaction_fee; // Calculate total amount to be deducted
+
+        if ($total > $bank_balance) {
+            return "Insufficient funds in the Bank Account.";
+        }
+
+        // Process each supplies expense
         foreach ($se_ids as $key => $se_id) {
-            $total += $amounts[$key];
+            $amount = $amounts[$key];
+
+            // Insert bank entry
             $data = [
                 'se_bank_slip_id' => $se_bank_slip_id,
-                'se_id'            => $se_id,
-                'amount'           => $amounts[$key],
-                'added_by'         => $this->requested_by,
-                'added_on'         => date('Y-m-d H:i:s')
+                'se_id'           => $se_id,
+                'amount'          => $amount,
+                'added_by'        => $this->requested_by,
+                'added_on'        => date('Y-m-d H:i:s')
             ];
 
             if (!$this->bankEntryModel->insert($data)) {
-                return false;
+                return "Failed to insert bank entry for se_id: {$se_id}";
             }
 
-            if ($supplies_expense = $this->suppliesExpenseModel->get_details_by_id($se_id)) {
-                $new_balance = $supplies_expense[0]['balance'] - $amounts[$key];
-
+            $supplies_expense = $this->suppliesExpenseModel->get_details_by_id($se_id);
+            if ($supplies_expense) {
+                $new_balance = $supplies_expense[0]['balance'] - $amount;
                 $order_status = ($new_balance <= 0) ? 'complete' : 'incomplete';
 
                 $supplies_expense_data = [
-                    'paid_amount' => $supplies_expense[0]['paid_amount'] + $amounts[$key],
-                    'balance'     => $new_balance,
+                    'paid_amount'  => $supplies_expense[0]['paid_amount'] + $amount,
+                    'balance'      => $new_balance,
                     'order_status' => $order_status,
-                    'updated_on' => date('Y-m-d H:i:s'),
-                    'updated_by' => $this->requested_by
+                    'updated_on'   => date('Y-m-d H:i:s'),
+                    'updated_by'   => $this->requested_by
                 ];
 
                 if (!$this->suppliesExpenseModel->update($se_id, $supplies_expense_data)) {
-                    return false;
+                    return "Failed to update supplies expense for se_id: {$se_id}";
                 }
             } else {
-                var_dump("Supplies Expense Receive id {$se_id} not found");
+                return "Supplies Expense with id {$se_id} not found.";
             }
+        }
+
+        $new_bank_balance = $bank_balance - $total;
+
+        $bank_data = [
+            'current_bal' => $new_bank_balance,
+            'updated_on'  => date('Y-m-d H:i:s'),
+            'updated_by'  => $this->requested_by
+        ];
+
+        if (!$this->bankModel->update($bank_from, $bank_data)) {
+            return "Failed to update bank balance.";
         }
 
         $values = [
@@ -530,8 +562,9 @@ class Se_bank_payments extends MYTController
             'updated_by' => $this->requested_by,
             'updated_on' => date('Y-m-d H:i:s')
         ];
+
         if (!$this->bankSlipModel->update($se_bank_slip_id, $values)) {
-            return false;
+            return "Failed to update bank slip.";
         }
 
         return true;
@@ -696,6 +729,7 @@ class Se_bank_payments extends MYTController
     {
         $this->bankEntryModel           = new SE_bank_entry();
         $this->bankSlipModel            = new SE_bank_slip();
+        $this->bankModel                = model('App\Models\Bank');
         $this->suppliesExpenseModel     = model('App\Models\Supplies_expense');
         $this->bankSlipAttachmentModel  = new SE_bank_slip_attachment();
         $this->seReceiveModel           = new Supplies_receive();
