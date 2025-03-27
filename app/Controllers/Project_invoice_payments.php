@@ -267,7 +267,9 @@ class Project_invoice_payments extends MYTController
      * Create project_invoice_payments
      */
     private function _attempt_create()
-    {        
+    {   
+        $to_bank_id = $this->request->getVar('to_bank_id');
+        $paid_amount = $this->request->getVar('paid_amount');     
         if ($project_invoice = $this->projectInvoiceModel->get_details_by_id($this->request->getVar('project_invoice_id'))) {
             $project_invoice = $project_invoice[0];
         } else {
@@ -283,7 +285,7 @@ class Project_invoice_payments extends MYTController
             'remarks'            => $this->request->getVar('remarks'),
             'from_bank_id'       => $this->request->getVar('from_bank_id'),
             'to_bank_name'       => $this->request->getVar('to_bank_name'),
-            'to_bank_id'         => $this->request->getVar('to_bank_id'),
+            'to_bank_id'         => $to_bank_id,
             'cheque_number'      => $this->request->getVar('cheque_number'),
             'cheque_date'        => $this->request->getVar('cheque_date'),
             'reference_number'   => $this->request->getVar('reference_number'),
@@ -292,7 +294,7 @@ class Project_invoice_payments extends MYTController
             'invoice_no'         => $this->request->getVar('invoice_no'),
             'term_day'           => $this->request->getVar('term_day'),
             'delivery_address'   => $this->request->getVar('delivery_address'),
-            'paid_amount'        => $this->request->getVar('paid_amount'),
+            'paid_amount'        => $paid_amount,
             'grand_total'        => $this->request->getVar('grand_total'),
             'subtotal'           => $this->request->getVar('subtotal'),
             'service_fee'        => $this->request->getVar('service_fee'),
@@ -311,8 +313,33 @@ class Project_invoice_payments extends MYTController
         if (!$this->_record_sale_payment($project_invoice, $values)) {
             return false;
         }
+
+        if (!$this->_attempt_increment_balance($to_bank_id, $paid_amount)) {
+            return false;
+        }
         
         return $project_invoice_payment_id;
+    }
+
+    /**
+     * Increment bank balance
+     */
+    protected function _attempt_increment_balance($bank_id, $amount)
+    {
+        $bank = $this->bankModel->get_details_by_id($bank_id)[0];
+
+        $new_values = [
+            'current_bal' => $bank['current_bal'] + $amount,
+            'updated_by'  => $this->requested_by,
+            'updated_on'  => date('Y-m-d H:i:s'),
+        ];
+
+        if (!$this->bankModel->update($bank_id, $new_values)) {
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -509,6 +536,7 @@ class Project_invoice_payments extends MYTController
      */
     protected function _load_essentials()
     {
+        $this->bankModel                  = model('App\Models\Bank');
         $this->projectInvoicePaymentModel = model('App\Models\Project_invoice_payment');
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
         $this->projectInvoiceItemModel    = model('App\Models\Project_invoice_item');
