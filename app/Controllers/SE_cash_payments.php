@@ -13,6 +13,7 @@ class Se_cash_payments extends MYTController
 
     public function __construct()
     {
+        helper('filesystem');
         // Headers
         $this->api_key = $_SERVER['HTTP_API_KEY'];
         $this->user_key = $_SERVER['HTTP_USER_KEY'];
