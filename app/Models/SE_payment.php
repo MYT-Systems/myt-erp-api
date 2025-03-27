@@ -77,7 +77,7 @@ FROM
     CONCAT('BANK-', se_bank_slip.id, '-', REPLACE(CAST(se_bank_slip.added_on AS DATE), '-', '')) AS doc_no, 
     'bank' AS payment_mode, 
     (SELECT bank.name FROM bank WHERE bank.id = se_bank_slip.bank_from) AS bank_from_name, 
-    (SELECT bank.name FROM bank WHERE bank.id = se_bank_slip.bank_to) AS bank_to_name, 
+    se_bank_slip.bank_to AS bank_to_name, 
     (SELECT supplier.trade_name FROM supplier WHERE supplier.id = se_bank_slip.supplier_id) AS supplier, 
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = se_bank_slip.vendor_id) AS vendor,
     se_bank_slip.payee AS payee, 
@@ -92,6 +92,35 @@ FROM
         SELECT se_bank_entry.se_id, se_bank_entry.se_bank_slip_id
         FROM se_bank_entry
     ) se_bank_entry ON se_bank_entry.se_bank_slip_id = se_bank_slip.id
+
+    UNION ALL
+
+    SELECT se_gcash_slip.id, 
+    se_gcash_entry.se_id,
+    null AS from_account_name, 
+    null AS to_account_name, 
+    se_gcash_slip.particulars,
+    se_gcash_slip.added_on AS date, 
+    null AS check_no,
+    se_gcash_slip.payment_date AS issued_date, 
+    CONCAT('GCASH-', se_gcash_slip.id, '-', REPLACE(CAST(se_gcash_slip.added_on AS DATE), '-', '')) AS doc_no, 
+    'gcash' AS payment_mode, 
+    null AS bank_from_name, 
+    null AS bank_to_name, 
+    (SELECT supplier.trade_name FROM supplier WHERE supplier.id = se_gcash_slip.supplier_id) AS supplier, 
+    (SELECT vendor.trade_name FROM vendor WHERE vendor.id = se_gcash_slip.vendor_id) AS vendor,
+    se_gcash_slip.payee AS payee, 
+    se_gcash_slip.amount AS amount, 
+    se_gcash_slip.status, 
+    se_gcash_slip.is_deleted, 
+    se_gcash_slip.supplier_id,
+    se_gcash_slip.vendor_id,
+    se_gcash_slip.reference_no
+    FROM se_gcash_slip
+    LEFT JOIN (
+        SELECT se_gcash_entry.se_id, se_gcash_entry.se_gcash_slip_id
+        FROM se_gcash_entry
+    ) se_gcash_entry ON se_gcash_entry.se_gcash_slip_id = se_gcash_slip.id
 
     UNION ALL
     
@@ -159,7 +188,7 @@ EOT;
             $binds[] = "%" . $doc_no . "%";
         }
 
-        $sql .= ' ORDER BY date DESC';
+        $sql .= ' ORDER BY date';
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
