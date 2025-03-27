@@ -196,6 +196,7 @@ class Banks extends MYTController
             'account_name'      => $this->request->getVar('account_name'),
             'account_no'        => $this->request->getVar('account_no'),
             'beginning_bal'     => $this->request->getVar('beginning_bal'),
+            'current_bal'       => $this->request->getVar('beginning_bal'),
             'check_template_id' => $this->request->getVar('check_template_id'),
             'added_by'          => $this->requested_by,
             'added_on'          => date('Y-m-d H:i:s'),
