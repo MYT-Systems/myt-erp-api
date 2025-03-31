@@ -195,21 +195,28 @@ class Supplies_expenses extends MYTController
         if (!$supplies_expenses = $this->suppliesExpenseModel->search($supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $supplies_expense_date, $delivery_date, $delivery_address, $branch_name, $remarks, $purpose, $requisitioner, $status, $order_status, $se_date_from, $se_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)) {
             $response = $this->failNotFound('No supplies_expense found');
         } else {
-           
+            $total_expenses = 0;
+
             foreach ($supplies_expenses as $key => $supplies_expense) {
                 $supplies_receives = $this->suppliesReceiveModel->get_id_by_se_id($supplies_expense['id']);
                 $payments = [];
+
                 foreach ($supplies_receives as $key2 => $supplies_receive) {
                     $payments[] = $this->suppliesPaymentModel->get_all_payment_by_se($supplies_receive['id']);
                 }
+
                 $supplies_expenses[$key]['payments'] = $payments ? $payments[0] : [];
                 $supplies_expenses[$key]['invoice_no'] = $supplies_receives;
+
+                // Add grand_total to total_expenses
+                $total_expenses += $supplies_expense['grand_total'] ?? 0;
             }
 
             $response = $this->respond([
-                'response' => 'Supplies expense found',
-                'status'   => 'success',
-                'data'     => $supplies_expenses
+                'response'      => 'Supplies expense found',
+                'status'        => 'success',
+                'total_expenses'=> $total_expenses,
+                'data'          => $supplies_expenses,
             ]);
         }
 
