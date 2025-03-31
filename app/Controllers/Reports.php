@@ -701,6 +701,7 @@ class Reports extends MYTController
         $data['petty_cash'] = count($this->pettyCashModel->select('', ['is_deleted' => 0])?:[]);
         $data['pending_po'] = count($this->suppliesReceiveModel->select('', ['balance >' => 0, 'is_deleted' => 0]) ?: []);
         $data['pending_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
+        $data['projects_to_bill'] = count($this->projectModel->get_projects_to_bill()?:[]);
 
         $response = $this->respond([
             'data'   => $data,
@@ -1123,6 +1124,7 @@ class Reports extends MYTController
     protected function _load_essentials()
     {
         $this->reportModel                = model('App\Models\Report');
+        $this->projectModel               = model('App\Models\Project');
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
         $this->projectExpenseModel        = model('App\Models\Project_expense');
         $this->suppliesExpenseModel       = model('App\Models\Supplies_expense');
