@@ -41,59 +41,139 @@ class Project extends MYTModel
     }
 
     /**
-     * Get project that are in need of billing for a certain date
-     * If no billing in the past 30 days then client must show
+     * Get projects that need to be billed
      */
-    public function get_recurring_cost_to_bill($project_id = null, $billing_date = null)
+    public function get_projects_to_bill($project_id = null, $billing_date = null)
     {
         $database = \Config\Database::connect();
+
+        // Use current date if no billing date is provided
+        if (!$billing_date) {
+            $billing_date = date('Y-m-d'); // Current date
+        }
+
         $sql = <<<EOT
-SELECT project_recurring_cost.*, customer.name AS customer_name, project.name AS project_name
+SELECT 
+    'recurring' AS billing_type,
+    project_recurring_cost.id AS item_id,
+    project_recurring_cost.project_id,
+    project_recurring_cost.description,
+    project_recurring_cost.type,
+    project_recurring_cost.period,
+    project_recurring_cost.price,
+    project_recurring_cost.balance,
+    customer.name AS customer_name,
+    project.name AS project_name,
+    project.project_date,
+    project.project_date AS date_reference,
+    COUNT(project_invoice_item.id) AS times_billed
 FROM project
-    LEFT JOIN project_recurring_cost ON project_recurring_cost.project_id = project.id
-    LEFT JOIN subscription_billing_entry ON subscription_billing_entry.project_recurring_cost_id = project_recurring_cost.id
-    LEFT JOIN subscription_billing ON subscription_billing.id = subscription_billing_entry.subscription_billing_id
-    LEFT JOIN customer ON customer.id = project.customer_id
-
-WHERE (subscription_billing.billing_date IS NULL OR subscription_billing.billing_date < ( 
+LEFT JOIN project_recurring_cost ON project_recurring_cost.project_id = project.id
+LEFT JOIN customer ON customer.id = project.customer_id
+LEFT JOIN project_invoice_item ON project_invoice_item.item_id = project_recurring_cost.id
+    AND project_invoice_item.is_deleted = 0
+WHERE project.is_deleted = 0
+AND project_recurring_cost.is_deleted = 0
+AND project_recurring_cost.is_occupied = 0
+AND project_recurring_cost.balance > 0
+AND NOT EXISTS (
+    SELECT 1 
+    FROM project_invoice_item 
+    JOIN project_invoice ON project_invoice.id = project_invoice_item.project_invoice_id
+    WHERE project_invoice_item.item_id = project_recurring_cost.id
+    AND DATE_FORMAT(project_invoice.invoice_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')
+    AND project_invoice_item.is_deleted = 0
+    AND project_invoice.is_deleted = 0
+)
+AND (
     CASE 
-        WHEN project_recurring_cost.type = 'yearly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period YEAR)
-        WHEN project_recurring_cost.type = 'monthly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period MONTH)
-        WHEN project_recurring_cost.type = 'weekly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period WEEK)
-    END)
-    )
-    AND (project.start_date < ( 
-    CASE 
-        WHEN project_recurring_cost.type = 'yearly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period YEAR)
-        WHEN project_recurring_cost.type = 'monthly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period MONTH)
-        WHEN project_recurring_cost.type = 'weekly' THEN DATE_SUB(?, INTERVAL project_recurring_cost.period WEEK)
-    END))
-    AND project.is_deleted = 0
-    AND project_recurring_cost.is_deleted = 0
-    AND (subscription_billing_entry.is_deleted = 0 OR subscription_billing_entry.is_deleted IS NULL)
-    AND (subscription_billing.is_deleted = 0 OR subscription_billing.is_deleted IS NULL)
-EOT;
-    $binds = [$billing_date, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date];
-
-if($project_id) {
-    $sql .= <<<EOT
-
-    AND project.id = ?    
-EOT;
-        $binds[] = $project_id;
-}
-
-    $sql .= <<<EOT
-
+        WHEN project_recurring_cost.type = 'yearly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period YEAR)
+        WHEN project_recurring_cost.type = 'monthly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period MONTH)
+        WHEN project_recurring_cost.type = 'weekly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period WEEK)
+        WHEN project_recurring_cost.type = 'daily' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period DAY)
+    END
+) <= DATE_ADD(?, INTERVAL 15 DAY)
 GROUP BY project_recurring_cost.id
+HAVING times_billed < project_recurring_cost.period
+
+UNION ALL
+
+SELECT 
+    'onetime' AS billing_type,
+    project_one_time_fee.id AS item_id,
+    project_one_time_fee.project_id,
+    project_one_time_fee.description,
+    NULL AS type,
+    NULL AS period,
+    project_one_time_fee.amount AS price,
+    project_one_time_fee.balance,
+    customer.name AS customer_name,
+    project.name AS project_name,
+    project.project_date,
+    project.project_date AS date_reference,
+    NULL AS times_billed
+FROM project
+LEFT JOIN project_one_time_fee ON project_one_time_fee.project_id = project.id
+LEFT JOIN customer ON customer.id = project.customer_id
+WHERE project.is_deleted = 0
+AND project_one_time_fee.is_deleted = 0
+AND project_one_time_fee.is_occupied = 0
+AND project_one_time_fee.balance > 0
+AND project.project_date <= DATE_ADD(?, INTERVAL 15 DAY)
+AND NOT EXISTS (
+    SELECT 1 
+    FROM project_invoice_item 
+    WHERE project_invoice_item.item_id = project_one_time_fee.id
+    AND project_invoice_item.is_deleted = 0
+)
+
+UNION ALL
+
+SELECT 
+    'change_request' AS billing_type,
+    project_change_request_item.id AS item_id,
+    project_change_request.project_id,
+    project_change_request_item.name AS description,
+    NULL AS type,
+    NULL AS period,
+    project_change_request_item.amount AS price,
+    project_change_request_item.balance,
+    customer.name AS customer_name,
+    project.name AS project_name,
+    project_change_request.request_date AS date_reference,
+    project_change_request.request_date AS project_date,
+    NULL AS times_billed
+FROM project
+LEFT JOIN project_change_request ON project_change_request.project_id = project.id
+LEFT JOIN project_change_request_item ON project_change_request_item.project_change_request_id = project_change_request.id
+LEFT JOIN customer ON customer.id = project.customer_id
+WHERE project.is_deleted = 0
+AND project_change_request.is_deleted = 0
+AND project_change_request_item.is_deleted = 0
+AND project_change_request_item.balance > 0
+AND project_change_request.request_date <= DATE_ADD(?, INTERVAL 15 DAY)
+AND NOT EXISTS (
+    SELECT 1 
+    FROM project_invoice_item 
+    WHERE project_invoice_item.item_id = project_change_request_item.id
+    AND project_invoice_item.is_deleted = 0
+)
 EOT;
 
-        // 2023-08-31
+        $binds = [$billing_date, $billing_date, $billing_date, $billing_date];
+
+        if ($project_id) {
+            $sql .= " AND project.id = ? ";
+            $binds[] = $project_id;
+        }
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
 
+    /**
+     * Get project operations
+     */
     public function get_project_operations($project_type, $user_id, $project_id, $project_name, $status, $date)
     {
         $database = \Config\Database::connect();
