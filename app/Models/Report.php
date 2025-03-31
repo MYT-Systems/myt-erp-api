@@ -1106,12 +1106,12 @@ EOT;
     public function get_expenses_report($date_from = null, $date_to = null, $year = null)
     {
         $database = \Config\Database::connect();
-        
+
         $sql = <<<EOT
 SELECT 
     supplies_expense.id AS doc_no, 
-    SUM(supplies_expense.grand_total) AS expense_total, 
     expense_type.name AS expense_type,
+    SUM(supplies_expense.grand_total) AS expense_total, 
     SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 1 THEN supplies_expense.grand_total ELSE 0 END) AS jan,
     SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 2 THEN supplies_expense.grand_total ELSE 0 END) AS feb,
     SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 3 THEN supplies_expense.grand_total ELSE 0 END) AS mar,
@@ -1126,33 +1126,33 @@ SELECT
     SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 12 THEN supplies_expense.grand_total ELSE 0 END) AS `dec`
 FROM supplies_expense
 LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
-LEFT JOIN supplies_receive ON supplies_receive.se_id = supplies_expense.id
 WHERE supplies_expense.is_deleted = 0
-AND supplies_receive.is_deleted = 0
-AND supplies_expense.status <> "pending"
-AND supplies_expense.status <> "for_approval"
-AND supplies_expense.status <> "disapproved"
-AND supplies_expense.status <> "deleted"
+AND (
+    (supplies_expense.status = "for_approval" AND (supplies_expense.approved_by IS NULL OR supplies_expense.approved_by = "")) 
+    OR supplies_expense.status = "approved" 
+    OR supplies_expense.status = "disapproved" 
+    OR (supplies_expense.status = "approved" AND supplies_expense.order_status IN ("complete", "incomplete", "pending"))
+)
 EOT;
-    
+
         // Initialize bind parameters and date filter
         $binds = [];
-        
+
         if ($year) {
             $sql .= " AND YEAR(supplies_expense.supplies_expense_date) = ?";
             $binds[] = $year;
         }
-    
+
         if ($date_from && $date_to) {
             $sql .= " AND supplies_expense.supplies_expense_date BETWEEN ? AND ?";
             $binds[] = $date_from;
             $binds[] = $date_to;
         }
-        
-        //$sql .= " GROUP BY supplies_expense.id, expense_type.name";
+
         $sql .= " GROUP BY expense_type.name";
-    
+
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
     }
+
 }
