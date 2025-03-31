@@ -470,9 +470,9 @@ class Project_invoices extends MYTController
         $item_ids     = $this->request->getVar('item_ids')??[];
         $item_names   = $this->request->getVar('item_names') ?? [];
         $item_balances   = $this->request->getVar('item_balances') ?? [];
-        $units      = $this->request->getVar('units') ?? [];
-        $prices     = $this->request->getVar('prices') ?? [];
-        $subtotal   = $this->request->getVar('subtotal') ?? 0;
+        // $units      = $this->request->getVar('units') ?? [];
+        // $prices     = $this->request->getVar('prices') ?? [];
+        // $subtotal   = $this->request->getVar('subtotal') ?? 0;
         // $quantities = $this->request->getVar('quantities') ?? [];
         $grand_total = $this->request->getVar('grand_total') ?? 0;
         $project_id = $this->request->getVar('project_id')??null;
@@ -486,7 +486,7 @@ class Project_invoices extends MYTController
         foreach ($item_names as $key => $item_name) {
             // checks if it is an item in case an item_name was passed
             $item_name = $item_names[$key];
-            $item_unit = $units[$key];
+            // $item_unit = $units[$key];
             $item_id = $item_ids[$key]; 
             $item_balance = $item_balances[$key]; 
 
@@ -517,10 +517,10 @@ class Project_invoices extends MYTController
             $values['item_id']    = $item_id;
             $values['item_name']    = $item_name;
             $values['item_balance']    = $item_balance;
-            $values['unit']         = $units[$key];
-            $values['price']        = $prices[$key];
+            // $values['unit']         = $units[$key];
+            // $values['price']        = $prices[$key];
             // $values['qty']          = $quantities[$key];
-            $values['subtotal']     = $subtotal;
+            // $values['subtotal']     = $subtotal;
             $values['billed_amount'] = $billed_amounts[$key];
 
             if (!$this->projectInvoiceItemModel->insert($values)) {
