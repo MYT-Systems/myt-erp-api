@@ -35,6 +35,33 @@ class Projects extends MYTController
     
         return $response;
     }
+
+    /**
+     * Get projects to bill
+     */
+    public function get_projects_to_bill()
+    {
+        if (($response = $this->_api_verification('projects', 'get_projects_to_bill')) !== true) {
+            return $response;
+        } 
+
+        $project_id = $this->request->getVar('project_id') ? : null;
+        $billing_date = $this->request->getVar('billing_date') ? : null;
+
+        $projects = $this->projectModel->get_projects_to_bill($project_id, $billing_date);
+
+        if (!$projects) {
+            $response = $this->failNotFound('No project found');
+        } else {
+            $response = $this->respond([
+                'status' => 'success',
+                'count' => count($projects),
+                'data'   => $projects
+            ]);
+        }
+
+        return $response;
+    }
     
     /**
      * Get all recurring and one-time fees that are not yet used (is_occupied = 0)
