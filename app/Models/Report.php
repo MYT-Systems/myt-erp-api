@@ -1132,6 +1132,7 @@ AND (
     OR supplies_expense.status = "approved" 
     OR supplies_expense.status = "disapproved" 
     OR (supplies_expense.status = "approved" AND supplies_expense.order_status IN ("complete", "incomplete", "pending"))
+    OR (supplies_expense.status = "sent" AND supplies_expense.order_status IN ("complete", "incomplete", "pending"))
 )
 EOT;
 
