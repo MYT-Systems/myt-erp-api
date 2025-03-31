@@ -190,7 +190,7 @@ EOT;
     /**
      * Get supplies_expenses based on supplies_expense name, contact_person, phone_no, tin_no, bir_no, email
      */
-    public function search($supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $supplies_expense_date, $delivery_date, $delivery_address, $branch_name, $remarks, $purpose, $requisitioner, $status, $order_status, $se_date_from, $se_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything) 
+    public function search($supplier_id, $vendor_id, $type, $forwarder_id, $expense_type_id, $supplies_expense_date, $delivery_date, $delivery_address, $branch_name, $remarks, $purpose, $requisitioner, $status, $order_status, $se_date_from, $se_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything) 
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -235,6 +235,11 @@ EOT;
         if ($vendor_id) {
             $sql .= ' AND supplies_expense.vendor_id = ?';
             $binds[] = $vendor_id;
+        }
+
+        if ($type) {
+            $sql .= ' AND supplies_expense.type = ?';
+            $binds[] = $type;
         }
 
         if ($forwarder_id) {
