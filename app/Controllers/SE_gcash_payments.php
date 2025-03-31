@@ -13,6 +13,7 @@ class Se_gcash_payments extends MYTController
 
     public function __construct()
     {
+        helper('filesystem');
         // Headers
         $this->api_key = $_SERVER['HTTP_API_KEY'];
         $this->user_key = $_SERVER['HTTP_USER_KEY'];
@@ -209,9 +210,12 @@ class Se_gcash_payments extends MYTController
         if (!$se_gcash_slip_id = $this->_attempt_create_slip()) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to create slip.', 'status' => 'error']);
-        } elseif (!$this->_attempt_generate_entry($se_gcash_slip_id)) {
+        } elseif (($error_message = $this->_attempt_generate_entry($se_gcash_slip_id)) !== true) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to generate gcash entry.', 'status' => 'error']);
+            return $this->respond([
+                "response" => $error_message,  
+                "status" => "error"            
+            ]);
         } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_gcash_slip_id, 'assets/se_gcash_payments/')) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
@@ -481,51 +485,80 @@ class Se_gcash_payments extends MYTController
     protected function _attempt_generate_entry($se_gcash_slip_id)
     {
         $se_ids = $this->request->getVar('se_ids');
-        $amounts     = $this->request->getVar('amounts');
+        $amounts = $this->request->getVar('amounts');
 
-        $total = 0;
+        // Get the GCash account
+        $gcash = $this->bankModel->where('name', 'GCASH')->get()->getFirstRow('array');
+        if (!$gcash) {
+            return "GCash account not found.";
+        }
+
+        $gcash_balance = $gcash['current_bal'];
+        $total = array_sum($amounts); // Total amount to be deducted
+
+        if ($total > $gcash_balance) {
+            return "Insufficient funds in GCash.";
+        }
+
         foreach ($se_ids as $key => $se_id) {
-            $total += $amounts[$key];
+            $amount = $amounts[$key];
+
+            // Insert GCash entry
             $data = [
                 'se_gcash_slip_id' => $se_gcash_slip_id,
                 'se_id'            => $se_id,
-                'amount'           => $amounts[$key],
+                'amount'           => $amount,
                 'added_by'         => $this->requested_by,
                 'added_on'         => date('Y-m-d H:i:s')
             ];
 
             if (!$this->gcashEntryModel->insert($data)) {
-                return false;
+                return "Failed to insert GCash entry for se_id: {$se_id}";
             }
 
-            if ($supplies_expense = $this->suppliesExpenseModel->get_details_by_id($se_id)) {
-                $new_balance = $supplies_expense[0]['balance'] - $amounts[$key];
-
+            $supplies_expense = $this->suppliesExpenseModel->get_details_by_id($se_id);
+            if ($supplies_expense) {
+                $new_balance = $supplies_expense[0]['balance'] - $amount;
                 $order_status = ($new_balance <= 0) ? 'complete' : 'incomplete';
 
                 $supplies_expense_data = [
-                    'paid_amount' => $supplies_expense[0]['paid_amount'] + $amounts[$key],
-                    'balance'     => $new_balance,
+                    'paid_amount'  => $supplies_expense[0]['paid_amount'] + $amount,
+                    'balance'      => $new_balance,
                     'order_status' => $order_status,
-                    'updated_on' => date('Y-m-d H:i:s'),
-                    'updated_by' => $this->requested_by
+                    'updated_on'   => date('Y-m-d H:i:s'),
+                    'updated_by'   => $this->requested_by
                 ];
 
                 if (!$this->suppliesExpenseModel->update($se_id, $supplies_expense_data)) {
-                    return false;
+                    return "Failed to update supplies expense for se_id: {$se_id}";
                 }
             } else {
-                var_dump("Supplies expense receive id {$se_id} not found");
+                return "Supplies Expense with id {$se_id} not found.";
             }
         }
 
+        // Deduct from GCash balance
+        $new_gcash_balance = $gcash_balance - $total;
+
+        $gcash_data = [
+            'current_bal' => $new_gcash_balance,
+            'updated_on'  => date('Y-m-d H:i:s'),
+            'updated_by'  => $this->requested_by
+        ];
+
+        if (!$this->bankModel->update($gcash['id'], $gcash_data)) {
+            return "Failed to update GCash balance.";
+        }
+
+        // Update GCash slip
         $values = [
             'amount'     => $total,
             'updated_by' => $this->requested_by,
             'updated_on' => date('Y-m-d H:i:s')
         ];
+
         if (!$this->gcashSlipModel->update($se_gcash_slip_id, $values)) {
-            return false;
+            return "Failed to update GCash slip.";
         }
 
         return true;
@@ -684,6 +717,7 @@ class Se_gcash_payments extends MYTController
     {
         $this->gcashEntryModel      = new SE_gcash_entry();
         $this->gcashSlipModel       = new SE_gcash_slip();
+        $this->bankModel            = model('App\Models\Bank');
         $this->suppliesExpenseModel = model('App\Models\Supplies_expense');
         $this->gcashSlipAttachmentModel       = new SE_gcash_slip_attachment();
         $this->seReceiveModel      = new Supplies_receive();
