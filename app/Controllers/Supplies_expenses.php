@@ -174,6 +174,7 @@ class Supplies_expenses extends MYTController
 
         $supplier_id           = $this->request->getVar('supplier_id') ? : null;
         $vendor_id             = $this->request->getVar('vendor_id') ? : null;
+        $type                  = $this->request->getVar('type') ? : null;
         $forwarder_id          = $this->request->getVar('forwarder_id') ? : null;
         $expense_type_id       = $this->request->getVar('expense_type_id') ? : null;    
         $supplies_expense_date = $this->request->getVar('supplies_expense_date') ? : null;
@@ -192,7 +193,7 @@ class Supplies_expenses extends MYTController
         $limit_by              = $this->request->getVar('limit_by') ? : null;
         $anything              = $this->request->getVar('anything') ? : null;
 
-        if (!$supplies_expenses = $this->suppliesExpenseModel->search($supplier_id, $vendor_id, $forwarder_id, $expense_type_id, $supplies_expense_date, $delivery_date, $delivery_address, $branch_name, $remarks, $purpose, $requisitioner, $status, $order_status, $se_date_from, $se_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)) {
+        if (!$supplies_expenses = $this->suppliesExpenseModel->search($supplier_id, $vendor_id, $type, $forwarder_id, $expense_type_id, $supplies_expense_date, $delivery_date, $delivery_address, $branch_name, $remarks, $purpose, $requisitioner, $status, $order_status, $se_date_from, $se_date_to, $delivery_date_from, $delivery_date_to, $limit_by, $anything)) {
             $response = $this->failNotFound('No supplies_expense found');
         } else {
             $total_expenses = 0;
