@@ -66,7 +66,6 @@ SELECT * FROM (
         customer.name AS customer_name,
         project.name AS project_name,
         project.project_date,
-        project.project_date AS date_reference,
         COUNT(project_invoice_item.id) AS times_billed
     FROM project
     LEFT JOIN project_recurring_cost ON project_recurring_cost.project_id = project.id
@@ -79,11 +78,9 @@ SELECT * FROM (
     AND project_recurring_cost.balance > 0
     AND NOT EXISTS (
         SELECT 1 
-        FROM project_invoice_item 
-        JOIN project_invoice ON project_invoice.id = project_invoice_item.project_invoice_id
-        WHERE project_invoice_item.item_id = project_recurring_cost.id
+        FROM project_invoice 
+        WHERE project_invoice.project_id = project.id
         AND DATE_FORMAT(project_invoice.invoice_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')
-        AND project_invoice_item.is_deleted = 0
         AND project_invoice.is_deleted = 0
     )
     AND (
@@ -111,7 +108,6 @@ SELECT * FROM (
         customer.name AS customer_name,
         project.name AS project_name,
         project.project_date,
-        project.project_date AS date_reference,
         NULL AS times_billed
     FROM project
     LEFT JOIN project_one_time_fee ON project_one_time_fee.project_id = project.id
@@ -123,9 +119,10 @@ SELECT * FROM (
     AND project.project_date <= DATE_ADD(?, INTERVAL 15 DAY)
     AND NOT EXISTS (
         SELECT 1 
-        FROM project_invoice_item 
-        WHERE project_invoice_item.item_id = project_one_time_fee.id
-        AND project_invoice_item.is_deleted = 0
+        FROM project_invoice 
+        WHERE project_invoice.project_id = project.id
+        AND DATE_FORMAT(project_invoice.invoice_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')
+        AND project_invoice.is_deleted = 0
     )
 
     UNION ALL
@@ -141,7 +138,6 @@ SELECT * FROM (
         project_change_request_item.balance,
         customer.name AS customer_name,
         project.name AS project_name,
-        project_change_request.request_date AS date_reference,
         project_change_request.request_date AS project_date,
         NULL AS times_billed
     FROM project
@@ -155,14 +151,15 @@ SELECT * FROM (
     AND project_change_request.request_date <= DATE_ADD(?, INTERVAL 15 DAY)
     AND NOT EXISTS (
         SELECT 1 
-        FROM project_invoice_item 
-        WHERE project_invoice_item.item_id = project_change_request_item.id
-        AND project_invoice_item.is_deleted = 0
+        FROM project_invoice 
+        WHERE project_invoice.project_id = project.id
+        AND DATE_FORMAT(project_invoice.invoice_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')
+        AND project_invoice.is_deleted = 0
     )
 ) AS combined
 EOT;
 
-    $binds = [$billing_date, $billing_date, $billing_date, $billing_date];
+    $binds = [$billing_date, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date];
 
     if ($project_id) {
         $sql .= " WHERE project_id = ? ";
@@ -172,7 +169,6 @@ EOT;
     $query = $database->query($sql, $binds);
     return $query ? $query->getResultArray() : false;
 }
-
 
     /**
      * Get project operations
