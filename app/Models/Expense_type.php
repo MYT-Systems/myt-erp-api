@@ -68,6 +68,7 @@ EOT;
 SELECT *
 FROM expense_type
 WHERE expense_type.is_deleted = 0
+ORDER BY name
 EOT;
 
         $query = $database->query($sql);
