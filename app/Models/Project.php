@@ -274,7 +274,7 @@ EOT;
             $binds[] = $project_id;
         }
 
-        $sql .= ' GROUP BY project.id';
+        $sql .= ' GROUP BY project.id ORDER BY project.name';
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
