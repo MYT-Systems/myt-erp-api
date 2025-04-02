@@ -338,6 +338,39 @@ class Project_invoices extends MYTController
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
+
+    /**
+     * Get project invoices by invoice numbers
+     */
+    public function get_invoices_by_invoice_numbers()
+    {
+        if (($response = $this->_api_verification('reports', 'get_invoices_by_invoice_numbers')) !== true)
+            return $response;
+
+        $invoice_nos = $this->request->getVar('invoice_numbers');
+
+        // Extract invoice numbers (e.g., "INV. 2025-0001-(3000.00)" => "2025-0001")
+        preg_match_all('/INV\. (\d{4}-\d{4})-\(\d+\.\d{2}\)/', $invoice_nos, $matches);
+        $invoice_numbers = $matches[1] ?? [];
+
+        if (empty($invoice_numbers)) {
+            return $this->failNotFound('No valid invoice numbers found.');
+        }
+
+        $invoices = $this->projectInvoiceModel->get_invoices_by_invoice_numbers($invoice_numbers);
+
+        if (!$invoices) {
+            $response = $this->failNotFound('No invoices found.');
+        } else {
+            $response = $this->respond([
+                'status'   => 'success',
+                'invoices' => $invoices,
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
     
     //search project invoice new
     public function search_invoice(){
