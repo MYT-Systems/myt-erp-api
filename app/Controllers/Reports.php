@@ -504,77 +504,78 @@ class Reports extends MYTController
         return $response;
     }
 
+     /**
+     * Get Receivables Aging
+     */
     public function get_receivables_aging()
-{
-    if (($response = $this->_api_verification('reports', 'get_receivables_aging')) !== true)
-        return $response;
+    {
+        if (($response = $this->_api_verification('reports', 'get_receivables_aging')) !== true)
+            return $response;
 
-    $customer_id = $this->request->getVar('customer_id');
-    $project_id  = $this->request->getVar('project_id') ?: null;
+        $customer_id = $this->request->getVar('customer_id');
+        $project_id  = $this->request->getVar('project_id') ?: null;
 
-    if (!$receivables_aging = $this->reportModel->get_receivables_aging($customer_id, $project_id)) {
-        return $this->failNotFound('No report Found');
-    }
+        if (!$receivables_aging = $this->reportModel->get_receivables_aging($customer_id, $project_id)) {
+            return $this->failNotFound('No report Found');
+        }
 
-    $general_summary = [
-        'total_receivables' => 0,
-        'total_paid' => 0,
-    ];
+        $general_summary = [
+            'total_receivables' => 0,
+            'total_paid' => 0,
+        ];
 
-    $invoice_numbers = [];
+        $invoice_numbers = [];
 
-    // Extract invoice numbers
-    foreach ($receivables_aging as $key => &$value) {
-        $general_summary['total_receivables'] += $value['total'];
-        $general_summary['total_paid'] += $value['total_paid'];
+        // Extract invoice numbers
+        foreach ($receivables_aging as $key => &$value) {
+            $general_summary['total_receivables'] += $value['total'];
+            $general_summary['total_paid'] += $value['total_paid'];
 
-        // Collect invoice numbers from different aging columns
-        $aging_columns = ['cur', 'one_to_thirty', 'thirtyone_to_sixty', 'sixtyone_to_ninety', 'above_ninety'];
-        foreach ($aging_columns as $column) {
-            if (!empty($value[$column])) {
-                preg_match_all('/INV\. (\d{4}-\d{4})/', $value[$column], $matches);
-                if (!empty($matches[1])) {
-                    $invoice_numbers = array_merge($invoice_numbers, $matches[1]);
+            // Collect invoice numbers from different aging columns
+            $aging_columns = ['cur', 'one_to_thirty', 'thirtyone_to_sixty', 'sixtyone_to_ninety', 'above_ninety'];
+            foreach ($aging_columns as $column) {
+                if (!empty($value[$column])) {
+                    preg_match_all('/INV\. (\d{4}-\d{4})/', $value[$column], $matches);
+                    if (!empty($matches[1])) {
+                        $invoice_numbers = array_merge($invoice_numbers, $matches[1]);
+                    }
                 }
             }
         }
-    }
 
-    // Remove duplicates and ensure proper indexing
-    $invoice_numbers = array_values(array_unique($invoice_numbers));
+        // Remove duplicates and ensure proper indexing
+        $invoice_numbers = array_values(array_unique($invoice_numbers));
 
-    // Fetch invoice details if invoice numbers exist
-    $invoice_details = [];
-    if (!empty($invoice_numbers)) {
-        $invoice_details = $this->projectInvoiceModel->get_invoices_by_invoice_numbers($invoice_numbers);
-    }
+        // Fetch invoice details if invoice numbers exist
+        $invoice_details = [];
+        if (!empty($invoice_numbers)) {
+            $invoice_details = $this->projectInvoiceModel->get_invoices_by_invoice_numbers($invoice_numbers);
+        }
 
-    // Insert invoice details into the response
-    foreach ($receivables_aging as &$value) {
-        $value['invoice_details'] = [];
+        // Insert invoice details into the response
+        foreach ($receivables_aging as &$value) {
+            $value['invoice_details'] = [];
 
-        foreach ($invoice_details as $invoice) {
-            if (strpos($value['cur'], "INV. {$invoice['invoice_no']}") !== false ||
-                strpos($value['one_to_thirty'], "INV. {$invoice['invoice_no']}") !== false ||
-                strpos($value['thirtyone_to_sixty'], "INV. {$invoice['invoice_no']}") !== false ||
-                strpos($value['sixtyone_to_ninety'], "INV. {$invoice['invoice_no']}") !== false ||
-                strpos($value['above_ninety'], "INV. {$invoice['invoice_no']}") !== false) {
-                $value['invoice_details'][] = $invoice;
+            foreach ($invoice_details as $invoice) {
+                if (strpos($value['cur'], "INV. {$invoice['invoice_no']}") !== false ||
+                    strpos($value['one_to_thirty'], "INV. {$invoice['invoice_no']}") !== false ||
+                    strpos($value['thirtyone_to_sixty'], "INV. {$invoice['invoice_no']}") !== false ||
+                    strpos($value['sixtyone_to_ninety'], "INV. {$invoice['invoice_no']}") !== false ||
+                    strpos($value['above_ninety'], "INV. {$invoice['invoice_no']}") !== false) {
+                    $value['invoice_details'][] = $invoice;
+                }
             }
         }
+
+        $response = $this->respond([
+            'summary' => $general_summary,
+            'receivables_aging' => $receivables_aging,
+            'status' => 'success'
+        ]);
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
     }
-
-    $response = $this->respond([
-        'summary' => $general_summary,
-        'receivables_aging' => $receivables_aging,
-        'status' => 'success'
-    ]);
-
-    $this->webappResponseModel->record_response($this->webapp_log_id, $response);
-    return $response;
-}
-
-    
 
     /**
      * Get Franchised Branch Payments
