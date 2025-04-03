@@ -235,36 +235,36 @@ EOT;
     }
 
     /**
-     * Get project invoices by invoice numbers
+     * Get project_invoice by invoice_numbers
      */
     public function get_invoices_by_invoice_numbers(array $invoice_numbers)
     {
-
         $database = \Config\Database::connect();
 
-        $invoices = implode(',', array_fill(0, count($invoice_numbers), '?'));
+        if (empty($invoice_numbers)) {
+            return []; 
+        }
+
+        $invoice_numbers = array_values($invoice_numbers);
+
+        $placeholders = implode(',', array_fill(0, count($invoice_numbers), '?'));
 
         $sql = <<<EOT
-SELECT project_invoice.*,
-       project.name AS project_name,
-       CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name,
-       IF (project_invoice.is_closed = 1, 'closed_bill', 
-           IF (project_invoice.paid_amount > project_invoice.grand_total, 'overpaid', project_invoice.payment_status)
-       ) AS payment_status,
-       project.grand_total AS project_amount,
-       (SELECT MAX(payment_date) 
-        FROM project_invoice_payment 
-        WHERE project_invoice_payment.project_invoice_id = project_invoice.id) AS payment_date
-FROM project_invoice
-LEFT JOIN project ON project.id = project_invoice.project_id
-LEFT JOIN employee AS adder ON adder.id = project_invoice.added_by
-WHERE project_invoice.is_deleted = 0
-AND project.is_deleted = 0
-AND project_invoice.invoice_no IN ($invoices)
-EOT;
+    SELECT project_invoice.invoice_no, project_invoice.invoice_date, project_invoice.due_date,
+        project.name AS project_name,
+        (SELECT MAX(payment_date) 
+            FROM project_invoice_payment 
+            WHERE project_invoice_payment.project_invoice_id = project_invoice.id) AS payment_date
+    FROM project_invoice
+    LEFT JOIN project ON project.id = project_invoice.project_id
+    WHERE project_invoice.is_deleted = 0
+    AND project.is_deleted = 0
+    AND project_invoice.invoice_no IN ($placeholders)
+    EOT;
 
-        $query = $database->query($sql, $binds);
-        return $query ? $query->getResultArray() : false;
+        $query = $database->query($sql, $invoice_numbers);
+
+        return $query ? $query->getResultArray() : [];
     }
 
     /**
