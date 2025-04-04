@@ -744,12 +744,12 @@ class Reports extends MYTController
         $data['net_sales'] = number_format($data['sales'] - $data['expenses'], 2, '.', "");
         $data['receivables'] = number_format($this->reportModel->get_receivables($date_from, $date_to), 2, '.', "");
         $data['pending_invoice'] = count($this->projectInvoiceModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
-        $data['open_billing'] = count($this->projectInvoiceModel->select('', ['payment_status' => 'open_bill', 'is_deleted' => 0])?:[]);
-        $data['open_suppliesexpense'] = count($this->suppliesExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
+        $data['open_invoice'] = count($this->projectInvoiceModel->select('', ['payment_status' => 'open_bill', 'is_deleted' => 0])?:[]);
         $data['petty_cash'] = count($this->pettyCashModel->select('', ['is_deleted' => 0])?:[]);
-        $data['pending_po'] = count($this->suppliesReceiveModel->select('', ['balance >' => 0, 'is_deleted' => 0]) ?: []);
-        $data['pending_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
+        $data['for_approval_project_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
+        $data['for_approval_po'] = count($this->suppliesExpenseModel->select('', ['status' => 'for_approval', 'is_deleted' => 0]) ?: []);
         $data['projects_to_bill'] = count($this->projectModel->get_projects_to_bill()?:[]);
+        $data['unpaid_po'] = count($this->suppliesExpenseModel->select('', ['order_status' => 'incomplete', 'is_deleted' => 0])?:[]);
 
         $response = $this->respond([
             'data'   => $data,
