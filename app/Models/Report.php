@@ -359,7 +359,7 @@ EOT;
             $binds[] = $payment_structure;
         }
 
-        $sql .= " GROUP BY project.id";
+        $sql .= " GROUP BY project.id ORDER BY customer_name";
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
@@ -778,7 +778,8 @@ EOT;
 
         $sql .= <<<EOT
 
-GROUP BY data.customer_id;
+GROUP BY data.customer_id
+ORDER BY customer_name;
 EOT;
 
         $query = $database->query($sql, $binds);
