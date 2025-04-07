@@ -11,6 +11,7 @@ class Journal_entry extends MYTModel
         'remarks',
         'total_debit',
         'total_credit',
+        'is_posted',
         'added_by',
         'added_on',
         'updated_by',
@@ -47,7 +48,7 @@ EOT;
     /**
      * Get all journal_entry
      */
-    public function get_all()
+    public function get_all($date_from = null, $date_to = null)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -55,10 +56,19 @@ SELECT *,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = journal_entry.added_by) AS added_by_name
 FROM journal_entry
 WHERE journal_entry.is_deleted = 0
-AND journal_entry.is_deleted = 0
 EOT;
+    $binds = [];
 
-        $query = $database->query($sql);
+    if ($date_from) {
+        $sql .= ' AND DATE(journal_entry.date) >= ?';
+        $binds[] = $date_from;
+    }
+
+    if ($date_to) {
+        $sql .= ' AND DATE(journal_entry.date) <= ?';
+        $binds[] = $date_to;
+    }
+        $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
 
