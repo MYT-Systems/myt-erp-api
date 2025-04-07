@@ -511,30 +511,40 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_receivables_aging')) !== true)
             return $response;
-
+    
         $customer_id = $this->request->getVar('customer_id');
         $project_id  = $this->request->getVar('project_id') ?: null;
-
+    
         if (!$receivables_aging = $this->reportModel->get_receivables_aging($customer_id, $project_id)) {
             return $this->failNotFound('No report Found');
         }
-
+    
         $general_summary = [
             'total_receivables' => 0,
             'total_paid' => 0,
+            'total_cur' => 0,
+            'total_one_to_thirty' => 0,
+            'total_thirtyone_to_sixty' => 0,
+            'total_sixtyone_to_ninety' => 0,
+            'total_above_ninety' => 0,
         ];
-
+    
         $invoice_numbers = [];
-
-        // Extract invoice numbers
-        foreach ($receivables_aging as $key => &$value) {
+        $aging_columns = ['cur', 'one_to_thirty', 'thirtyone_to_sixty', 'sixtyone_to_ninety', 'above_ninety'];
+    
+        // Extract invoice numbers and calculate totals
+        foreach ($receivables_aging as &$value) {
             $general_summary['total_receivables'] += $value['total'];
             $general_summary['total_paid'] += $value['total_paid'];
-
-            // Collect invoice numbers from different aging columns
-            $aging_columns = ['cur', 'one_to_thirty', 'thirtyone_to_sixty', 'sixtyone_to_ninety', 'above_ninety'];
+    
             foreach ($aging_columns as $column) {
                 if (!empty($value[$column])) {
+                    preg_match_all('/INV\. \d{4}-\d{4}-\((\d+\.\d{2})\)/', $value[$column], $matches);
+                    if (!empty($matches[1])) {
+                        foreach ($matches[1] as $amount) {
+                            $general_summary['total_' . $column] += floatval($amount);
+                        }
+                    }
                     preg_match_all('/INV\. (\d{4}-\d{4})/', $value[$column], $matches);
                     if (!empty($matches[1])) {
                         $invoice_numbers = array_merge($invoice_numbers, $matches[1]);
@@ -542,37 +552,36 @@ class Reports extends MYTController
                 }
             }
         }
-
+    
         // Remove duplicates and ensure proper indexing
         $invoice_numbers = array_values(array_unique($invoice_numbers));
-
+    
         // Fetch invoice details if invoice numbers exist
         $invoice_details = [];
         if (!empty($invoice_numbers)) {
             $invoice_details = $this->projectInvoiceModel->get_invoices_by_invoice_numbers($invoice_numbers);
         }
-
+    
         // Insert invoice details into the response
         foreach ($receivables_aging as &$value) {
             $value['invoice_details'] = [];
-
+    
             foreach ($invoice_details as $invoice) {
-                if (strpos($value['cur'], "INV. {$invoice['invoice_no']}") !== false ||
-                    strpos($value['one_to_thirty'], "INV. {$invoice['invoice_no']}") !== false ||
-                    strpos($value['thirtyone_to_sixty'], "INV. {$invoice['invoice_no']}") !== false ||
-                    strpos($value['sixtyone_to_ninety'], "INV. {$invoice['invoice_no']}") !== false ||
-                    strpos($value['above_ninety'], "INV. {$invoice['invoice_no']}") !== false) {
-                    $value['invoice_details'][] = $invoice;
+                foreach ($aging_columns as $column) {
+                    if (strpos($value[$column], "INV. {$invoice['invoice_no']}") !== false) {
+                        $value['invoice_details'][] = $invoice;
+                        break;
+                    }
                 }
             }
         }
-
+    
         $response = $this->respond([
             'summary' => $general_summary,
             'receivables_aging' => $receivables_aging,
             'status' => 'success'
         ]);
-
+    
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
@@ -735,12 +744,12 @@ class Reports extends MYTController
         $data['net_sales'] = number_format($data['sales'] - $data['expenses'], 2, '.', "");
         $data['receivables'] = number_format($this->reportModel->get_receivables($date_from, $date_to), 2, '.', "");
         $data['pending_invoice'] = count($this->projectInvoiceModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
-        $data['open_billing'] = count($this->projectInvoiceModel->select('', ['payment_status' => 'open_bill', 'is_deleted' => 0])?:[]);
-        $data['open_suppliesexpense'] = count($this->suppliesExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
+        $data['open_invoice'] = count($this->projectInvoiceModel->select('', ['payment_status' => 'open_bill', 'is_deleted' => 0])?:[]);
         $data['petty_cash'] = count($this->pettyCashModel->select('', ['is_deleted' => 0])?:[]);
-        $data['pending_po'] = count($this->suppliesReceiveModel->select('', ['balance >' => 0, 'is_deleted' => 0]) ?: []);
-        $data['pending_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
+        $data['for_approval_project_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
+        $data['for_approval_po'] = count($this->suppliesExpenseModel->select('', ['status' => 'for_approval', 'is_deleted' => 0]) ?: []);
         $data['projects_to_bill'] = count($this->projectModel->get_projects_to_bill()?:[]);
+        $data['unpaid_po'] = count($this->suppliesExpenseModel->select('', ['order_status' => 'incomplete', 'is_deleted' => 0])?:[]);
 
         $response = $this->respond([
             'data'   => $data,
