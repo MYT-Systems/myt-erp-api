@@ -530,6 +530,117 @@ EOT;
     }
 
     /**
+     * Get previous balance of a bank account
+     */
+    public function get_previous_balance($bank_id = null, $date_from = null)
+    {
+        $database = \Config\Database::connect();
+
+        $sql = <<<EOT
+SELECT 
+    bank.id,
+    bank.name,
+    bank.current_bal,
+    CASE 
+        WHEN DATE(?) < DATE(bank.added_on) THEN 0
+    	WHEN DATE(?) = DATE(bank.added_on) THEN bank.beginning_bal
+        ELSE 
+            GREATEST(
+                0,  -- If the result is less than 0, return 0
+                bank.current_bal - (
+                    IFNULL(( 
+                        SELECT SUM(project_invoice_payment.paid_amount)
+                        FROM project_invoice_payment
+                        WHERE project_invoice_payment.to_bank_id = bank.id
+                        AND project_invoice_payment.is_deleted = 0
+                        AND project_invoice_payment.payment_date >= ? 
+                    ), 0)
+                    -
+                    IFNULL(( 
+                        SELECT SUM(se_bank_slip.amount)
+                        FROM se_bank_slip
+                        LEFT JOIN se_bank_entry ON se_bank_entry.se_bank_slip_id = se_bank_slip.id
+                        WHERE se_bank_slip.bank_from = bank.id
+                        AND se_bank_slip.is_deleted = 0
+                        AND se_bank_entry.is_deleted = 0
+                        AND se_bank_slip.payment_date >= ?
+                    ), 0)
+                )
+            )
+    END AS previous_balance
+FROM bank
+WHERE bank.is_deleted = 0
+AND bank.id = ?;
+EOT;
+
+        $query = $database->query($sql, [$date_from, $date_from, $date_from, $date_from, $bank_id]);
+        return $query ? $query->getRowArray() : false;
+    }
+
+    /**
+     * Get bank reconciliation
+     */
+    public function get_bank_reconciliation($bank_id = null, $date_from = null, $date_to = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT * FROM (
+    SELECT 
+        'Credit' AS type,
+        project_invoice.invoice_no AS reference_no,
+        project_invoice_payment.payment_date AS date,
+        project_invoice_payment.paid_amount,
+        bank.name AS bank_name,
+        project_invoice_payment.to_bank_id AS bank_id
+    FROM project_invoice_payment
+    LEFT JOIN bank ON bank.id = project_invoice_payment.to_bank_id
+    LEFT JOIN project_invoice ON project_invoice.id = project_invoice_payment.project_invoice_id
+    WHERE project_invoice_payment.is_deleted = 0
+    AND bank.is_deleted = 0
+
+    UNION ALL
+
+    SELECT 
+        'Debit' AS type,
+        se_bank_entry.se_id AS reference_no,
+        se_bank_slip.payment_date AS date,
+        se_bank_slip.amount AS paid_amount,
+        bank.name AS bank_name,
+        se_bank_slip.bank_from AS bank_id
+    FROM se_bank_slip
+    LEFT JOIN bank ON bank.id = se_bank_slip.bank_from
+    LEFT JOIN se_bank_entry ON se_bank_entry.se_bank_slip_id = se_bank_slip.id
+    WHERE se_bank_slip.is_deleted = 0
+    AND se_bank_entry.is_deleted = 0
+    AND bank.is_deleted = 0
+) AS temp
+WHERE 1 = 1
+EOT;
+
+        $binds = [];
+
+        if ($bank_id) {
+            $sql .= " AND temp.bank_id = ?";
+            $binds[] = $bank_id;
+        }
+
+        if ($date_from) {
+            $sql .= " AND temp.date >= ?";
+            $binds[] = $date_from;
+        }
+
+        if ($date_to) {
+            $sql .= " AND temp.date <= ?";
+            $binds[] = $date_to;
+        }
+
+        $sql .= " ORDER BY temp.date ASC";
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
      * Get dash reports
      */
     public function get_dashboard_reports()

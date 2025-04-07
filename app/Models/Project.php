@@ -44,15 +44,15 @@ class Project extends MYTModel
      * Get projects that need to be billed
      */
     public function get_projects_to_bill($project_id = null, $billing_date = null)
-{
-    $database = \Config\Database::connect();
+    {
+        $database = \Config\Database::connect();
 
-    // Use current date if no billing date is provided
-    if (!$billing_date) {
-        $billing_date = date('Y-m-d'); // Current date
-    }
+        // Use current date if no billing date is provided
+        if (!$billing_date) {
+            $billing_date = date('Y-m-d'); // Current date
+        }
 
-    $sql = <<<EOT
+        $sql = <<<EOT
 SELECT * FROM (
     SELECT 
         'recurring' AS billing_type,
@@ -159,16 +159,16 @@ SELECT * FROM (
 ) AS combined
 EOT;
 
-    $binds = [$billing_date, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date];
+        $binds = [$billing_date, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date];
 
-    if ($project_id) {
-        $sql .= " WHERE project_id = ? ";
-        $binds[] = $project_id;
+        if ($project_id) {
+            $sql .= " WHERE project_id = ? ";
+            $binds[] = $project_id;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
     }
-
-    $query = $database->query($sql, $binds);
-    return $query ? $query->getResultArray() : false;
-}
 
     /**
      * Get project operations

@@ -91,6 +91,56 @@ class Reports extends MYTController
     }
 
     /**
+     * Get bank reconciliation report
+     */
+    public function get_bank_reconciliation()
+    {
+        if (($response = $this->_api_verification('reports', 'get_bank_reconciliation')) !== true)
+            return $response;
+    
+        $bank_id = $this->request->getVar('bank_id') ?: null;
+        $date_from = $this->request->getVar('date_from') ?: null;
+        $date_to = $this->request->getVar('date_to') ?: null;
+    
+        if (!$bank_reconciliation = $this->reportModel->get_bank_reconciliation($bank_id, $date_from, $date_to)) {
+            $response = $this->failNotFound('No report found.');
+        } elseif (!$bank_summary = $this->reportModel->get_previous_balance($bank_id, $date_from)) {
+            $response = $this->failNotFound('No previous balance found.');
+        } else {
+            $bank_summary['total_debit'] = 0;
+            $bank_summary['total_credit'] = 0;
+            $current_balance = $bank_summary['previous_balance'] ?? 0;
+    
+            foreach ($bank_reconciliation as $key => $transaction) {
+                if (!is_numeric($key) || !is_array($transaction)) {
+                    continue;
+                }
+            
+                $amount = (float) ($transaction['paid_amount'] ?? 0);
+            
+                if ($transaction['type'] === 'Debit') {
+                    $bank_summary['total_debit'] += $amount;
+                    $current_balance -= $amount;
+                } elseif ($transaction['type'] === 'Credit') {
+                    $bank_summary['total_credit'] += $amount;
+                    $current_balance += $amount;
+                }
+
+                $bank_reconciliation[$key]['balance'] = $current_balance;
+            }
+            
+            $response = $this->respond([
+                'bank_reconciliation' => $bank_reconciliation,
+                'bank_summary' => $bank_summary,
+                'status'  => 'success'
+            ]);
+        }
+    
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Get expense by type
      */
     public function get_expense_by_type()
