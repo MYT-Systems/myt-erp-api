@@ -42,12 +42,15 @@ class Journal_entries extends MYTController
     /**
      * Get all journal entries
      */
-    public function get_all_journal_entries()
+    public function get_all_journal_entry()
     {
-        if (($response = $this->_api_verification('journal_entries', 'get_all_journal_entries')) !== true)
+        if (($response = $this->_api_verification('journal_entries', 'get_all_journal_entry')) !== true)
             return $response;
 
-        $journal_entries = $this->journalEntryModel->get_all();
+        $date_from          = $this->request->getVar('date_from') ? : null;
+        $date_to            = $this->request->getVar('date_to') ? : null;
+
+        $journal_entries = $this->journalEntryModel->get_all($date_from, $date_to);
 
         if (!$journal_entries) {
             $response = $this->failNotFound('No journal_entry found');
@@ -223,6 +226,7 @@ class Journal_entries extends MYTController
             'remarks'               => $this->request->getVar('remarks'),
             'total_debit'          => $this->request->getVar('total_debit'),
             'total_credit'         => $this->request->getVar('total_credit'),
+            'is_posted'            => 0,
             'added_by'             => $this->requested_by,
             'added_on'             => date('Y-m-d H:i:s'),
         ];
