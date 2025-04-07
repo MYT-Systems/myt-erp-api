@@ -128,6 +128,8 @@ class Reports extends MYTController
 
                 $bank_reconciliation[$key]['balance'] = $current_balance;
             }
+
+            $bank_summary['total_balance'] = $current_balance;
             
             $response = $this->respond([
                 'bank_reconciliation' => $bank_reconciliation,

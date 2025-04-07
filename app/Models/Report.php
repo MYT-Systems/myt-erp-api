@@ -587,7 +587,7 @@ EOT;
 SELECT * FROM (
     SELECT 
         'Credit' AS type,
-        project_invoice.invoice_no AS reference_no,
+        CONCAT('SALES INVOICE NO. ', project_invoice.invoice_no) AS reference_no,
         project_invoice_payment.payment_date AS date,
         project_invoice_payment.paid_amount,
         bank.name AS bank_name,
@@ -602,7 +602,7 @@ SELECT * FROM (
 
     SELECT 
         'Debit' AS type,
-        se_bank_entry.se_id AS reference_no,
+        CONCAT('PURCHASE ORDER NO. ', se_bank_entry.se_id) AS reference_no,
         se_bank_slip.payment_date AS date,
         se_bank_slip.amount AS paid_amount,
         bank.name AS bank_name,
