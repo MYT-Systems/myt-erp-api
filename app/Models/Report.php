@@ -587,6 +587,7 @@ EOT;
 SELECT * FROM (
     SELECT 
         'Credit' AS type,
+        project_invoice.id AS id,
         CONCAT('SALES INVOICE NO. ', project_invoice.invoice_no) AS reference_no,
         project_invoice_payment.payment_date AS date,
         project_invoice_payment.paid_amount,
@@ -602,6 +603,7 @@ SELECT * FROM (
 
     SELECT 
         'Debit' AS type,
+        supplies_expense.id as id,
         CONCAT('PURCHASE ORDER NO. ', se_bank_entry.se_id) AS reference_no,
         se_bank_slip.payment_date AS date,
         se_bank_slip.amount AS paid_amount,
@@ -610,6 +612,7 @@ SELECT * FROM (
     FROM se_bank_slip
     LEFT JOIN bank ON bank.id = se_bank_slip.bank_from
     LEFT JOIN se_bank_entry ON se_bank_entry.se_bank_slip_id = se_bank_slip.id
+    LEFT JOIN supplies_expense ON supplies_expense.id = se_bank_entry.se_id
     WHERE se_bank_slip.is_deleted = 0
     AND se_bank_entry.is_deleted = 0
     AND bank.is_deleted = 0
