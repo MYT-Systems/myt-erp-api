@@ -146,7 +146,7 @@ class Reports extends MYTController
 
 
     /**
-     * Get expense by type
+     * Get expense by breakdown by day
      */
     public function get_expense_breakdown_by_day()
     {
@@ -216,7 +216,7 @@ class Reports extends MYTController
     }
 
     /**
-     * Get expense by type
+     * Get expense by date
      */
     public function get_expense_by_date()
     {
@@ -266,6 +266,55 @@ class Reports extends MYTController
 
     /**
      * Get expense by type
+     */
+    public function get_expense_by_type()
+    {
+        if (($response = $this->_api_verification('reports', 'get_expense_by_type')) !== true)
+            return $response;
+
+        $expense_type = $this->request->getVar('expense_type');
+        $date_from = $this->request->getVar('date_from');
+        $date_to = $this->request->getVar('date_to');
+        $payment_status = $this->request->getVar('payment_status');
+
+        if (!$expenses = $this->reportModel->get_expense($expense_type, $date_from, $date_to, $payment_status)) {
+            $response = $this->failNotFound('No report Found');
+        } else {
+
+            $expense_total_arr = [];
+            $expense_type_arr = [];
+            
+            foreach ($expenses as $item) {
+                $expense_total = (float) $item['expense_total'];
+                $expense_type = $item['expense_type'];
+            
+                if (isset($expense_total_arr[$expense_type])) {
+                    $expense_total_arr[$expense_type] += $expense_total;
+                } else {
+                    $expense_total_arr[$expense_type] = $expense_total;
+                    $expense_type_arr[] = $expense_type;
+                }
+            }
+
+            $expense_totals = [];
+
+            foreach($expense_total_arr AS $expense_total_item) {
+                $expense_totals[] = $expense_total_item;
+            }
+
+            $response = $this->respond([
+                'expense_total' => $expense_totals,
+                'expense_type' => $expense_type_arr,
+                'status'  => 'success'
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Get expense
      */
     public function get_expense()
     {
