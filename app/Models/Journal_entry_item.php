@@ -66,7 +66,7 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT journal_entry_item.id, journal_entry_item.debit, journal_entry_item.credit, journal_entry_item.remarks,
+SELECT journal_entry_item.id, journal_entry_item.debit, journal_entry_item.credit, journal_entry_item.remarks, journal_entry_item.expense_type_id, journal_entry_item.project_id,
     expense_type.name AS expense_type_name,
     project.name AS project_name
 FROM journal_entry_item
