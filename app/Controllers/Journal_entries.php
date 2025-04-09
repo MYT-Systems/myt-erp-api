@@ -133,6 +133,33 @@ class Journal_entries extends MYTController
     }
 
     /**
+     * Post journal_entry
+     */
+    public function post_journal_entry()
+    {
+        if (($response = $this->_api_verification('journal_entries', 'post_journal_entry')) !== true)
+            return $response;
+
+        $where = [
+            'id' => $this->request->getVar('journal_entry_id'), 
+            'is_deleted' => 0
+        ];
+
+        $is_posted = $this->request->getVar('is_posted');
+
+        if (!$journal_entry = $this->journalEntryModel->select('', $where, 1)) {
+            $response = $this->respond(['response' => 'Journal entry not found']);
+        } elseif (!$this->_attempt_post_journal_entry($journal_entry, $is_posted)) {
+            $response = $this->fail('Server error');
+        } else {
+            $response = $this->respond(['response' => 'Journal entry posted successfully']);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
      * Delete journal_entry
      */
     public function delete($id = '')
@@ -286,6 +313,32 @@ class Journal_entries extends MYTController
             return false;            
         }
 
+        return true;
+    }
+
+    /**
+     * Attempt change supplies expense status
+     */
+    protected function _attempt_post_journal_entry($journal_entry, $is_posted)
+    {
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        $where = ['id' => $journal_entry['id']];
+
+        $values = [
+            'is_posted' => $is_posted,
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
+        ];
+
+        if (!$this->journalEntryModel->update($where, $values)) {
+            $db->transRollback();
+            return false;
+        }
+
+        $db->transCommit();
+        $db->close();
         return true;
     }
 
