@@ -317,7 +317,7 @@ class Journal_entries extends MYTController
     }
 
     /**
-     * Attempt change supplies expense status
+     * Attempt post journal entry
      */
     protected function _attempt_post_journal_entry($journal_entry, $is_posted)
     {
