@@ -470,8 +470,8 @@ class Project_invoices extends MYTController
         $item_ids     = $this->request->getVar('item_ids')??[];
         $item_names   = $this->request->getVar('item_names') ?? [];
         $item_balances   = $this->request->getVar('item_balances') ?? [];
+        $prices     = $this->request->getVar('prices') ?? []; // prices is used to display total amount of each item
         // $units      = $this->request->getVar('units') ?? [];
-        // $prices     = $this->request->getVar('prices') ?? [];
         // $subtotal   = $this->request->getVar('subtotal') ?? 0;
         // $quantities = $this->request->getVar('quantities') ?? [];
         $grand_total = $this->request->getVar('grand_total') ?? 0;
@@ -517,11 +517,11 @@ class Project_invoices extends MYTController
             $values['item_id']    = $item_id;
             $values['item_name']    = $item_name;
             $values['item_balance']    = $item_balance;
+            $values['price']        = $prices[$key];
+            $values['billed_amount'] = $billed_amounts[$key];
             // $values['unit']         = $units[$key];
-            // $values['price']        = $prices[$key];
             // $values['qty']          = $quantities[$key];
             // $values['subtotal']     = $subtotal;
-            $values['billed_amount'] = $billed_amounts[$key];
 
             if (!$this->projectInvoiceItemModel->insert($values)) {
                 $this->errorMessage = $db->error()['message'];
