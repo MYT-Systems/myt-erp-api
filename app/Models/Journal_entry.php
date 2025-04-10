@@ -68,6 +68,9 @@ EOT;
         $sql .= ' AND DATE(journal_entry.date) <= ?';
         $binds[] = $date_to;
     }
+
+        $sql .= ' ORDER BY journal_entry.date DESC, journal_entry.id DESC';
+
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
