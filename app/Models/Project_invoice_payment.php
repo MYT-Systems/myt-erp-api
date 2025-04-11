@@ -142,7 +142,7 @@ EOT;
     /**
      * Search
      */
-    public function search($project_id, $customer_id, $project_invoice_id, $payment_method, $payment_date_from, $payment_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name, $date_from, $date_to)
+    public function search($project_id, $customer_id, $project_invoice_id, $payment_method, $deposit_date_from, $deposit_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name, $date_from, $date_to)
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
@@ -179,13 +179,13 @@ EOT;
             $binds[] = $payment_method;
         }
 
-        if ($payment_date_from) {
-            $sql .= ' AND project_invoice_payment.payment_date >= ?';
+        if ($deposit_date_from) {
+            $sql .= ' AND project_invoice_payment.deposit_date >= ?';
             $binds[] = $payment_date_from;
         }
 
-        if ($payment_date_to) {
-            $sql .= ' AND project_invoice_payment.payment_date <= ?';
+        if ($deposit_date_to) {
+            $sql .= ' AND project_invoice_payment.deposit_date <= ?';
             $binds[] = $payment_date_to;
         }
 
