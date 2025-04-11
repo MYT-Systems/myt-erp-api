@@ -147,21 +147,39 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT project_invoice.*,
+SELECT 
+    project_invoice.*,
     project.name AS project_name,
     CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name,
-    IF (project_invoice.is_closed = 1, 'closed_bill', 
-        IF (project_invoice.paid_amount > project_invoice.grand_total, 'overpaid', project_invoice.payment_status)
+    IF (
+        project_invoice.is_closed = 1, 
+        'closed_bill', 
+        IF (
+            project_invoice.paid_amount > project_invoice.grand_total, 
+            'overpaid', 
+            project_invoice.payment_status
+        )
     ) AS payment_status,
     project.grand_total AS project_amount,
-    (SELECT MAX(payment_date) 
-     FROM project_invoice_payment 
-     WHERE project_invoice_payment.project_invoice_id = project_invoice.id) AS payment_date
-FROM project_invoice
-LEFT JOIN project ON project.id = project_invoice.project_id
-LEFT JOIN employee AS adder ON adder.id = project_invoice.added_by
-WHERE project_invoice.is_deleted = 0
-AND project.is_deleted = 0
+    (
+        SELECT MAX(payment_date) 
+        FROM project_invoice_payment 
+        WHERE project_invoice_payment.project_invoice_id = project_invoice.id
+    ) AS payment_date,
+    (
+        SELECT MAX(deposit_date) 
+        FROM project_invoice_payment 
+        WHERE project_invoice_payment.project_invoice_id = project_invoice.id
+    ) AS deposit_date
+FROM 
+    project_invoice
+LEFT JOIN 
+    project ON project.id = project_invoice.project_id
+LEFT JOIN 
+    employee AS adder ON adder.id = project_invoice.added_by
+WHERE 
+    project_invoice.is_deleted = 0
+    AND project.is_deleted = 0
 EOT;
 
         $binds = [];
@@ -211,7 +229,7 @@ EOT;
 
         if ($date_from) {
             $date_from = date('Y-m-d 00:00:00', strtotime($date_from));
-            $sql .= ' AND (SELECT MAX(payment_date) 
+            $sql .= ' AND (SELECT MAX(deposit_date) 
                     FROM project_invoice_payment 
                     WHERE project_invoice_payment.project_invoice_id = project_invoice.id) >= ?';
             $binds[] = $date_from;
@@ -219,7 +237,7 @@ EOT;
 
         if ($date_to) {
             $date_to = date('Y-m-d 23:59:59', strtotime($date_to));
-            $sql .= ' AND (SELECT MAX(payment_date) 
+            $sql .= ' AND (SELECT MAX(deposit_date) 
                     FROM project_invoice_payment 
                     WHERE project_invoice_payment.project_invoice_id = project_invoice.id) <= ?';
             $binds[] = $date_to;
