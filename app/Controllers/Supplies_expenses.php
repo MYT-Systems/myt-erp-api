@@ -25,12 +25,14 @@ class Supplies_expenses extends MYTController
         $supplies_expense_id         = $this->request->getVar('supplies_expense_id') ? : null;
 
         $supplies_expense            = $supplies_expense_id ? $this->suppliesExpenseModel->get_details_by_id($supplies_expense_id) : null;
-        $supplies_expense_attachment = $supplies_expense_id ? $this->suppliesExpenseItemModel->get_details_by_supplies_expense_id($supplies_expense_id) : null;
+        $supplies_expense_item = $supplies_expense_id ? $this->suppliesExpenseItemModel->get_details_by_supplies_expense_id($supplies_expense_id) : null;
+        $supplies_expense_attachment = $supplies_expense_id ? $this->suppliesExpenseAttachmentModel->get_details_by_supplies_expense_id($supplies_expense_id) : null;
 
         if (!$supplies_expense) {
             $response = $this->failNotFound('No supplies expense found');
         } else {
-            $supplies_expense[0]['se_items'] = $supplies_expense_attachment;
+            $supplies_expense[0]['se_items'] = $supplies_expense_item;
+            $supplies_expense[0]['attachment'] = $supplies_expense_attachment;
             
             $payments = [];
             $invoice_no = '';
@@ -62,8 +64,10 @@ class Supplies_expenses extends MYTController
             $response = $this->failNotFound('No supplies expense found');
         } else {
             foreach ($supplies_expenses as $key => $supplies_expense) {
-                $supplies_expense_attachment = $this->suppliesExpenseItemModel->get_details_by_supplies_expense_id($supplies_expense['id']);
-                $supplies_expenses[$key]['se_items'] = $supplies_expense_attachment;
+                $supplies_expense_items = $this->suppliesExpenseItemModel->get_details_by_supplies_expense_id($supplies_expense['id']);
+                $supplies_expense_attachment = $this->suppliesExpenseAttachmentModel->get_details_by_supplies_expense_id($supplies_expense['id']);
+                $supplies_expenses[$key]['se_items'] = $supplies_expense_items;
+                $supplies_expenses[$key]['attachment'] = $supplies_expense_attachment;
             }
 
             $response = $this->respond([
