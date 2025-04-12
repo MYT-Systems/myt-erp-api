@@ -45,7 +45,28 @@ EOT;
     }
 
     /**
-     * Delete all attachment by project_expense ID
+     * Get project_invoice_payment_attachment details by project_invoice ID
+     */
+    public function get_details_by_supplies_expense_id($supplies_expense_id = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT *
+FROM supplies_expense_attachment
+WHERE supplies_expense_attachment.is_deleted = 0
+EOT;
+        $binds = [];
+        if (isset($project_invoice_payment_id)) {
+            $sql .= " AND supplies_expense_id = ?";
+            $binds[] = $supplies_expense_id;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Delete all attachment by supplies_expense ID
      */
     public function delete_attachments_by_supplies_expense_id($supplies_expense_id = null, $requested_by = null)
     {
