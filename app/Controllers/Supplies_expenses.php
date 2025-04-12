@@ -93,6 +93,10 @@ class Supplies_expenses extends MYTController
         } elseif (!$this->_attempt_generate_se_items($supplies_expense_id)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to generate supplies expense items.', 'status' => 'error']);
+        } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->suppliesExpenseAttachmentModel, ['supplies_expense_id' => $supplies_expense_id]) AND
+            $response === false) {
+            $db->transRollback();
+            $response = $this->respond(['response' => 'supplies_expense_attachment file upload failed']);
         } else {
             $db->transCommit();
             $response = $this->respond([
@@ -717,6 +721,7 @@ class Supplies_expenses extends MYTController
     {
         $this->suppliesExpenseModel              = model('App\Models\Supplies_expense');
         $this->suppliesExpenseItemModel          = model('App\Models\SE_item');
+        $this->suppliesExpenseAttachmentModel    = model('App\Models\Supplies_expense_attachment');
         $this->supplierModel                     = model('App\Models\Supplier');
         $this->suppliesPaymentModel              = model('App\Models\SE_payment');
         $this->suppliesReceiveModel              = model('App\Models\Supplies_receive');
