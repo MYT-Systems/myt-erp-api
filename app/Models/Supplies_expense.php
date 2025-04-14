@@ -293,7 +293,7 @@ EOT;
                 // $binds[] = 'pending';
                 $binds[] = 'for_approval';
             } elseif ($status == 'approved') {
-                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"';
+                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status IN ("pending", "incomplete")';
                 // $binds[] = 'sent';
                 $binds[] = 'approved';
             } elseif ($status == 'disapproved') {

@@ -173,8 +173,8 @@ class Project_invoice_payments extends MYTController
         $customer_id        = $this->request->getVar('customer_id') ?? null;
         $project_invoice_id = $this->request->getVar('project_invoice_id') ?? null;
         $payment_method     = $this->request->getVar('payment_method') ?? null;
-        $payment_date_from  = $this->request->getVar('payment_date_from') ?? null;
-        $payment_date_to    = $this->request->getVar('payment_date_to') ?? null;
+        $deposit_date_from  = $this->request->getVar('deposit_date_from') ?? null;
+        $deposit_date_to    = $this->request->getVar('deposit_date_to') ?? null;
         $from_bank_id       = $this->request->getVar('from_bank_id') ?? null;
         $cheque_number      = $this->request->getVar('cheque_number') ?? null;
         $cheque_date_from   = $this->request->getVar('cheque_date_from') ?? null;
@@ -185,7 +185,7 @@ class Project_invoice_payments extends MYTController
         $date_from          = $this->request->getVar('date_from') ?? null;
         $date_to            = $this->request->getVar('date_to') ?? null;
     
-        if (!$project_invoice_payments = $this->projectInvoicePaymentModel->search($project_id, $customer_id, $project_invoice_id, $payment_method, $payment_date_from, $payment_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name, $date_from, $date_to)) {
+        if (!$project_invoice_payments = $this->projectInvoicePaymentModel->search($project_id, $customer_id, $project_invoice_id, $payment_method, $deposit_date_from, $deposit_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name, $date_from, $date_to)) {
             $response = $this->failNotFound('No project invoice sale payment found');
         } else {
             $total_paid_amount = 0;  // Initialize the total paid amount variable

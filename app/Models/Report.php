@@ -589,7 +589,7 @@ SELECT * FROM (
         'Credit' AS type,
         project_invoice.id AS id,
         CONCAT('SALES INVOICE NO. ', project_invoice.invoice_no) AS reference_no,
-        project_invoice_payment.payment_date AS date,
+        project_invoice_payment.deposit_date AS date,
         project_invoice_payment.paid_amount,
         bank.name AS bank_name,
         project_invoice_payment.to_bank_id AS bank_id
@@ -965,7 +965,7 @@ EOT;
         if($date_from && $date_to) {
             $sql .= <<<EOT
 
-AND payment_date BETWEEN ? AND ?
+AND deposit_date BETWEEN ? AND ?
 EOT;
             $binds[] = $date_from;
             $binds[] = $date_to;
@@ -1166,7 +1166,10 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
     }
-    
+
+    /**
+     * Get sales report
+     */
     public function get_sales_report($date_from, $date_to, $year)
     {
         $database = \Config\Database::connect();
@@ -1216,36 +1219,50 @@ EOT;
     {
         $database = \Config\Database::connect();
 
-        $sql = <<<EOT
+    $sql = <<<EOT
 SELECT 
-    supplies_expense.id AS doc_no, 
-    expense_type.name AS expense_type,
-    SUM(supplies_expense.grand_total) AS expense_total, 
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 1 THEN supplies_expense.grand_total ELSE 0 END) AS jan,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 2 THEN supplies_expense.grand_total ELSE 0 END) AS feb,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 3 THEN supplies_expense.grand_total ELSE 0 END) AS mar,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 4 THEN supplies_expense.grand_total ELSE 0 END) AS apr,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 5 THEN supplies_expense.grand_total ELSE 0 END) AS may,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 6 THEN supplies_expense.grand_total ELSE 0 END) AS jun,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 7 THEN supplies_expense.grand_total ELSE 0 END) AS jul,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 8 THEN supplies_expense.grand_total ELSE 0 END) AS aug,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 9 THEN supplies_expense.grand_total ELSE 0 END) AS sep,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 10 THEN supplies_expense.grand_total ELSE 0 END) AS oct,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 11 THEN supplies_expense.grand_total ELSE 0 END) AS nov,
-    SUM(CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 12 THEN supplies_expense.grand_total ELSE 0 END) AS `dec`
-FROM supplies_expense
-LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
-WHERE supplies_expense.is_deleted = 0
-AND (
-    (supplies_expense.status = "for_approval" AND (supplies_expense.approved_by IS NULL OR supplies_expense.approved_by = "")) 
-    OR supplies_expense.status = "approved" 
-    OR supplies_expense.status = "disapproved" 
-    OR (supplies_expense.status = "approved" AND supplies_expense.order_status IN ("complete", "incomplete", "pending"))
-    OR (supplies_expense.status = "sent" AND supplies_expense.order_status IN ("complete", "incomplete", "pending"))
-)
+    doc_no,
+    expense_type,
+    jan,
+    feb,
+    mar,
+    apr,
+    may,
+    jun,
+    jul,
+    aug,
+    sep,
+    oct,
+    nov,
+    `dec`,
+    (jan + feb + mar + apr + may + jun + jul + aug + sep + oct + nov + `dec`) AS expense_total
+FROM (
+    -- Supplies Expense
+    SELECT 
+        supplies_expense.id AS doc_no,
+        expense_type.name AS expense_type,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 1 THEN supplies_expense.grand_total ELSE 0 END AS jan,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 2 THEN supplies_expense.grand_total ELSE 0 END AS feb,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 3 THEN supplies_expense.grand_total ELSE 0 END AS mar,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 4 THEN supplies_expense.grand_total ELSE 0 END AS apr,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 5 THEN supplies_expense.grand_total ELSE 0 END AS may,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 6 THEN supplies_expense.grand_total ELSE 0 END AS jun,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 7 THEN supplies_expense.grand_total ELSE 0 END AS jul,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 8 THEN supplies_expense.grand_total ELSE 0 END AS aug,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 9 THEN supplies_expense.grand_total ELSE 0 END AS sep,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 10 THEN supplies_expense.grand_total ELSE 0 END AS oct,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 11 THEN supplies_expense.grand_total ELSE 0 END AS nov,
+        CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 12 THEN supplies_expense.grand_total ELSE 0 END AS `dec`
+    FROM supplies_expense
+    LEFT JOIN expense_type ON expense_type.id = supplies_expense.type
+    WHERE supplies_expense.is_deleted = 0
+    AND (
+        (supplies_expense.status = 'approved' AND supplies_expense.order_status IN ('complete', 'pending', 'incomplete'))
+        OR
+        (supplies_expense.status = 'sent' AND supplies_expense.order_status IN ('complete', 'pending', 'incomplete'))
+    )
 EOT;
 
-        // Initialize bind parameters and date filter
         $binds = [];
 
         if ($year) {
@@ -1259,10 +1276,46 @@ EOT;
             $binds[] = $date_to;
         }
 
-        $sql .= " GROUP BY expense_type.name";
+    $sql .= <<<EOT
+
+    UNION ALL
+
+    -- Petty Cash
+    SELECT 
+        petty_cash_detail.id AS doc_no,
+        expense_type.name AS expense_type,
+        CASE WHEN MONTH(petty_cash_detail.date) = 1 THEN petty_cash_detail.amount ELSE 0 END AS jan,
+        CASE WHEN MONTH(petty_cash_detail.date) = 2 THEN petty_cash_detail.amount ELSE 0 END AS feb,
+        CASE WHEN MONTH(petty_cash_detail.date) = 3 THEN petty_cash_detail.amount ELSE 0 END AS mar,
+        CASE WHEN MONTH(petty_cash_detail.date) = 4 THEN petty_cash_detail.amount ELSE 0 END AS apr,
+        CASE WHEN MONTH(petty_cash_detail.date) = 5 THEN petty_cash_detail.amount ELSE 0 END AS may,
+        CASE WHEN MONTH(petty_cash_detail.date) = 6 THEN petty_cash_detail.amount ELSE 0 END AS jun,
+        CASE WHEN MONTH(petty_cash_detail.date) = 7 THEN petty_cash_detail.amount ELSE 0 END AS jul,
+        CASE WHEN MONTH(petty_cash_detail.date) = 8 THEN petty_cash_detail.amount ELSE 0 END AS aug,
+        CASE WHEN MONTH(petty_cash_detail.date) = 9 THEN petty_cash_detail.amount ELSE 0 END AS sep,
+        CASE WHEN MONTH(petty_cash_detail.date) = 10 THEN petty_cash_detail.amount ELSE 0 END AS oct,
+        CASE WHEN MONTH(petty_cash_detail.date) = 11 THEN petty_cash_detail.amount ELSE 0 END AS nov,
+        CASE WHEN MONTH(petty_cash_detail.date) = 12 THEN petty_cash_detail.amount ELSE 0 END AS `dec`
+    FROM petty_cash_detail
+    LEFT JOIN expense_type ON expense_type.id = petty_cash_detail.out_type
+    WHERE petty_cash_detail.is_deleted = 0
+        AND petty_cash_detail.type = 'out'
+EOT;
+
+        if ($year) {
+            $sql .= " AND YEAR(petty_cash_detail.date) = ?";
+            $binds[] = $year;
+        }
+
+        if ($date_from && $date_to) {
+            $sql .= " AND petty_cash_detail.date BETWEEN ? AND ?";
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
+
+        $sql .= ") AS detailed_expenses ORDER BY expense_type, doc_no";
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
     }
-
 }
