@@ -225,7 +225,7 @@ EOT;
         }
 
         if ($date_from && $date_to) {
-            $sql .= ' AND project_invoice_payment.payment_date BETWEEN ? AND ?';
+            $sql .= ' AND project_invoice_payment.deposit_date BETWEEN ? AND ?';
             $binds[] = $date_from;
             $binds[] = $date_to;
         }
