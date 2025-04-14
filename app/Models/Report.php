@@ -1175,18 +1175,18 @@ EOT;
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT 
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 1 THEN project_invoice_payment.paid_amount ELSE 0 END) AS jan,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 2 THEN project_invoice_payment.paid_amount ELSE 0 END) AS feb,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 3 THEN project_invoice_payment.paid_amount ELSE 0 END) AS mar,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 4 THEN project_invoice_payment.paid_amount ELSE 0 END) AS apr,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 5 THEN project_invoice_payment.paid_amount ELSE 0 END) AS may,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 6 THEN project_invoice_payment.paid_amount ELSE 0 END) AS jun,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 7 THEN project_invoice_payment.paid_amount ELSE 0 END) AS jul,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 8 THEN project_invoice_payment.paid_amount ELSE 0 END) AS aug,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 9 THEN project_invoice_payment.paid_amount ELSE 0 END) AS sep,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 10 THEN project_invoice_payment.paid_amount ELSE 0 END) AS oct,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 11 THEN project_invoice_payment.paid_amount ELSE 0 END) AS nov,
-    SUM(CASE WHEN MONTH(project_invoice_payment.payment_date) = 12 THEN project_invoice_payment.paid_amount ELSE 0 END) AS `dec`
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 1 THEN project_invoice_payment.paid_amount ELSE 0 END) AS jan,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 2 THEN project_invoice_payment.paid_amount ELSE 0 END) AS feb,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 3 THEN project_invoice_payment.paid_amount ELSE 0 END) AS mar,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 4 THEN project_invoice_payment.paid_amount ELSE 0 END) AS apr,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 5 THEN project_invoice_payment.paid_amount ELSE 0 END) AS may,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 6 THEN project_invoice_payment.paid_amount ELSE 0 END) AS jun,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 7 THEN project_invoice_payment.paid_amount ELSE 0 END) AS jul,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 8 THEN project_invoice_payment.paid_amount ELSE 0 END) AS aug,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 9 THEN project_invoice_payment.paid_amount ELSE 0 END) AS sep,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 10 THEN project_invoice_payment.paid_amount ELSE 0 END) AS oct,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 11 THEN project_invoice_payment.paid_amount ELSE 0 END) AS nov,
+    SUM(CASE WHEN MONTH(project_invoice_payment.deposit_date) = 12 THEN project_invoice_payment.paid_amount ELSE 0 END) AS `dec`
 FROM project_invoice_payment
 WHERE project_invoice_payment.is_deleted = 0 
 EOT;
@@ -1195,7 +1195,7 @@ EOT;
         if ($year) {
             $sql .= <<<EOT
 
-AND YEAR(project_invoice_payment.payment_date) = ? 
+AND YEAR(project_invoice_payment.deposit_date) = ? 
 EOT;
             $binds[] = $year;
         }
@@ -1203,7 +1203,7 @@ EOT;
         if ($date_from && $date_to) {
             $sql .= <<<EOT
 
-AND project_invoice_payment.payment_date BETWEEN ? AND ?
+AND project_invoice_payment.deposit_date BETWEEN ? AND ?
 EOT;
             $binds[] = $date_from;
             $binds[] = $date_to;

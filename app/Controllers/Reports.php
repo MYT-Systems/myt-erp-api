@@ -1024,38 +1024,66 @@ class Reports extends MYTController
         $dec_total_expenses = 0;
         
         $expenses = $this->reportModel->get_expenses_report(null, null, $year);
+        $grouped_expenses = [];
+
         if (!empty($expenses)) {
-            foreach ($expenses as $j => $expense) {
-                $total_expenses += (float)$expense['expense_total'];
-                $jan_total_expenses += (float)$expense['jan'];
-                $feb_total_expenses += (float)$expense['feb'];
-                $mar_total_expenses += (float)$expense['mar'];
-                $apr_total_expenses += (float)$expense['apr'];
-                $may_total_expenses += (float)$expense['may'];
-                $jun_total_expenses += (float)$expense['jun'];
-                $jul_total_expenses += (float)$expense['jul'];
-                $aug_total_expenses += (float)$expense['aug'];
-                $sep_total_expenses += (float)$expense['sep'];
-                $oct_total_expenses += (float)$expense['oct'];
-                $nov_total_expenses += (float)$expense['nov'];
-                $dec_total_expenses += (float)$expense['dec'];
-                
+            foreach ($expenses as $expense) {
+                $type = $expense['expense_type'];
+
+                if (!isset($grouped_expenses[$type])) {
+                    $grouped_expenses[$type] = [
+                        'jan' => 0, 'feb' => 0, 'mar' => 0, 'apr' => 0, 'may' => 0, 'jun' => 0,
+                        'jul' => 0, 'aug' => 0, 'sep' => 0, 'oct' => 0, 'nov' => 0, 'dec' => 0,
+                        'expense_total' => 0,
+                    ];
+                }
+
+                $grouped_expenses[$type]['jan'] += (float)$expense['jan'];
+                $grouped_expenses[$type]['feb'] += (float)$expense['feb'];
+                $grouped_expenses[$type]['mar'] += (float)$expense['mar'];
+                $grouped_expenses[$type]['apr'] += (float)$expense['apr'];
+                $grouped_expenses[$type]['may'] += (float)$expense['may'];
+                $grouped_expenses[$type]['jun'] += (float)$expense['jun'];
+                $grouped_expenses[$type]['jul'] += (float)$expense['jul'];
+                $grouped_expenses[$type]['aug'] += (float)$expense['aug'];
+                $grouped_expenses[$type]['sep'] += (float)$expense['sep'];
+                $grouped_expenses[$type]['oct'] += (float)$expense['oct'];
+                $grouped_expenses[$type]['nov'] += (float)$expense['nov'];
+                $grouped_expenses[$type]['dec'] += (float)$expense['dec'];
+                $grouped_expenses[$type]['expense_total'] += (float)$expense['expense_total'];
+            }
+
+            foreach ($grouped_expenses as $expense_type => $totals) {
+                $total_expenses += $totals['expense_total'];
+                $jan_total_expenses += $totals['jan'];
+                $feb_total_expenses += $totals['feb'];
+                $mar_total_expenses += $totals['mar'];
+                $apr_total_expenses += $totals['apr'];
+                $may_total_expenses += $totals['may'];
+                $jun_total_expenses += $totals['jun'];
+                $jul_total_expenses += $totals['jul'];
+                $aug_total_expenses += $totals['aug'];
+                $sep_total_expenses += $totals['sep'];
+                $oct_total_expenses += $totals['oct'];
+                $nov_total_expenses += $totals['nov'];
+                $dec_total_expenses += $totals['dec'];
+
                 $expenses_children[] = [
-                    'id' => $expense['doc_no'],
-                    'name' => $expense['expense_type'],
-                    'jan' => (float)$expense['jan'],
-                    'feb' => (float)$expense['feb'],
-                    'mar' => (float)$expense['mar'],
-                    'apr' => (float)$expense['apr'],
-                    'may' => (float)$expense['may'],
-                    'jun' => (float)$expense['jun'],
-                    'jul' => (float)$expense['jul'],
-                    'aug' => (float)$expense['aug'],
-                    'sep' => (float)$expense['sep'],
-                    'oct' => (float)$expense['oct'],
-                    'nov' => (float)$expense['nov'],
-                    'dec' => (float)$expense['dec'],
-                    'total_amount' => (float)$expense['expense_total']
+                    'id' => null, // Optional: could use expense_type or null since it's grouped
+                    'name' => $expense_type,
+                    'jan' => $totals['jan'],
+                    'feb' => $totals['feb'],
+                    'mar' => $totals['mar'],
+                    'apr' => $totals['apr'],
+                    'may' => $totals['may'],
+                    'jun' => $totals['jun'],
+                    'jul' => $totals['jul'],
+                    'aug' => $totals['aug'],
+                    'sep' => $totals['sep'],
+                    'oct' => $totals['oct'],
+                    'nov' => $totals['nov'],
+                    'dec' => $totals['dec'],
+                    'total_amount' => $totals['expense_total']
                 ];
             }
         }
