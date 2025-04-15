@@ -800,7 +800,7 @@ class Reports extends MYTController
         $data['receivables'] = number_format($this->reportModel->get_receivables($date_from, $date_to), 2, '.', "");
         $data['pending_invoice'] = count($this->projectInvoiceModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
         $data['open_invoice'] = count($this->projectInvoiceModel->select('', ['payment_status' => 'open_bill', 'is_deleted' => 0])?:[]);
-        $data['petty_cash'] = count($this->pettyCashModel->select('', ['is_deleted' => 0])?:[]);
+        $data['petty_cash'] = count($this->pettyCashDetailModel->select('', ['is_deleted' => 0, 'status' => 'request'])?:[]);
         $data['for_approval_project_expense'] = count($this->projectExpenseModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
         $data['for_approval_po'] = count($this->suppliesExpenseModel->select('', ['status' => 'for_approval', 'is_deleted' => 0]) ?: []);
         $data['projects_to_bill'] = count($this->projectModel->get_projects_to_bill()?:[]);
@@ -1261,6 +1261,7 @@ class Reports extends MYTController
         $this->suppliesExpenseModel       = model('App\Models\Supplies_expense');
         $this->suppliesReceiveModel       = model('App\Models\Supplies_receive');
         $this->pettyCashModel             = model('App\Models\Petty_cash');
+        $this->pettyCashDetailModel       = model('App\Models\Petty_cash_detail');
         $this->expenseTypeModel           = model('App\Models\Expense_type');
         $this->customerModel              = model('App\Models\Customer');
         $this->branchModel                = model('App\Models\Branch');
