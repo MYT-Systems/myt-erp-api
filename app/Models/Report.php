@@ -1277,7 +1277,6 @@ EOT;
         }
 
     $sql .= <<<EOT
-
     UNION ALL
 
     -- Petty Cash
@@ -1313,7 +1312,7 @@ EOT;
             $binds[] = $date_to;
         }
 
-        $sql .= ") AS detailed_expenses ORDER BY expense_type, doc_no";
+        $sql .= ") AS detailed_expenses ORDER BY expense_type";
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
