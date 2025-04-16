@@ -26,8 +26,10 @@ class Supplies_expenses extends MYTController
 
         $supplies_expense            = $supplies_expense_id ? $this->suppliesExpenseModel->get_details_by_id($supplies_expense_id) : null;
         $supplies_expense_item = $supplies_expense_id ? $this->suppliesExpenseItemModel->get_details_by_supplies_expense_id($supplies_expense_id) : null;
-        $supplies_expense_attachment = $supplies_expense_id ? $this->suppliesExpenseAttachmentModel->get_details_by_supplies_expense_id($supplies_expense_id) : null;
-
+        $supplies_expense_attachment = $supplies_expense_id ? $this->suppliesExpenseAttachmentModel->get_details_by_supplies_expense_id($supplies_expense_id) : null;$supplies_expense_attachment = $supplies_expense_id
+        ? ($this->suppliesExpenseAttachmentModel->get_details_by_supplies_expense_id($supplies_expense_id) ?: [])
+        : [];
+    
         if (!$supplies_expense) {
             $response = $this->failNotFound('No supplies expense found');
         } else {
