@@ -32,7 +32,7 @@ class Supplies_expenses extends MYTController
             $response = $this->failNotFound('No supplies expense found');
         } else {
             $supplies_expense[0]['se_items'] = $supplies_expense_item;
-            $supplies_expense[0]['attachment'] = $supplies_expense_attachment ? $supplies_expense_attachment : [];
+            $supplies_expense[0]['attachments'] = $supplies_expense_attachment ? $supplies_expense_attachment : [];
             
             $payments = [];
             $invoice_no = '';
