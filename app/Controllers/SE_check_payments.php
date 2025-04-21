@@ -209,13 +209,13 @@ class Se_check_payments extends MYTController
         $db->transBegin();
 
         if ($this->checkSlipModel->is_check_no_used($this->request->getVar('check_no'))) {
-            $response = $this->fail(['response' => 'Check number is used already.', 'status' => 'error']);
+            $response = $this->respond(['response' => 'Check number is used already', 'status' => 'error']);
         } elseif (!$se_check_slip_id = $this->_attempt_create_slip()) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to create slip.', 'status' => 'error']);
+            $response = $this->fail(['response' => 'Failed to create slip', 'status' => 'error']);
         } elseif (!$this->_attempt_generate_entry($se_check_slip_id)) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to generate check entry.', 'status' => 'error']);
+            $response = $this->fail(['response' => 'Failed to generate check entry', 'status' => 'error']);
         } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_check_slip_id, 'assets/se_check_payments/')) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
