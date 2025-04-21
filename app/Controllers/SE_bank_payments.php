@@ -282,7 +282,7 @@ class Se_bank_payments extends MYTController
             $response = $this->fail(['response' => 'Failed to create slip.', 'status' => 'error']);
         } elseif (($error_message = $this->_attempt_generate_entry($se_bank_slip_id)) !== true) {
             $db->transRollback();
-            return $this->respond([
+            $response = $this->respond([
                 "response" => $error_message,  
                 "status" => "error"            
             ]);
