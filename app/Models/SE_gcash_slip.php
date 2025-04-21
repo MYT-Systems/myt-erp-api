@@ -53,7 +53,7 @@ SELECT *,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE id = se_gcash_slip.added_by) AS added_by_name,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE id = se_gcash_slip.updated_by) AS updated_by_name,
     (SELECT trade_name FROM supplier WHERE id = se_gcash_slip.supplier_id) AS supplier_name,
-    (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE id = se_gcash_slip.acknowledged_by) AS acknowledged_by_name,
+    (SELECT CONCAT(first_name, ' ', middle_name, ' ', last_name) FROM user WHERE id = se_gcash_slip.acknowledged_by) AS acknowledged_by_name,
     (SELECT trade_name FROM vendor WHERE id = se_gcash_slip.vendor_id) AS vendor_name
 FROM se_gcash_slip
 WHERE is_deleted = 0
