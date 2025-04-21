@@ -577,6 +577,8 @@ class Se_gcash_payments extends MYTController
             'supplier_id'     => $this->request->getVar('supplier_id'),
             'vendor_id'       => $this->request->getVar('vendor_id'),
             'payee'           => $this->request->getVar('payee'),
+            'account_no'      => $this->request->getVar('account_no'),
+            'account_name'    => $this->request->getVar('account_name'),
             'particulars'     => $this->request->getVar('particulars'),
             'acknowledged_by' => $this->request->getVar('acknowledged_by'),
             'updated_by'      => $this->requested_by,
