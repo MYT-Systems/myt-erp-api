@@ -186,6 +186,7 @@ class Logout extends MYTController
         $values = [
             'api_key' => null,
             'token' => null,
+            'token_expiry' => null,
             'updated_by' => $this->requested_by,
             'updated_on' => date('Y-m-d H:i:s')
         ];
