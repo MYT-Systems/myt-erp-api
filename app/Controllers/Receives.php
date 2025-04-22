@@ -22,6 +22,11 @@ class Receives extends MYTController
         if (($response = $this->_api_verification('receive', 'get_receive')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $receive_id    = $this->request->getVar('receive_id') ? : null;
         $receive       = $receive_id ? $this->receiveModel->get_details_by_id($receive_id) : null;
         $receive_items = $receive_id ? $this->receiveItemModel->get_details_by_receive_id($receive_id) : null;
@@ -49,6 +54,11 @@ class Receives extends MYTController
     {
         if (($response = $this->_api_verification('receive', 'get_all_receive')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $supplier_id = $this->request->getVar('supplier_id') ? : null;
         $vendor_id   = $this->request->getVar('vendor_id') ? : null;
@@ -79,6 +89,11 @@ class Receives extends MYTController
     {
         if (($response = $this->_api_verification('receives', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         if ($this->_has_duplicate_invoice()) {
             $response = $this->fail(['response' => 'Either waybill, invoice, or DR number is duplicate.', 'status' => 'error']);
@@ -139,6 +154,11 @@ class Receives extends MYTController
         if (($response = $this->_api_verification('receives', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $receive_id = $this->request->getVar('receive_id');
         $where      = ['id' => $receive_id, 'is_deleted' => 0];
 
@@ -171,6 +191,11 @@ class Receives extends MYTController
         if (($response = $this->_api_verification('receives', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $receive_id = $this->request->getVar('receive_id');
         $where = ['id' => $receive_id, 'is_deleted' => 0];
 
@@ -202,6 +227,11 @@ class Receives extends MYTController
     {
         if (($response = $this->_api_verification('receive', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $po_id             = $this->request->getVar('po_id');
         $branch_id         = $this->request->getVar('branch_id');
@@ -253,6 +283,11 @@ class Receives extends MYTController
         if (($response = $this->_api_verification('receive', 'get_bills')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $type = $this->request->getVar('type');
         if (!$receives = $this->receiveModel->get_bills($type)) {
             $response = $this->failNotFound('No receive found');
@@ -273,6 +308,11 @@ class Receives extends MYTController
     {
         if (($response = $this->_api_verification('receive', 'get_all_invoice_payments')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $receive_id       = $this->request->getVar('receive_id') ? : null;
         $invoice_payments = $receive_id ? $this->suppliesPaymentModel->get_all_payment_by_receive($receive_id) : null;
@@ -298,6 +338,11 @@ class Receives extends MYTController
     {
         if (($response = $this->_api_verification('receive', 'close_overpaid_receive')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $receive_id = $this->request->getVar('receive_id');
         $where = ['id' => $receive_id, 'is_deleted' => 0];

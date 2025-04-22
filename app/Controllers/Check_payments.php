@@ -27,6 +27,11 @@ class Check_payments extends MYTController
         if (($response = $this->_api_verification('check_payments', 'get_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $check_entry_id = $this->request->getVar('entry_id') ? : null;
         $check_entry    = $check_entry_id ? $this->checkEntryModel->get_details_by_id($check_entry_id) : null;
         $check_slip     = $check_entry ? $this->checkSlipModel->get_details_by_id($check_entry[0]['id']) : null;
@@ -53,6 +58,11 @@ class Check_payments extends MYTController
         if (($response = $this->_api_verification('check_payments', 'get_slip')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $check_slip_id = $this->request->getVar('slip_id') ? : null;
         $check_slip    = $check_slip_id ? $this->checkSlipModel->get_details_by_id($check_slip_id) : null;
         $check_entries = $check_slip ? $this->checkEntryModel->get_details_by_slip_id($check_slip[0]['id']) : null;
@@ -78,6 +88,11 @@ class Check_payments extends MYTController
     {
         if (($response = $this->_api_verification('check_payments', 'get_all_entry')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $check_entries = $this->checkEntryModel->get_all_entry();
 
@@ -107,6 +122,11 @@ class Check_payments extends MYTController
         if (($response = $this->_api_verification('check_payments', 'get_all_slip')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $check_slips = $this->checkSlipModel->get_all_slip();
 
         if (!$check_slips) {
@@ -134,6 +154,11 @@ class Check_payments extends MYTController
     {
         if (($response = $this->_api_verification('check_payements', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -163,6 +188,11 @@ class Check_payments extends MYTController
     {
         if (($response = $this->_api_verification('check_payements', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('check_slip_id'), 
@@ -198,6 +228,11 @@ class Check_payments extends MYTController
         if (($response = $this->_api_verification('check_payements', 'delete_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $check_entry_id = $this->request->getVar('check_entry_id');
 
         $where = ['id' => $check_entry_id, 'is_deleted' => 0];
@@ -227,6 +262,11 @@ class Check_payments extends MYTController
     {
         if (($response = $this->_api_verification('check_payements', 'delete_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('check_slip_id'), 
@@ -262,6 +302,11 @@ class Check_payments extends MYTController
         if (($response = $this->_api_verification('check_payments', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_id     = $this->request->getVar('bank_id') ?? null;
         $check_no    = $this->request->getVar('check_no') ?? null;
         $check_date  = $this->request->getVar('check_date') ?? null;
@@ -294,6 +339,11 @@ class Check_payments extends MYTController
         if (($response = $this->_api_verification('check_payments', 'record_action')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where =  [
             'id' =>$this->request->getVar('check_slip_id'), 
             'is_deleted' => 0
@@ -324,6 +374,11 @@ class Check_payments extends MYTController
     {
         if (($response = $this->_api_verification('check_payments', 'generate_check_no')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         if (!$check_no = $this->checkSlipModel->generate_check_no()) {
             $response = $this->fail(['response' => 'Failed to generate check no.', 'status' => 'error']);

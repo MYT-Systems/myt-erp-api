@@ -26,6 +26,11 @@ class Banks extends MYTController
         if (($response = $this->_api_verification('banks', 'get_bank')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_id = $this->request->getVar('bank_id') ? : null;
         $bank    = $bank_id ? $this->bankModel->get_details_by_id($bank_id) : null;
 
@@ -50,6 +55,11 @@ class Banks extends MYTController
         if (($response = $this->_api_verification('banks', 'get_all_bank')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $banks = $this->bankModel->get_all_bank();
 
         if (!$banks) {
@@ -72,6 +82,11 @@ class Banks extends MYTController
     {
         if (($response = $this->_api_verification('banks', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name = $this->request->getVar('name');
         if ($response = $this->_is_existing($this->bankModel, ['name' => $name]))
@@ -105,6 +120,11 @@ class Banks extends MYTController
         if (($response = $this->_api_verification('banks', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('bank_id'),
             'is_deleted' => 0
@@ -136,6 +156,11 @@ class Banks extends MYTController
         if (($response = $this->_api_verification('banks', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('bank_id'), 
             'is_deleted' => 0
@@ -166,6 +191,11 @@ class Banks extends MYTController
     {
         if (($response = $this->_api_verification('banks', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name          = $this->request->getVar('name');
         $template_name = $this->request->getVar('template_name');

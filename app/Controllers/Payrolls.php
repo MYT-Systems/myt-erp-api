@@ -22,6 +22,11 @@ class Payrolls extends MYTController
         if (($response = $this->_api_verification('payrolls', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $employee_id = $this->request->getVar('employee_id') ? : null;
         $date_from = $this->request->getVar('date_from') ? : null;
         $date_to = $this->request->getVar('date_to') ? : null;
@@ -43,6 +48,11 @@ class Payrolls extends MYTController
     {
         if (($response = $this->_api_verification('payrolls', 'compute_payroll')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $employee_id = $this->request->getVar('employee_id');
         $date_from = $this->request->getVar('date_from');
@@ -114,6 +124,11 @@ class Payrolls extends MYTController
     {
         if (($response = $this->_api_verification('payrolls', 'add')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $cash_advance = $this->request->getVar('cash_advance') ? : 0.00;
 
@@ -192,6 +207,11 @@ class Payrolls extends MYTController
     {
         if (($response = $this->_api_verification('payrolls', 'delete')) !== true)
         return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $payroll_id = $this->request->getVar('payroll_id') ? : 0.00;
         $condition = ['id' => $payroll_id, 'is_deleted' => 0];

@@ -22,6 +22,11 @@ class Wastage_items extends MYTController
         if (($response = $this->_api_verification('wastage_items', 'change_status')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('wastage_item_id'),
             'is_deleted' => 0
@@ -88,6 +93,11 @@ class Wastage_items extends MYTController
         if (($response = $this->_api_verification('wastage_items', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('wastage_item_id'),
             'is_deleted' => 0
@@ -112,6 +122,11 @@ class Wastage_items extends MYTController
     {
         if (($response = $this->_api_verification('wastage_items', 'delete')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('wastage_item_id'),

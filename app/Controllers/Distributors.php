@@ -23,6 +23,11 @@ class Distributors extends MYTController
         if (($response = $this->_api_verification('distributors', 'get_distributor')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $distributor_id    = $this->request->getVar('distributor_id') ? : null;
         $distributor       = $distributor_id ? $this->distributorModel->get_details_by_id($distributor_id) : null;
         $distributor_clients = $distributor_id ? $this->distributorClientModel->get_details_by_distributor_id($distributor_id) : null;
@@ -50,6 +55,11 @@ class Distributors extends MYTController
         if (($response = $this->_api_verification('distributors', 'filter_distributor_status')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $status    = $this->request->getVar('status') ? : null;
         $distributor = $status ? $this->distributorModel->filter_distributor_status($status) : null;
 
@@ -74,6 +84,11 @@ class Distributors extends MYTController
         if (($response = $this->_api_verification('distributors', 'filter_order_status')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $status    = $this->request->getVar('status') ? : null;
         $distributor = $status ? $this->distributorModel->filter_order_status($status) : null;
 
@@ -97,6 +112,11 @@ class Distributors extends MYTController
     {
         if (($response = $this->_api_verification('distributors', 'get_all_distributor')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $distributors = $this->distributorModel->get_all_distributor();
 
@@ -124,6 +144,11 @@ class Distributors extends MYTController
     {
         if (($response = $this->_api_verification('distributors', 'create')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -154,6 +179,11 @@ class Distributors extends MYTController
     {
         if (($response = $this->_api_verification('distributors', 'update')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
             
         $distributor_id = $this->request->getVar('distributor_id');
         $where       = ['id' => $distributor_id, 'is_deleted' => 0];
@@ -192,6 +222,11 @@ class Distributors extends MYTController
     {
         if (($response = $this->_api_verification('distributors', 'delete')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $distributor_id = $this->request->getVar('distributor_id');
 
@@ -216,6 +251,11 @@ class Distributors extends MYTController
     {
         if (($response = $this->_api_verification('distributors', 'search')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name          = $this->request->getVar('name') ? : null;
 

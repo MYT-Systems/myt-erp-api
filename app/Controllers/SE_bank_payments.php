@@ -29,6 +29,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payments', 'get_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_bank_entry_id = $this->request->getVar('entry_id') ? : null;
         $se_bank_entry    = $se_bank_entry_id ? $this->bankEntryModel->get_details_by_id($se_bank_entry_id) : null;
         $se_bank_slip     = $se_bank_entry ? $this->bankSlipModel->get_details_by_id($se_bank_entry[0]['id']) : null;
@@ -54,6 +59,11 @@ class Se_bank_payments extends MYTController
     {
         if (($response = $this->_api_verification('bank_payments', 'get_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_bank_slip_id = $this->request->getVar('slip_id') ? : null;
         $se_bank_slip    = $se_bank_slip_id ? $this->bankSlipModel->get_details_by_id($se_bank_slip_id) : null;
@@ -83,6 +93,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payments', 'get_all_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_entries = $this->bankEntryModel->get_all_entry();
 
         if (!$bank_entries) {
@@ -111,6 +126,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payments', 'get_all_slip')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_bank_slips = $this->bankSlipModel->get_all_slip();
 
         if (!$se_bank_slips) {
@@ -138,6 +158,11 @@ class Se_bank_payments extends MYTController
     {
         if (($response = $this->_api_verification('receives', 'delete_attachment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_bank_slip_id = $this->request->getVar('se_bank_slip_id');
         $attachment_id = $this->request->getVar('attachment_id');
@@ -274,6 +299,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payments', 'create')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $db = \Config\Database::connect();
         $db->transBegin();
 
@@ -306,6 +336,11 @@ class Se_bank_payments extends MYTController
     {
         if (($response = $this->_api_verification('bank_payements', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_bank_slip_id = $this->request->getVar('se_bank_slip_id');
         $where         = ['id' => $se_bank_slip_id, 'is_deleted' => 0];
@@ -342,6 +377,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payements', 'delete_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_bank_entry_id = $this->request->getVar('se_bank_entry_id');
 
         $where = ['id' => $se_bank_entry_id, 'is_deleted' => 0];
@@ -366,6 +406,11 @@ class Se_bank_payments extends MYTController
     {
         if (($response = $this->_api_verification('bank_payements', 'delete_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_bank_slip_id = $this->request->getVar('se_bank_slip_id');
 
@@ -400,6 +445,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payments', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_id     = $this->request->getVar('bank_id') ?? null;
         $bank_no    = $this->request->getVar('bank_no') ?? null;
         $bank_date  = $this->request->getVar('bank_date') ?? null;
@@ -427,6 +477,11 @@ class Se_bank_payments extends MYTController
     {
         if (($response = $this->_api_verification('bank_payments', 'record_action')) !== true)
             return $response;
+    
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_bank_slip_id = $this->request->getVar('se_bank_slip_id');
         $action        = $this->request->getVar('action');

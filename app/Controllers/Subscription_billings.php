@@ -23,6 +23,11 @@ class Subscription_billings extends MYTController
         if (($response = $this->_api_verification('subscription_billings', 'get_subscription_billing')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $subscription_billing_id    = $this->request->getVar('subscription_billing_id') ? : null;
         $subscription_billing       = $subscription_billing_id ? $this->subscriptionBillingModel->get_details_by_id($subscription_billing_id) : null;
         $project = $subscription_billing ? $this->projectModel->get_details_by_id($subscription_billing[0]['project_id']) : null;
@@ -53,6 +58,11 @@ class Subscription_billings extends MYTController
         if (($response = $this->_api_verification('subscription_billings', 'filter_subscription_billing_status')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $status    = $this->request->getVar('status') ? : null;
         $subscription_billing = $status ? $this->subscriptionBillingModel->filter_subscription_billing_status($status) : null;
 
@@ -77,6 +87,11 @@ class Subscription_billings extends MYTController
         if (($response = $this->_api_verification('subscription_billings', 'filter_order_status')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $status    = $this->request->getVar('status') ? : null;
         $subscription_billing = $status ? $this->subscriptionBillingModel->filter_order_status($status) : null;
 
@@ -100,6 +115,11 @@ class Subscription_billings extends MYTController
     {
         if (($response = $this->_api_verification('subscription_billings', 'get_all_subscription_billing')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $status = $this->request->getVar('status') ? : null;
         $project_name = $this->request->getVar('project_name') ? : null;
@@ -132,6 +152,11 @@ class Subscription_billings extends MYTController
         if (($response = $this->_api_verification('subscription_billings', 'create')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $db = \Config\Database::connect();
         $db->transBegin();
 
@@ -161,6 +186,11 @@ class Subscription_billings extends MYTController
     {
         if (($response = $this->_api_verification('subscription_billings', 'create')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_id = $this->request->getVar('project_id');
         $billing_date = $this->request->getVar('billing_date');
@@ -197,6 +227,11 @@ class Subscription_billings extends MYTController
     {
         if (($response = $this->_api_verification('subscription_billings', 'update')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
             
         $subscription_billing_id = $this->request->getVar('subscription_billing_id');
         $where       = ['id' => $subscription_billing_id, 'is_deleted' => 0];
@@ -235,6 +270,11 @@ class Subscription_billings extends MYTController
     {
         if (($response = $this->_api_verification('subscription_billings', 'delete')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $subscription_billing_id = $this->request->getVar('subscription_billing_id');
 
@@ -259,6 +299,11 @@ class Subscription_billings extends MYTController
     {
         if (($response = $this->_api_verification('subscription_billings', 'search')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_id          = $this->request->getVar('project_id') ? : null;
 

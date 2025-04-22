@@ -22,6 +22,11 @@ class Transfers extends MYTController
         if (($response = $this->_api_verification('transfers', 'get_transfer_report')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_from = $this->request->getVar('branch_from') ?? null;
         $branch_to = $this->request->getVar('branch_to') ?? null;
         $item_id = $this->request->getVar('item_id') ?? null;
@@ -73,6 +78,11 @@ class Transfers extends MYTController
         if (($response = $this->_api_verification('transfer', 'get_transfer')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transfer_id    = $this->request->getVar('transfer_id') ? : null;
         $transfer       = $transfer_id ? $this->transferModel->get_details_by_id($transfer_id) : null;
         $transfer_items = $transfer_id ? $this->transferItemModel->get_details_by_transfer_id($transfer_id) : null;
@@ -102,6 +112,11 @@ class Transfers extends MYTController
         if (($response = $this->_api_verification('transfer', 'get_all_transfer')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transfers = $this->transferModel->get_all_transfer();
 
         if (!$transfers) {
@@ -127,6 +142,11 @@ class Transfers extends MYTController
     {
         if (($response = $this->_api_verification('transfers', 'create')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -173,6 +193,11 @@ class Transfers extends MYTController
         if (($response = $this->_api_verification('transfers', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transfer_id = $this->request->getVar('transfer_id');
         $where = [
             'id' => $transfer_id, 
@@ -214,6 +239,11 @@ class Transfers extends MYTController
         if (($response = $this->_api_verification('transfers', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transfer_id = $this->request->getVar('transfer_id');
         $where = ['id' => $transfer_id, 'is_deleted' => 0];
 
@@ -245,6 +275,11 @@ class Transfers extends MYTController
     {
         if (($response = $this->_api_verification('transfers', 'change_status')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('transfer_id'), 
@@ -283,6 +318,11 @@ class Transfers extends MYTController
         if (($response = $this->_api_verification('transfers', 'search_multiple_status')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transfer_id     = $this->request->getVar('transfer_id') ? : null;
         $branch_from     = $this->request->getVar('branch_from') ? : null;
         $branch_to       = $this->request->getVar('branch_to') ? : null;
@@ -312,6 +352,11 @@ class Transfers extends MYTController
     {
         if (($response = $this->_api_verification('transfers', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $transfer_id        = $this->request->getVar('transfer_id') ? : null;
         $branch_from        = $this->request->getVar('branch_from') ? : null;
@@ -345,6 +390,11 @@ class Transfers extends MYTController
     {
         if (($response = $this->_api_verification('transfers', 'record_status')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $transfer_id = $this->request->getVar('transfer_id');
         $new_status  = $this->request->getVar('new_status');
@@ -381,6 +431,11 @@ class Transfers extends MYTController
     {
         if (($response = $this->_api_verification('transfers', 'get_all_for_adjustments')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         if (!$transfer_items = $this->transferItemModel->get_all_for_adjustment()) {
             $response = $this->failNotFound('No transfers found');

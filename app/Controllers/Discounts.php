@@ -26,6 +26,11 @@ class Discounts extends MYTController
         if (($response = $this->_api_verification('discounts', 'get_discount')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $discount_id = $this->request->getVar('discount_id') ? : null;
         $discount    = $discount_id ? $this->discountModel->get_details_by_id($discount_id) : null;
 
@@ -53,6 +58,11 @@ class Discounts extends MYTController
         if (($response = $this->_api_verification('discounts', 'get_all_discount')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $discounts = $this->discountModel->get_all_discount();
 
         if (!$discounts) {
@@ -78,6 +88,11 @@ class Discounts extends MYTController
     {
         if (($response = $this->_api_verification('discounts', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -107,6 +122,11 @@ class Discounts extends MYTController
     {
         if (($response = $this->_api_verification('discounts', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('discount_id'), 
@@ -144,6 +164,11 @@ class Discounts extends MYTController
         if (($response = $this->_api_verification('discounts', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('discount_id'), 
             'is_deleted' => 0
@@ -175,6 +200,11 @@ class Discounts extends MYTController
         if (($response = $this->_api_verification('discounts', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_id = $this->request->getVar('branch_id') ? : null;
         $date_from = $this->request->getVar('date_from') ? : null;
         $date_to = $this->request->getVar('date_to') ? : null;
@@ -205,6 +235,11 @@ class Discounts extends MYTController
     {
         if (($response = $this->_api_verification('discounts', 'reports')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id');
         $date = $this->request->getVar('date') ? : null;
@@ -243,6 +278,11 @@ class Discounts extends MYTController
     {
         if (($response = $this->_api_verification('discounts', 'invoice')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id');
         $date = $this->request->getVar('date') ? : null;

@@ -23,6 +23,11 @@ class Distributor_billings extends MYTController
         if (($response = $this->_api_verification('distributor_billings', 'get_distributor_billing')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $distributor_billing_id    = $this->request->getVar('distributor_billing_id') ? : null;
         $distributor_billing       = $distributor_billing_id ? $this->distributorBillingModel->get_details_by_id($distributor_billing_id) : null;
         $distributor = $distributor_billing ? $this->distributorModel->get_details_by_id($distributor_billing[0]['distributor_id']) : null;
@@ -53,6 +58,11 @@ class Distributor_billings extends MYTController
         if (($response = $this->_api_verification('distributor_billings', 'filter_distributor_billing_status')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $status    = $this->request->getVar('status') ? : null;
         $distributor_billing = $status ? $this->distributorBillingModel->filter_distributor_billing_status($status) : null;
 
@@ -77,6 +87,11 @@ class Distributor_billings extends MYTController
         if (($response = $this->_api_verification('distributor_billings', 'filter_order_status')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $status    = $this->request->getVar('status') ? : null;
         $distributor_billing = $status ? $this->distributorBillingModel->filter_order_status($status) : null;
 
@@ -100,6 +115,11 @@ class Distributor_billings extends MYTController
     {
         if (($response = $this->_api_verification('distributor_billings', 'get_all_distributor_billing')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $status = $this->request->getVar('status') ? : null;
         $distributor_name = $this->request->getVar('distributor_name') ? : null;
@@ -131,6 +151,11 @@ class Distributor_billings extends MYTController
         if (($response = $this->_api_verification('distributor_billings', 'create')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $db = \Config\Database::connect();
         $db->transBegin();
 
@@ -160,6 +185,11 @@ class Distributor_billings extends MYTController
     {
         if (($response = $this->_api_verification('distributor_billings', 'create')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $distributor_id = $this->request->getVar('distributor_id');
         $billing_date = $this->request->getVar('billing_date');
@@ -196,6 +226,11 @@ class Distributor_billings extends MYTController
     {
         if (($response = $this->_api_verification('distributor_billings', 'update')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
             
         $distributor_billing_id = $this->request->getVar('distributor_billing_id');
         $where       = ['id' => $distributor_billing_id, 'is_deleted' => 0];
@@ -234,6 +269,11 @@ class Distributor_billings extends MYTController
     {
         if (($response = $this->_api_verification('distributor_billings', 'delete')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $distributor_billing_id = $this->request->getVar('distributor_billing_id');
 
@@ -258,6 +298,11 @@ class Distributor_billings extends MYTController
     {
         if (($response = $this->_api_verification('distributor_billings', 'search')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $distributor_id          = $this->request->getVar('distributor_id') ? : null;
 

@@ -26,6 +26,11 @@ class Employees extends MYTController
         if (($response = $this->_api_verification('employees', 'get_employee')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $employee_id = $this->request->getVar('employee_id') ? : null;
         $employee    = $employee_id ? $this->employeeModel->get_details_by_id($employee_id) : null;
 
@@ -50,6 +55,11 @@ class Employees extends MYTController
         if (($response = $this->_api_verification('employees', 'get_all_employee')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $employees = $this->employeeModel->get_all_employees();
 
         if (!$employees) {
@@ -72,6 +82,11 @@ class Employees extends MYTController
     {
         if (($response = $this->_api_verification('employees', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $username = $this->request->getVar('username');
         if ($response = $this->_is_existing($this->employeeModel, ['username' => $username]))
@@ -108,6 +123,11 @@ class Employees extends MYTController
         if (($response = $this->_api_verification('employees', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('employee_id'), 
             'is_deleted' => 0
@@ -138,6 +158,11 @@ class Employees extends MYTController
     {
         if (($response = $this->_api_verification('employees', 'change_password')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         if (($response = $this->_validation_check(['password_update'])) !== true) {
             $this->webappResponseModel->record_response($this->webapp_log_id, $response);
@@ -174,6 +199,11 @@ class Employees extends MYTController
         if (($response = $this->_api_verification('employees', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('employee_id'), 
             'is_deleted' => 0
@@ -204,6 +234,11 @@ class Employees extends MYTController
     {
         if (($response = $this->_api_verification('employees', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $username = $this->request->getVar('username') ? : null;
         $name     = $this->request->getVar('name') ? : null;

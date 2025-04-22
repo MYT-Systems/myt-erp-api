@@ -26,6 +26,11 @@ class Transactions extends MYTController
         if (($response = $this->_api_verification('receivables', 'get_receivable')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_id  = $this->request->getVar('branch_id') ? : null;
         $date_from  = $this->request->getVar('date_from') ? : null;
         $date_to    = $this->request->getVar('date_to') ? : null;
@@ -73,6 +78,11 @@ class Transactions extends MYTController
         if (($response = $this->_api_verification('receivables', 'get_receivable')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_id  = $this->request->getVar('branch_id') ? : null;
         $date_from  = $this->request->getVar('date_from') ? : null;
         $date_to    = $this->request->getVar('date_to') ? : null;
@@ -119,6 +129,11 @@ class Transactions extends MYTController
     {
         if (($response = $this->_api_verification('payments', 'get_payment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id       = $this->request->getVar('branch_id') ? : null;
         $date_from       = $this->request->getVar('date_from') ? : null;
@@ -174,6 +189,11 @@ class Transactions extends MYTController
     {
         if (($response = $this->_api_verification('transactions', 'mark_as_done')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();

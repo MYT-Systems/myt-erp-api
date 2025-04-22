@@ -22,6 +22,11 @@ class Products extends MYTController
         if (($response = $this->_api_verification('products', 'get_product')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $product_id = $this->request->getVar('product_id') ? : null;
         $product    = $product_id ? $this->productModel->get_details_by_id($product_id) : null;
         $items      = $product ? $this->productItemModel->get_details_by_product_id($product_id) : null;
@@ -47,6 +52,11 @@ class Products extends MYTController
     {
         if (($response = $this->_api_verification('products', 'get_all_product')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $product_name = $this->request->getVar('product_name') ? : null;
         $is_addon = $this->request->getVar('is_addon');
@@ -79,6 +89,11 @@ class Products extends MYTController
     {
         if (($response = $this->_api_verification('products', 'create')) !== true || 
             ($response = $this->_validation_check(['product'])) !== true) {
+            return $response;
+        }
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
 
@@ -124,6 +139,11 @@ class Products extends MYTController
     {
         if (($response = $this->_api_verification('products', 'update')) !== true)
             return $response;
+    
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $product_id = $this->request->getVar('product_id');
         $where     = ['id' => $product_id, 'is_deleted' => 0];
@@ -165,6 +185,11 @@ class Products extends MYTController
         if (($response = $this->_api_verification('products', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $product_id = $this->request->getVar('product_id');
 
         $where = ['id' => $product_id, 'is_deleted' => 0];
@@ -197,6 +222,11 @@ class Products extends MYTController
     {
         if (($response = $this->_api_verification('products', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name     = $this->request->getVar('name');
         $is_addon = $this->request->getVar('is_addon');

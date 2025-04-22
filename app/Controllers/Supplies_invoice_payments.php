@@ -22,6 +22,11 @@ class Supplies_invoice_payments extends MYTController
         if (($response = $this->_api_verification('supplies_invoice_payments', 'get_supplies_invoice_payment')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplies_invoice_payment_id = $this->request->getVar('supplies_invoice_payment_id') ? : null;
         $supplies_invoice_payment    = $supplies_invoice_payment_id ? $this->suppliesInvoicePaymentModel->get_details_by_id($supplies_invoice_payment_id) : null;
         $supplies_receive            = $supplies_invoice_payment ? $this->suppliesReceiveModel->get_details_by_id($supplies_invoice_payment[0]['supplies_receive_id']) : null;
@@ -47,6 +52,11 @@ class Supplies_invoice_payments extends MYTController
     {
         if (($response = $this->_api_verification('supplies_invoice_payments', 'get_all_supplies_invoice_payment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $supplies_invoice_payments = $this->suppliesInvoicePaymentModel->get_all();
 
@@ -75,6 +85,11 @@ class Supplies_invoice_payments extends MYTController
     {
         if (($response = $this->_api_verification('supplies_invoice_payments', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -107,6 +122,11 @@ class Supplies_invoice_payments extends MYTController
         if (($response = $this->_api_verification('supplies_invoice_payments', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id'         => $this->request->getVar('supplies_invoice_payment_id'), 
             'is_deleted' => 0
@@ -138,6 +158,11 @@ class Supplies_invoice_payments extends MYTController
         if (($response = $this->_api_verification('supplies_invoice_payments', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('supplies_invoice_payment_id'), 
             'is_deleted' => 0
@@ -168,6 +193,11 @@ class Supplies_invoice_payments extends MYTController
     {
         if (($response = $this->_api_verification('supplies_invoice_payments', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
     
         $supplies_expense_id         = $this->request->getVar('supplies_expense_id') ?? null;
         $supplies_receive_id = $this->request->getVar('supplies_receive_id') ?? null;

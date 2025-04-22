@@ -22,6 +22,11 @@ class Cash_advances extends MYTController
         if (($response = $this->_api_verification('cash_advances', 'get')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $cash_advance_id = $this->request->getVar('cash_advance_id') ? : null;
         $cash_advances = $this->cashAdvanceModel->get($cash_advance_id);
 
@@ -45,6 +50,11 @@ class Cash_advances extends MYTController
     {
         if (($response = $this->_api_verification('cash_advances', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $employee_name = $this->request->getVar('employee_name') ? : null;
         $status = $this->request->getVar('status') ? : null;
@@ -81,6 +91,11 @@ class Cash_advances extends MYTController
     {
         if (($response = $this->_api_verification('cash_advances', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $values = [];
         $employee_ids = $this->request->getVar('employee_ids');
@@ -126,6 +141,11 @@ class Cash_advances extends MYTController
         if (($response = $this->_api_verification('cash_advances', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('cash_advance_id'),
             'is_deleted' => 0
@@ -165,6 +185,11 @@ class Cash_advances extends MYTController
     {
         if (($response = $this->_api_verification('cash_advances', 'update_status')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('cash_advance_id'),
@@ -213,6 +238,11 @@ class Cash_advances extends MYTController
     {
         if (($response = $this->_api_verification('cash_advances', 'delete')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('cash_advance_id'),

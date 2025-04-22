@@ -22,6 +22,11 @@ class Payments extends MYTController
         if (($response = $this->_api_verification('payments', 'get_payment')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $payment_id = $this->request->getVar('payment_id') ? : null;
         $payment    = $payment_id ? $this->paymentModel->get_details_by_id($payment_id) : null;
 
@@ -46,6 +51,11 @@ class Payments extends MYTController
         if (($response = $this->_api_verification('payments', 'get_all_payment')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $payments = $this->paymentModel->get_all_payment();
 
         if (!$payments) {
@@ -68,6 +78,11 @@ class Payments extends MYTController
     {
         if (($response = $this->_api_verification('payments', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -98,6 +113,11 @@ class Payments extends MYTController
         if (($response = $this->_api_verification('payments', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $payment_id = $this->request->getVar('payment_id');
 
         $where = ['id' => $payment_id, 'is_deleted' => 0];
@@ -127,6 +147,11 @@ class Payments extends MYTController
     {
         if (($response = $this->_api_verification('payments', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name          = $this->request->getVar('name');
         $template_name = $this->request->getVar('template_name');

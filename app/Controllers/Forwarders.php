@@ -24,6 +24,11 @@ class Forwarders extends MYTController
     {
         if (($response = $this->_api_verification('forwarders', 'get_forwarder')) !== true)
             return $response; 
+    
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $forwarder_id = $this->request->getVar('forwarder_id') ? : null;
         $forwarder    = $forwarder_id ? $this->forwarderModel->get_details_by_id($forwarder_id) : null;
@@ -49,6 +54,11 @@ class Forwarders extends MYTController
         if (($response = $this->_api_verification('forwarders', 'get_all_forwarder')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $forwarders = $this->forwarderModel->get_all_forwarder();
 
         if (!$forwarders) {
@@ -71,6 +81,11 @@ class Forwarders extends MYTController
     {
         if (($response = $this->_api_verification('forwarders', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -99,6 +114,11 @@ class Forwarders extends MYTController
     {
         if (($response = $this->_api_verification('forwarders', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $forwarder_id = $this->request->getVar('forwarder_id');
         $where = ['id' => $forwarder_id, 'is_deleted' => 0];
@@ -129,6 +149,11 @@ class Forwarders extends MYTController
         if (($response = $this->_api_verification('forwarders', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $forwarder_id = $this->request->getVar('forwarder_id');
 
         $where = ['id' => $forwarder_id, 'is_deleted' => 0];
@@ -158,6 +183,11 @@ class Forwarders extends MYTController
     {
         if (($response = $this->_api_verification('forwarders', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name     = $this->request->getVar('name');
         $address  = $this->request->getVar('address');

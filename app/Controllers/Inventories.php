@@ -22,6 +22,11 @@ class Inventories extends MYTController
         if (($response = $this->_api_verification('inventories', 'get_inventory')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $inventory_ids = $this->request->getVar('inventory_ids') ? : [];
         $inventory_id  = $this->request->getVar('inventory_id') ? : null;
         if ($inventory_id)
@@ -48,6 +53,11 @@ class Inventories extends MYTController
     {
         if (($response = $this->_api_verification('inventories', 'get_all_inventory')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id     = $this->request->getVar('branch_id') ? : null;
         $is_low_level  = $this->request->getVar('is_low_level') ? : null;
@@ -80,6 +90,11 @@ class Inventories extends MYTController
             return $response;
         }
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
 
@@ -103,6 +118,11 @@ class Inventories extends MYTController
     {
         if (($response = $this->_api_verification('inventories', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $inventory_id = $this->request->getVar('inventory_id');
         $where = ['id' => $inventory_id, 'is_deleted' => 0];
@@ -134,6 +154,11 @@ class Inventories extends MYTController
         if (($response = $this->_api_verification('inventories', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $inventory_id = $this->request->getVar('inventory_id');
 
         $where = ['id' => $inventory_id, 'is_deleted' => 0];
@@ -161,6 +186,11 @@ class Inventories extends MYTController
         if (($response = $this->_api_verification('inventories', 'get_items_by_branch')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_id = $this->request->getVar('branch_id');
 
         if (!$inventories = $this->inventoryModel->get_inventory_by_branch($branch_id)) {
@@ -183,6 +213,11 @@ class Inventories extends MYTController
     {
         if (($response = $this->_api_verification('inventories', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id     = $this->request->getVar('branch_id');
         $item_id       = $this->request->getVar('item_id');
@@ -281,6 +316,11 @@ class Inventories extends MYTController
         if (($response = $this->_api_verification('inventories', 'get_negative_inventory')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         if (!$negative_items = $this->inventoryModel->get_negative_qty()) {
             $response = $this->fail('No negative items found');
         } else {
@@ -298,6 +338,11 @@ class Inventories extends MYTController
     {
         if (($response = $this->_api_verification('inventories', 'get_item_inventory_history')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id');
 
@@ -388,6 +433,11 @@ class Inventories extends MYTController
         if (($response = $this->_api_verification('inventories', 'match_item_history')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         if (!$this->inventoryModel->match_qty_base_computer_count()) {
             $response = $this->fail(['message' => 'No inventory found.', 'status' => 'error']);
         } else {
@@ -406,6 +456,11 @@ class Inventories extends MYTController
         if (($response = $this->_api_verification('inventories', 'get_low_stock')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         if (!$inventory = $this->inventoryModel->get_low_stock_items()) {
             $response = $this->fail(['message' => 'No inventory found.', 'status' => 'error']);
         } else {
@@ -423,6 +478,11 @@ class Inventories extends MYTController
     {
         if (($response = $this->_api_verification('inventories', 'update_warehouse_inventory')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -447,6 +507,11 @@ class Inventories extends MYTController
     {
         if (($response = $this->_api_verification('inventories', 'get_warehouse_inventory_ids')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $item_id = $this->request->getVar('item_id');
         if (!$response = $this->_is_existing($this->itemModel, ['id' => $item_id]))
@@ -479,6 +544,11 @@ class Inventories extends MYTController
     {
         if (($response = $this->_api_verification('inventories', 'get_transferrable_items')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $requesting_branch_id = $this->request->getVar('requesting_branch_id');
         $requested_branch_id = $this->request->getVar('requested_branch_id');

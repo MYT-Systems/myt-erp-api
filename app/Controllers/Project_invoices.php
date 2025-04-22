@@ -22,6 +22,11 @@ class Project_invoices extends MYTController
         if (($response = $this->_api_verification('project_invoices', 'get_project_invoice')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_invoice_id       = $this->request->getVar('project_invoice_id') ? : null;
         $project_invoice          = $project_invoice_id ? $this->projectInvoiceModel->get_details_by_id($project_invoice_id) : null;
         $project_invoice_payments = $project_invoice_id ? $this->projectInvoicePaymentModel->get_details_by_project_invoices_id($project_invoice_id) : null;
@@ -77,6 +82,11 @@ class Project_invoices extends MYTController
         if (($response = $this->_api_verification('project_invoices', 'get_all_project_invoice')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_invoices = $this->projectInvoiceModel->get_all();
 
         if (!$project_invoices) {
@@ -106,6 +116,11 @@ class Project_invoices extends MYTController
     {
         if (($response = $this->_api_verification('project_invoices', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -141,6 +156,11 @@ class Project_invoices extends MYTController
     {
         if (($response = $this->_api_verification('project_invoices', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id'         => $this->request->getVar('project_invoice_id'), 
@@ -235,6 +255,11 @@ class Project_invoices extends MYTController
         if (($response = $this->_api_verification('project_invoices', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('project_invoice_id'), 
             'is_deleted' => 0
@@ -266,6 +291,11 @@ class Project_invoices extends MYTController
         if (($response = $this->_api_verification('project_invoices', 'send_to_client')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('project_invoice_id'), 
             'is_deleted' => 0
@@ -296,6 +326,11 @@ class Project_invoices extends MYTController
     {
         if (($response = $this->_api_verification('project_invoices', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_invoice_id = $this->request->getVar('project_invoice_id');
         $project_id = $this->request->getVar('project_id');
@@ -344,6 +379,11 @@ class Project_invoices extends MYTController
         
         if (($response = $this->_api_verification('project_invoices', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $seach_text = $this->request->getVar('search_text')??null;
         $status = $this->request->getVar('status')??null;
@@ -355,8 +395,6 @@ class Project_invoices extends MYTController
         $response = $this->response([
                 
         ]);
-        
-        
     }
 
     /**
@@ -366,6 +404,11 @@ class Project_invoices extends MYTController
     {
         if (($response = $this->_api_verification('project_invoices', 'record_status_change')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_invoice_id = $this->request->getVar('project_invoice_id');
         $status             = $this->request->getVar('status');
@@ -392,6 +435,11 @@ class Project_invoices extends MYTController
     {
         if (($response = $this->_api_verification('project_invoice', 'close_overpaid_project_invoice')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_invoice_id = $this->request->getVar('project_invoice_id');
         $where = ['id' => $project_invoice_id, 'is_deleted' => 0];

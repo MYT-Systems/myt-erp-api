@@ -25,6 +25,11 @@ class Suppliers extends MYTController
         if (($response = $this->_api_verification('suppliers', 'get_supplier')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplier_id = $this->request->getVar('supplier_id') ? : null;
         $supplier    = $supplier_id ? $this->supplierModel->get_details_by_id($supplier_id) : null;
 
@@ -49,6 +54,11 @@ class Suppliers extends MYTController
         if (($response = $this->_api_verification('suppliers', 'get_all_supplier')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $suppliers = $this->supplierModel->get_all_supplier();
 
         if (!$suppliers) {
@@ -71,6 +81,11 @@ class Suppliers extends MYTController
     {
         if (($response = $this->_api_verification('suppliers', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
             
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -131,6 +146,11 @@ class Suppliers extends MYTController
         if (($response = $this->_api_verification('suppliers', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplier_id = $this->request->getVar('supplier_id');
         $where       = ['id' => $supplier_id, 'is_deleted' => 0];
 
@@ -162,6 +182,11 @@ class Suppliers extends MYTController
         if (($response = $this->_api_verification('suppliers', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplier_id = $this->request->getVar('supplier_id');
 
         $where = ['id' => $supplier_id, 'is_deleted' => 0];
@@ -185,6 +210,11 @@ class Suppliers extends MYTController
     {
         if (($response = $this->_api_verification('suppliers', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $trade_name             = $this->request->getVar('trade_name');
         $trade_address          = $this->request->getVar('trade_address');

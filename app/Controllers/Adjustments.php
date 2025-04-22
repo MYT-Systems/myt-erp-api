@@ -23,6 +23,11 @@ class Adjustments extends MYTController
         if (($response = $this->_api_verification('adjustments', 'get_adjustment')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $adjustment_id = $this->request->getVar('adjustment_id') ? : null;
         $adjustment    = $adjustment_id ? $this->adjustmentModel->get_details_by_id($adjustment_id) : null;
 
@@ -47,6 +52,11 @@ class Adjustments extends MYTController
     {
         if (($response = $this->_api_verification('adjustments', 'get_all_adjustment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id') ? : null;
         $adjustments = $this->adjustmentModel->get_all_adjustment($branch_id);
@@ -73,6 +83,11 @@ class Adjustments extends MYTController
         if (($response = $this->_api_verification('adjustments', 'get_all_adjustment_types')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $adjustment_types = $this->adjustmentTypeModel->get_all();
 
         if (!$adjustment_types) {
@@ -96,6 +111,11 @@ class Adjustments extends MYTController
     {
         if (($response = $this->_api_verification('adjustments', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
 
         $db = \Config\Database::connect();
@@ -122,6 +142,11 @@ class Adjustments extends MYTController
     {
         if (($response = $this->_api_verification('adjustments', 'delete')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $adjustment_id = $this->request->getVar('adjustment_id');
 
@@ -156,6 +181,11 @@ class Adjustments extends MYTController
     {
         if (($response = $this->_api_verification('adjustments', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $inventory_id   = $this->request->getVar('inventory_id') ? : null;
         $branch_id      = $this->request->getVar('branch_id') ? : null;
@@ -192,6 +222,11 @@ class Adjustments extends MYTController
     {
         if (($response = $this->_api_verification('adjustments', 'update_status')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();

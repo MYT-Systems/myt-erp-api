@@ -29,6 +29,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'get_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_cash_entry_id = $this->request->getVar('entry_id') ? : null;
         $se_cash_entry    = $se_cash_entry_id ? $this->cashEntryModel->get_details_by_id($se_cash_entry_id) : null;
         $se_cash_slip     = $se_cash_entry ? $this->cashSlipModel->get_details_by_id($se_cash_entry[0]['id']) : null;
@@ -54,6 +59,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payments', 'get_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_cash_slip_id = $this->request->getVar('slip_id') ? : null;
         $se_cash_slip    = $se_cash_slip_id ? $this->cashSlipModel->get_details_by_id($se_cash_slip_id) : null;
@@ -82,6 +92,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('receives', 'delete_attachment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_cash_slip_id = $this->request->getVar('se_cash_slip_id');
         $attachment_id = $this->request->getVar('attachment_id');
@@ -148,6 +163,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'get_all_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $cash_entries = $this->cashEntryModel->get_all_entry();
 
         if (!$cash_entries) {
@@ -176,6 +196,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'get_all_slip')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_cash_slips = $this->cashSlipModel->get_all_slip();
 
         if (!$se_cash_slips) {
@@ -203,6 +228,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payments', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -233,6 +263,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payements', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_cash_slip_id = $this->request->getVar('se_cash_slip_id');
         $where         = ['id' => $se_cash_slip_id, 'is_deleted' => 0];
@@ -339,6 +374,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payements', 'delete_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_cash_entry_id = $this->request->getVar('se_cash_entry_id');
 
         $where = ['id' => $se_cash_entry_id, 'is_deleted' => 0];
@@ -363,6 +403,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payements', 'delete_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_cash_slip_id = $this->request->getVar('se_cash_slip_id');
 
@@ -397,6 +442,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_id     = $this->request->getVar('bank_id') ?? null;
         $cash_no    = $this->request->getVar('cash_no') ?? null;
         $cash_date  = $this->request->getVar('cash_date') ?? null;
@@ -424,6 +474,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payments', 'record_action')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_cash_slip_id = $this->request->getVar('se_cash_slip_id');
         $action        = $this->request->getVar('action');

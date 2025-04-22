@@ -26,6 +26,11 @@ class Franchisees extends MYTController
         if (($response = $this->_api_verification('franchisees', 'get_franchisee')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $franchisee_id       = $this->request->getVar('franchisee_id') ? : null;
         $franchisee          = $franchisee_id ? $this->franchiseeModel->get_details_by_id($franchisee_id) : null;
         $franchisee_payments = $franchisee_id ? $this->franchiseePaymentModel->get_details_by_franchisee_id($franchisee_id) : null;
@@ -57,6 +62,11 @@ class Franchisees extends MYTController
         if (($response = $this->_api_verification('franchisees', 'get_all_franchisee')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $franchisees = $this->franchiseeModel->get_all();
 
         if (!$franchisees) {
@@ -85,6 +95,11 @@ class Franchisees extends MYTController
         if (($response = $this->_api_verification('franchisees', 'create')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $db = \Config\Database::connect();
         $db->transBegin();
 
@@ -112,6 +127,11 @@ class Franchisees extends MYTController
     {
         if (($response = $this->_api_verification('franchisees', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id'         => $this->request->getVar('franchisee_id'), 
@@ -144,6 +164,11 @@ class Franchisees extends MYTController
         if (($response = $this->_api_verification('franchisees', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('franchisee_id'), 
             'is_deleted' => 0
@@ -174,6 +199,11 @@ class Franchisees extends MYTController
     {
         if (($response = $this->_api_verification('franchisees', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_id         = $this->request->getVar('project_id') ?? null;
         $customer_id        = $this->request->getVar('customer_id') ?? null;
@@ -228,6 +258,11 @@ class Franchisees extends MYTController
     {
         if (($response = $this->_api_verification('franchisees', 'reports')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchisee_name = $this->request->getVar('franchisee_name') ?? null;
         $franchisee_id   = $this->request->getVar('franchisee_id') ?? null;

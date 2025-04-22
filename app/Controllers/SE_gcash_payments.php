@@ -29,6 +29,11 @@ class Se_gcash_payments extends MYTController
         if (($response = $this->_api_verification('gcash_payments', 'get_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_gcash_entry_id = $this->request->getVar('entry_id') ? : null;
         $se_gcash_entry    = $se_gcash_entry_id ? $this->gcashEntryModel->get_details_by_id($se_gcash_entry_id) : null;
         $se_gcash_slip     = $se_gcash_entry ? $this->gcashSlipModel->get_details_by_id($se_gcash_entry[0]['id']) : null;
@@ -54,6 +59,11 @@ class Se_gcash_payments extends MYTController
     {
         if (($response = $this->_api_verification('gcash_payments', 'get_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_gcash_slip_id = $this->request->getVar('slip_id') ? : null;
         $se_gcash_slip    = $se_gcash_slip_id ? $this->gcashSlipModel->get_details_by_id($se_gcash_slip_id) : null;
@@ -82,6 +92,11 @@ class Se_gcash_payments extends MYTController
     {
         if (($response = $this->_api_verification('receives', 'delete_attachment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_gcash_slip_id = $this->request->getVar('se_gcash_slip_id');
         $attachment_id = $this->request->getVar('attachment_id');
@@ -148,6 +163,11 @@ class Se_gcash_payments extends MYTController
         if (($response = $this->_api_verification('gcash_payments', 'get_all_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $gcash_entries = $this->gcashEntryModel->get_all_entry();
 
         if (!$gcash_entries) {
@@ -176,6 +196,11 @@ class Se_gcash_payments extends MYTController
         if (($response = $this->_api_verification('gcash_payments', 'get_all_slip')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_gcash_slips = $this->gcashSlipModel->get_all_slip();
 
         if (!$se_gcash_slips) {
@@ -203,6 +228,11 @@ class Se_gcash_payments extends MYTController
     {
         if (($response = $this->_api_verification('gcash_payments', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -236,6 +266,11 @@ class Se_gcash_payments extends MYTController
     {
         if (($response = $this->_api_verification('gcash_payements', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_gcash_slip_id = $this->request->getVar('se_gcash_slip_id');
         $where         = ['id' => $se_gcash_slip_id, 'is_deleted' => 0];
@@ -342,6 +377,11 @@ class Se_gcash_payments extends MYTController
         if (($response = $this->_api_verification('gcash_payements', 'delete_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_gcash_entry_id = $this->request->getVar('se_gcash_entry_id');
 
         $where = ['id' => $se_gcash_entry_id, 'is_deleted' => 0];
@@ -366,6 +406,11 @@ class Se_gcash_payments extends MYTController
     {
         if (($response = $this->_api_verification('gcash_payements', 'delete_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_gcash_slip_id = $this->request->getVar('se_gcash_slip_id');
 
@@ -400,6 +445,11 @@ class Se_gcash_payments extends MYTController
         if (($response = $this->_api_verification('gcash_payments', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_id     = $this->request->getVar('bank_id') ?? null;
         $gcash_no    = $this->request->getVar('gcash_no') ?? null;
         $gcash_date  = $this->request->getVar('gcash_date') ?? null;
@@ -427,6 +477,11 @@ class Se_gcash_payments extends MYTController
     {
         if (($response = $this->_api_verification('gcash_payments', 'record_action')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_gcash_slip_id = $this->request->getVar('se_gcash_slip_id');
         $action        = $this->request->getVar('action');

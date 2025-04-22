@@ -25,6 +25,11 @@ class Transaction_types extends MYTController
         if (($response = $this->_api_verification('transaction_types', 'get_transaction_type')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transaction_type_id = $this->request->getVar('transaction_type_id') ? : null;
         $transaction_type    = $transaction_type_id ? $this->transactionTypeModel->get_details_by_id($transaction_type_id) : null;
 
@@ -49,6 +54,11 @@ class Transaction_types extends MYTController
         if (($response = $this->_api_verification('transaction_types', 'get_all_transaction_type')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transaction_types = $this->transactionTypeModel->get_all_transaction_type();
 
         if (!$transaction_types) {
@@ -71,6 +81,11 @@ class Transaction_types extends MYTController
     {
         if (($response = $this->_api_verification('transaction_types', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = ['name' => $this->request->getVar('name')];
         if ($this->transactionTypeModel->select('', $where, 1)) {
@@ -108,6 +123,11 @@ class Transaction_types extends MYTController
         if (($response = $this->_api_verification('transaction_types', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transaction_type_id = $this->request->getVar('transaction_type_id');
         $where = ['id' => $transaction_type_id, 'is_deleted' => 0];
 
@@ -136,6 +156,11 @@ class Transaction_types extends MYTController
     {
         if (($response = $this->_api_verification('transaction_types', 'delete')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $transaction_type_id = $this->request->getVar('transaction_type_id');
 
@@ -166,6 +191,11 @@ class Transaction_types extends MYTController
     {
         if (($response = $this->_api_verification('transaction_types', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name          = $this->request->getVar('name');
 

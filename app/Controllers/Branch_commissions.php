@@ -25,6 +25,11 @@ class Branch_commissions extends MYTController
         if (($response = $this->_api_verification('branch_commissions', 'get_branch_commission')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_commission_id = $this->request->getVar('branch_commission_id') ? : null;
         $branch_commission    = $branch_commission_id ? $this->branchCommissionModel->get_details_by_id($branch_commission_id) : null;
 
@@ -49,6 +54,11 @@ class Branch_commissions extends MYTController
         if (($response = $this->_api_verification('branch_commissions', 'get_all_branch_commission')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_commissions = $this->branchCommissionModel->get_all_branch_commission();
 
         if (!$branch_commissions) {
@@ -71,6 +81,11 @@ class Branch_commissions extends MYTController
     {
         if (($response = $this->_api_verification('branch_commissions', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'transaction_type_id' => $this->request->getVar('transaction_type_id') ? : null,
@@ -111,6 +126,11 @@ class Branch_commissions extends MYTController
         if (($response = $this->_api_verification('branch_commissions', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('branch_commission_id'),
             'is_deleted' => 0
@@ -142,6 +162,11 @@ class Branch_commissions extends MYTController
         if (($response = $this->_api_verification('branch_commissions', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('branch_commission_id'), 
             'is_deleted' => 0
@@ -172,6 +197,11 @@ class Branch_commissions extends MYTController
     {
         if (($response = $this->_api_verification('branch_commissions', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $transaction_type_id = $this->request->getVar('transaction_type_id') ? : null;
         $branch_id           = $this->request->getVar('branch_id') ? : null;

@@ -22,6 +22,11 @@ class Requests extends MYTController
         if (($response = $this->_api_verification('request', 'get_request')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $request_id    = $this->request->getVar('request_id') ? : null;
         $request       = $request_id ? $this->requestModel->get_details_by_id($request_id) : null;
         $request_items = $request_id ? $this->requestItemModel->get_details_by_request_id($request_id) : null;
@@ -50,6 +55,11 @@ class Requests extends MYTController
         if (($response = $this->_api_verification('request', 'get_all_request')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $requests = $this->requestModel->get_all_request();
 
         if (!$requests) {
@@ -75,6 +85,11 @@ class Requests extends MYTController
     {
         if (($response = $this->_api_verification('requests', 'create')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -106,6 +121,11 @@ class Requests extends MYTController
     {
         if (($response = $this->_api_verification('requests', 'request_request_orders')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $request_id = $this->request->getVar('request_id');
         $where      = ['id' => $request_id, 'is_deleted' => 0];
@@ -139,6 +159,11 @@ class Requests extends MYTController
         if (($response = $this->_api_verification('requests', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $request_id = $this->request->getVar('request_id');
         $where = ['id' => $request_id, 'is_deleted' => 0];
 
@@ -161,6 +186,11 @@ class Requests extends MYTController
     {
         if (($response = $this->_api_verification('request', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_from       = $this->request->getVar('branch_from');
         $branch_to         = $this->request->getVar('branch_to');
@@ -199,6 +229,11 @@ class Requests extends MYTController
     {
         if (($response = $this->_api_verification('requests', 'change_status')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $request_id = $this->request->getVar('request_id');
         $new_status = $this->request->getVar('new_status');

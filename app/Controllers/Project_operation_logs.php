@@ -22,6 +22,11 @@ class Project_operation_logs extends MYTController
         if (($response = $this->_api_verification('project_operation_logs', 'get_all')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_type = $this->request->getVar('project_type') ? : null;
         $user_id = $this->request->getVar('user_id') ? : null;
         $project_id = $this->request->getVar('project_id') ? : null;

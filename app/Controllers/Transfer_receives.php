@@ -22,6 +22,11 @@ class Transfer_receives extends MYTController
         if (($response = $this->_api_verification('transfer_receive', 'get_transfer_receive')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transfer_receive_id    = $this->request->getVar('transfer_receive_id') ? : null;
         $transfer_receive       = $transfer_receive_id ? $this->transferReceiveModel->get_details_by_id($transfer_receive_id) : null;
         $transfer_receive_items = $transfer_receive_id ? $this->transferReceiveItemModel->get_details_by_transfer_receive_id($transfer_receive_id) : null;
@@ -49,6 +54,11 @@ class Transfer_receives extends MYTController
         if (($response = $this->_api_verification('transfer_receive', 'get_all_transfer_receive')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transfer_receives = $this->transferReceiveModel->get_all_transfer_receive();
 
         if (!$transfer_receives) {
@@ -74,6 +84,11 @@ class Transfer_receives extends MYTController
     {
         if (($response = $this->_api_verification('transfer_receives', 'create')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -109,6 +124,11 @@ class Transfer_receives extends MYTController
     {
         if (($response = $this->_api_verification('transfer_receives', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $transfer_receive_id = $this->request->getVar('transfer_receive_id');
         $where = [
@@ -153,6 +173,11 @@ class Transfer_receives extends MYTController
         if (($response = $this->_api_verification('transfer_receives', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $transfer_receive_id = $this->request->getVar('transfer_receive_id');
         $where = ['id' => $transfer_receive_id, 'is_deleted' => 0];
 
@@ -185,6 +210,11 @@ class Transfer_receives extends MYTController
         if (($response = $this->_api_verification('transfer_receives', 'change_status')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('transfer_receive_id'), 
             'is_deleted' => 0
@@ -216,6 +246,11 @@ class Transfer_receives extends MYTController
     {
         if (($response = $this->_api_verification('transfer_receive', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_from             = $this->request->getVar('branch_from');
         $branch_to               = $this->request->getVar('branch_to');

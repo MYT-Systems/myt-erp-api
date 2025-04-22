@@ -22,6 +22,11 @@ class Dashboard extends MYTController
         if (($response = $this->_api_verification('dashboard', 'mobile')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         if ($branches = $this->branchGroupModel->get_branches_per_supervisor($this->requested_by)) {
             $branches = array_map(function ($datum) {
                 return $datum['branch_id'];

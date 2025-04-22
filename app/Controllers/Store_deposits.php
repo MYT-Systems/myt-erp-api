@@ -26,6 +26,11 @@ class Store_deposits extends MYTController
         if (($response = $this->_api_verification('store_deposits', 'get')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $store_deposit_id = $this->request->getVar('store_deposit_id') ? : null;
 
         $where = ['is_deleted' => 0];
@@ -56,6 +61,11 @@ class Store_deposits extends MYTController
     {
         if (($response = $this->_api_verification('store_deposits', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $transaction_type = $this->request->getVar('transaction_type') ? : null;
         $branch_id = $this->request->getVar('branch_id') ? : null;
@@ -95,6 +105,11 @@ class Store_deposits extends MYTController
     {
         if (($response = $this->_api_verification('store_deposits', 'update_status')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $store_deposit_ids = $this->request->getVar('store_deposit_ids');
         $status = $this->request->getVar('status');
@@ -154,6 +169,11 @@ class Store_deposits extends MYTController
     {
         if (($response = $this->_api_verification('store_deposits', 'delete')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $store_deposit_id = $this->request->getVar('store_deposit_id');
 

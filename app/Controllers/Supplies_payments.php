@@ -25,6 +25,11 @@ class Supplies_payments extends MYTController
         if (($response = $this->_api_verification('supplier_payments', 'get_all_payment')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $start_date   = $this->request->getVar('start_date') ? : null;
         $end_date     = $this->request->getVar('end_date') ? : null;
         $status       = $this->request->getVar('status') ? : null;

@@ -30,6 +30,11 @@ class Attendances extends MYTController
         if (($response = $this->_api_verification('attendances', 'get_attendance')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $attendance_id = $this->request->getVar('attendance_id') ? : null;
         $attendance    = $attendance_id ? $this->attendanceModel->get_details_by_id($attendance_id) : null;
 
@@ -55,6 +60,11 @@ class Attendances extends MYTController
     {
         if (($response = $this->_api_verification('attendances', 'get_all_attendance')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id') ? : null;
 
@@ -85,6 +95,11 @@ class Attendances extends MYTController
         if (($response = $this->_api_verification('attendances', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $attendance_id = $this->request->getVar('attendance_id');
 
         $where = ['id' => $attendance_id, 'is_deleted' => 0];
@@ -114,6 +129,11 @@ class Attendances extends MYTController
     {
         if (($response = $this->_api_verification('attendances', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id') ? : null;
         $branch_name = $this->request->getVar('branch_name') ? : null;
@@ -167,6 +187,11 @@ class Attendances extends MYTController
     {
         if (($response = $this->_api_verification('attendances', 'login_employee')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
             
         $username = $this->request->getVar('username') ? : null;
         $password = $this->request->getVar('password') ? : null;
@@ -199,6 +224,11 @@ class Attendances extends MYTController
     public function record_attendance() {
         if (($response = $this->_api_verification('attendances', 'record_attendance')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $employee_id = $this->request->getVar('employee_id') ? : null;
         $type        = $this->request->getVar('type') ? : null;

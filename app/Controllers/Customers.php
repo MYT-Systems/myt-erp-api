@@ -25,6 +25,11 @@ class Customers extends MYTController
         if (($response = $this->_api_verification('customers', 'get_customer')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $customer_id        = $this->request->getVar('customer_id') ? : null;
         $customer           = $customer_id ? $this->customerModel->get_details_by_id($customer_id) : null;
 
@@ -49,6 +54,11 @@ class Customers extends MYTController
         if (($response = $this->_api_verification('customers', 'get_all_customer')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $customers = $this->customerModel->get_all_customer();
 
         if (!$customers) {
@@ -72,6 +82,11 @@ class Customers extends MYTController
         if (($response = $this->_api_verification('customers', 'get_all_lead')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $customers = $this->customerModel->get_all_lead();
 
         if (!$customers) {
@@ -94,6 +109,11 @@ class Customers extends MYTController
     {
         if (($response = $this->_api_verification('customers', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -122,6 +142,11 @@ class Customers extends MYTController
     {
         if (($response = $this->_api_verification('customers', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
          $customer_id = $this->request->getVar('customer_id');
          $where = ['id' => $customer_id, 'is_deleted' => 0];
@@ -152,6 +177,11 @@ class Customers extends MYTController
         if (($response = $this->_api_verification('customers', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $customer_id = $this->request->getVar('customer_id');
 
         $where = ['id' => $customer_id, 'is_deleted' => 0];
@@ -181,6 +211,11 @@ class Customers extends MYTController
     {
         if (($response = $this->_api_verification('customers', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         // $customer_id           = $this->request->getVar('customer_id');
         $name                  = $this->request->getVar('name');
@@ -213,6 +248,11 @@ class Customers extends MYTController
     {
         if (($response = $this->_api_verification('customers', 'dropsearch')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $lead = $this->request->getVar('lead');
 

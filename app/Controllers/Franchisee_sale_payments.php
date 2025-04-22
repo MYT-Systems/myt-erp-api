@@ -22,6 +22,11 @@ class Franchisee_sale_payments extends MYTController
         if (($response = $this->_api_verification('franchisee_sale_payments', 'get_franchisee_sale_payment')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $franchisee_sale_payment_id = $this->request->getVar('franchisee_sale_payment_id') ? : null;
         $franchisee_sale_payment    = $franchisee_sale_payment_id ? $this->franchiseeSalePaymentModel->get_details_by_id($franchisee_sale_payment_id) : null;
         $franchisee_sale            = $franchisee_sale_payment ? $this->franchiseeSaleModel->get_details_by_id($franchisee_sale_payment[0]['franchisee_sale_id']) : null;
@@ -47,6 +52,11 @@ class Franchisee_sale_payments extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sale_payments', 'get_all_franchisee_sale_payment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchisee_sale_payments = $this->franchiseeSalePaymentModel->get_all();
 
@@ -76,6 +86,11 @@ class Franchisee_sale_payments extends MYTController
         if (($response = $this->_api_verification('franchisee_sale_payments', 'create')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
 
@@ -102,6 +117,11 @@ class Franchisee_sale_payments extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sale_payments', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id'         => $this->request->getVar('franchisee_sale_payment_id'), 
@@ -134,6 +154,11 @@ class Franchisee_sale_payments extends MYTController
         if (($response = $this->_api_verification('franchisee_sale_payments', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('franchisee_sale_payment_id'), 
             'is_deleted' => 0
@@ -164,6 +189,11 @@ class Franchisee_sale_payments extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sale_payments', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchisee_id      = $this->request->getVar('franchisee_id') ?? null;
         $franchisee_sale_id = $this->request->getVar('franchisee_sale_id') ?? null;

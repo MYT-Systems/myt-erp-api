@@ -33,6 +33,11 @@ class Daily_sales extends MYTController
         if (($response = $this->_api_verification('daily_sales', 'get_daily_sale')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $daily_sale_id = $this->request->getVar('daily_sale_id') ? : null;
         $daily_sale    = $daily_sale_id ? $this->cashCountModel->get_details_by_id($daily_sale_id) : null;
 
@@ -57,6 +62,11 @@ class Daily_sales extends MYTController
         if (($response = $this->_api_verification('daily_sales', 'get_all_daily_sale')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $daily_sales = $this->dailySaleModel->get_all_daily_sale();
 
         if (!$daily_sales) {
@@ -79,6 +89,11 @@ class Daily_sales extends MYTController
     {
         if (($response = $this->_api_verification('daily_sales', 'employee_deduction')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $daily_sale_id = $this->request->getVar('daily_sale_id');
         $employee_ids = $this->request->getVar('employee_ids');
@@ -117,6 +132,11 @@ class Daily_sales extends MYTController
         if (($response = $this->_api_verification('daily_sales', 'get_inventory_sales')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_id = $this->request->getVar('branch_id');
         $date = $this->request->getVar('date') ? : date("Y-m-d");
         $system_sales = $this->orderDetailIngredModel->get_system_inventory_sales_by_item($branch_id, $date);
@@ -143,6 +163,11 @@ class Daily_sales extends MYTController
     {
         if (($response = $this->_api_verification('daily_sales', 'submit')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = db_connect();
         $this->db->transBegin();
@@ -248,6 +273,11 @@ class Daily_sales extends MYTController
     {
         if (($response = $this->_api_verification('daily_sales', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $response = $this->_attempt_create_sales();
 
@@ -262,6 +292,11 @@ class Daily_sales extends MYTController
     {
         if (($response = $this->_api_verification('daily_sales', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('daily_sale_id'), 
@@ -381,6 +416,11 @@ class Daily_sales extends MYTController
         if (($response = $this->_api_verification('daily_sales', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $daily_sale_id = $this->request->getVar('daily_sale_id');
 
         $where = ['id' => $daily_sale_id, 'is_deleted' => 0];
@@ -404,6 +444,11 @@ class Daily_sales extends MYTController
     {
         if (($response = $this->_api_verification('daily_sales', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id') ? : null;
         $date      = $this->request->getVar('date') ? : null;

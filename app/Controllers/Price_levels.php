@@ -27,6 +27,11 @@ class Price_levels extends MYTController
         if (($response = $this->_api_verification('price_level', 'get_price_level_type_details')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $price_level_id      = $this->request->getVar('price_level_id');
         $price_level_type_id = $this->request->getVar('price_level_type_id');
         $product_id          = $this->request->getVar('product_id');
@@ -51,6 +56,11 @@ class Price_levels extends MYTController
     {
         if (($response = $this->_api_verification('price_level', 'get_price_level')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $price_level_id           = $this->request->getVar('price_level_id') ? : null;
         $is_add_on                = $this->request->getVar('is_add_on');
@@ -130,6 +140,11 @@ class Price_levels extends MYTController
         if (($response = $this->_api_verification('price_level', 'get_all_price_level')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $price_levels = $this->priceLevelModel->get_all_price_levels();
 
         if (!$price_levels) {
@@ -159,6 +174,11 @@ class Price_levels extends MYTController
     {
         if (($response = $this->_api_verification('price_level', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name = $this->request->getVar('name');
         if ($response = $this->_is_existing($this->priceLevelModel, ['name' => $name]))
@@ -195,6 +215,11 @@ class Price_levels extends MYTController
         if (($response = $this->_api_verification('price_level', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $price_level_id = $this->request->getVar('price_level_id');
         $where     = ['id' => $price_level_id, 'is_deleted' => 0];
 
@@ -226,6 +251,11 @@ class Price_levels extends MYTController
     {
         if (($response = $this->_api_verification('price_level', 'delete')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $price_level_id = $this->request->getVar('price_level_id');
 
@@ -259,6 +289,11 @@ class Price_levels extends MYTController
     {
         if (($response = $this->_api_verification('price_level', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name = $this->request->getVar('name');
 

@@ -22,6 +22,11 @@ class Supplies_receives extends MYTController
         if (($response = $this->_api_verification('receive', 'get_receive')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplies_receive_id    = $this->request->getVar('supplies_receive_id') ? : null;
         $receive                = $supplies_receive_id ? $this->suppliesReceiveModel->get_details_by_id($supplies_receive_id) : null;
         $supplies_receive_items = $supplies_receive_id ? $this->suppliesReceiveItemModel->get_details_by_receive_id($supplies_receive_id) : null;
@@ -50,6 +55,11 @@ class Supplies_receives extends MYTController
     {
         if (($response = $this->_api_verification('receive', 'get_all_receive')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $supplier_id = $this->request->getVar('supplier_id') ? : null;
         $vendor_id   = $this->request->getVar('vendor_id') ? : null;
@@ -81,6 +91,11 @@ class Supplies_receives extends MYTController
     {
         if (($response = $this->_api_verification('supplies_receives', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         if ($this->_has_duplicate_invoice()) {
             $response = $this->fail(['response' => 'Either waybill, invoice, or DR number is duplicate.', 'status' => 'error']);
@@ -142,6 +157,11 @@ class Supplies_receives extends MYTController
         if (($response = $this->_api_verification('supplies_receives', 'receive_receive_orders')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplies_receive_id = $this->request->getVar('supplies_receive_id');
         $branch_name = $this->request->getVar('branch_name');
         $where      = ['id' => $supplies_receive_id, 'is_deleted' => 0];
@@ -175,6 +195,11 @@ class Supplies_receives extends MYTController
         if (($response = $this->_api_verification('supplies_receives', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplies_receive_id = $this->request->getVar('supplies_receive_id');
         $where = ['id' => $supplies_receive_id, 'is_deleted' => 0];
 
@@ -206,6 +231,11 @@ class Supplies_receives extends MYTController
     {
         if (($response = $this->_api_verification('receive', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $se_id                 = $this->request->getVar('se_id') ? : null;
         $branch_name           = $this->request->getVar('branch_name') ? : null;
@@ -255,6 +285,11 @@ class Supplies_receives extends MYTController
     {
         if (($response = $this->_api_verification('supplies_receive', 'get_all_invoice_payments')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
     
         $supplies_receive_id            = $this->request->getVar('supplies_receive_id') ? : null;
         $invoice_payments = $supplies_receive_id ? $this->suppliesInvoicePaymentModel->get_details_by_supplies_receive_id($supplies_receive_id) : null;
@@ -284,6 +319,11 @@ class Supplies_receives extends MYTController
     {
         if (($response = $this->_api_verification('receive', 'get_bills')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $type = $this->request->getVar('supplies_expense_type');
         if (!$supplies_receives = $this->suppliesReceiveModel->get_bills($type)) {

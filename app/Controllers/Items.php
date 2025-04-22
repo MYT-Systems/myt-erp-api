@@ -22,6 +22,11 @@ class Items extends MYTController
         if (($response = $this->_api_verification('items', 'get_item')) !== true )
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $item_id    = $this->request->getVar('item_id') ? : null;
         $item       = $item_id ? $this->itemModel->get_details_by_id($item_id) : null;
         $item_units = $item_id ? $this->itemUnitModel->get_details_by_item_id($item_id) : null;
@@ -46,6 +51,11 @@ class Items extends MYTController
     public function get_all_item()
     {
         if (($response = $this->_api_verification('items', 'get_all_item')) !== true) {
+            return $response;
+        }
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
 
@@ -83,6 +93,11 @@ class Items extends MYTController
             return $response;
         }
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $name = $this->request->getVar('name');
         if ($response = $this->_is_existing($this->itemModel, ['name' => $name]))
             return $response;
@@ -117,6 +132,11 @@ class Items extends MYTController
         if (($response = $this->_api_verification('items', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $item_id = $this->request->getVar('item_id');
         $where   = ['id' => $item_id, 'is_deleted' => 0];
 
@@ -146,6 +166,11 @@ class Items extends MYTController
         if (($response = $this->_api_verification('items', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $item_id = $this->request->getVar('item_id');
         $where   = ['id' => $item_id, 'is_deleted' => 0];
 
@@ -174,6 +199,11 @@ class Items extends MYTController
     {
         if (($response = $this->_api_verification('items', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name           = $this->request->getVar('name');
         $breakdown_unit = $this->request->getVar('breakdown_unit');

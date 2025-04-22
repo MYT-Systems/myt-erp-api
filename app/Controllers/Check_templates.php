@@ -25,6 +25,11 @@ class Check_templates extends MYTController
         if (($response = $this->_api_verification('check_templates', 'get_check_template')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $check_template_id = $this->request->getVar('check_template_id') ? : null;
         $check_template    = $check_template_id ? $this->check_templateModel->get_details_by_id($check_template_id) : null;
 
@@ -49,6 +54,11 @@ class Check_templates extends MYTController
         if (($response = $this->_api_verification('check_templates', 'get_all_check_template')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $check_templates = $this->check_templateModel->get_all_check_template();
 
         if (!$check_templates) {
@@ -71,6 +81,11 @@ class Check_templates extends MYTController
     {
         if (($response = $this->_api_verification('check_templates', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = ['name' => $this->request->getVar('name')];
         if ($this->check_templateModel->select('', $where, 1)) {
@@ -103,6 +118,11 @@ class Check_templates extends MYTController
         if (($response = $this->_api_verification('check_templates', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('check_template_id'), 
             'is_deleted' => 0
@@ -134,6 +154,11 @@ class Check_templates extends MYTController
         if (($response = $this->_api_verification('check_templates', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('check_template_id'), 
             'is_deleted' => 0
@@ -164,6 +189,11 @@ class Check_templates extends MYTController
     {
         if (($response = $this->_api_verification('check_templates', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name      = $this->request->getVar('name');
         $file_name = $this->request->getVar('file_name');

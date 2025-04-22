@@ -22,6 +22,11 @@ class Inventory_reports extends MYTController
         if (($response = $this->_api_verification('inventory_reports', 'get_inventory_report')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $inventory_report_id = $this->request->getVar('inventory_report_id') ? : null;
         $inventory_report    = $inventory_report_id ? $this->inventory_reportModel->get_details_by_id($inventory_report_id) : null;
 
@@ -46,6 +51,11 @@ class Inventory_reports extends MYTController
         if (($response = $this->_api_verification('inventory_reports', 'get_initial_inventory')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         if (!$initial_inventories = $this->initialInventoryModel->select('', ['date' => date("Y-m-d"), 'is_deleted' => 0])) {
             $response = $this->failNotFound('No initial inventories found');
         } else {
@@ -66,6 +76,11 @@ class Inventory_reports extends MYTController
     {
         if (($response = $this->_api_verification('inventory_reports', 'get_all_inventory_report')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id') ? : null;
 
@@ -93,6 +108,11 @@ class Inventory_reports extends MYTController
     {
         if (($response = $this->_api_verification('inventory_reports', 'create_ending_inventory')) !== true) {
             $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+            return $response;
+        }
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
 
@@ -133,6 +153,11 @@ class Inventory_reports extends MYTController
     {
         if (($response = $this->_api_verification('inventory_reports', 'get_daily_inventories')) !== true) {
             $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+            return $response;
+        }
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
 
@@ -197,6 +222,11 @@ class Inventory_reports extends MYTController
         if (($response = $this->_api_verification('inventory_reports', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_id     = $this->request->getVar('branch_id');
         $item_id       = $this->request->getVar('item_id');
         $beginning_qty = $this->request->getVar('beginning_qty');
@@ -224,6 +254,11 @@ class Inventory_reports extends MYTController
     {
         if (($response = $this->_api_verification('inventory_reports', 'get_item_inventory_report_history')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id');
         if (!$response = $this->_is_existing($this->branchModel, ['id' => $branch_id]))
