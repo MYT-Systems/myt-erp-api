@@ -465,6 +465,7 @@ class Supplies_expenses extends MYTController
             'forwarder_id'          => $this->request->getVar('forwarder_id'),
             'supplies_expense_date' => $this->request->getVar('supplies_expense_date') ? : null,
             'type'                  => $this->request->getVar('expense_type_id'),
+            'payment_method'        => $this->request->getVar('payment_method') ? : null,
             // 'delivery_address'      => $this->request->getVar('delivery_address') ? : null,
             'remarks'               => $this->request->getVar('remarks') ? : null,
             'requisitioner'         => $this->request->getVar('requisitioner') ? : null,
