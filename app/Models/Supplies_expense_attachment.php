@@ -56,7 +56,7 @@ FROM supplies_expense_attachment
 WHERE supplies_expense_attachment.is_deleted = 0
 EOT;
         $binds = [];
-        if (isset($project_invoice_payment_id)) {
+        if (isset($supplies_expense_id)) {
             $sql .= " AND supplies_expense_id = ?";
             $binds[] = $supplies_expense_id;
         }
