@@ -219,9 +219,12 @@ class Login extends MYTController
     {
         $this->new_token = $this->_generate_token(50);
         $this->new_api_key = $this->_generate_token(50);
+        $current_datetime = date('Y-m-d H:i:s');
+        $token_expiry = date("Y-m-d H:i:s", strtotime("$current_datetime +12 hours"));
 
         $values = [
             'token'      => $this->new_token,
+            'token_expiry' => $token_expiry,
             'api_key'    => $this->new_api_key,
             'updated_by' => $user_id,
             'updated_on' => date('Y-m-d H:i:s')
