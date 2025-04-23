@@ -111,4 +111,24 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
+    /**
+     * Delete attachment by se_cash_slip_id
+     */
+    public function delete_attachment_by_se_cash_slip_id($se_cash_slip_id = null, $requested_by = null, $db = null)
+    {
+        $database = $db ?? \Config\Database::connect();
+
+        $date_now = date('Y-m-d H:i:s');
+
+        $sql = <<<EOT
+UPDATE se_cash_slip_attachment
+SET is_deleted = 1, updated_by = ?, updated_on = ?
+WHERE se_cash_slip_id = ?
+EOT;
+
+        $binds = [$requested_by, $date_now, $se_cash_slip_id];
+
+        $query = $database->query($sql, $binds);
+        return $query;
+    }
 }
