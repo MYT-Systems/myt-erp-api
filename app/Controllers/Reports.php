@@ -307,29 +307,27 @@ class Reports extends MYTController
         } else {
 
             $expense_total_arr = [];
-            $expense_type_arr = [];
-            
+
             foreach ($expenses as $item) {
                 $expense_total = (float) $item['expense_total'];
-                $expense_type = $item['expense_type'];
-            
-                if (isset($expense_total_arr[$expense_type])) {
-                    $expense_total_arr[$expense_type] += $expense_total;
+                $type = $item['expense_type'];
+
+                if (isset($expense_total_arr[$type])) {
+                    $expense_total_arr[$type] += $expense_total;
                 } else {
-                    $expense_total_arr[$expense_type] = $expense_total;
-                    $expense_type_arr[] = $expense_type;
+                    $expense_total_arr[$type] = $expense_total;
                 }
             }
 
-            $expense_totals = [];
+            // Sort the associative array by total descending
+            arsort($expense_total_arr);
 
-            foreach($expense_total_arr AS $expense_total_item) {
-                $expense_totals[] = $expense_total_item;
-            }
+            $expense_types_sorted = array_keys($expense_total_arr);
+            $expense_totals_sorted = array_values($expense_total_arr);
 
             $response = $this->respond([
-                'expense_total' => $expense_totals,
-                'expense_type' => $expense_type_arr,
+                'expense_total' => $expense_totals_sorted,
+                'expense_type' => $expense_types_sorted,
                 'status'  => 'success'
             ]);
         }
