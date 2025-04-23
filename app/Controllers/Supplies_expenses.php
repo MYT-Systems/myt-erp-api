@@ -478,6 +478,12 @@ class Supplies_expenses extends MYTController
             return false;
         }
 
+        if (!$this->suppliesExpenseAttachmentModel->delete_attachments_by_supplies_expense_id($supplies_expense_id, $this->requested_by)) {
+            return false;
+        } elseif ($this->request->getFile('file') || $this->request->getFileMultiple('file') AND !$this->_attempt_upload_file_base64($this->suppliesExpenseAttachmentModel, ['supplies_expense_id' => $supplies_expense_id])) {
+            return false;
+        }
+
         return true;
     }
 
