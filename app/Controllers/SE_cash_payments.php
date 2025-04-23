@@ -279,16 +279,13 @@ class Se_cash_payments extends MYTController
             $response = $this->failNotFound('Supplies expense cash slip not found');
         } elseif (!$this->_attempt_update_slip($se_cash_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense cashentry updated unsuccessfully']);
+            $response = $this->fail(['response' => 'Supplies expense cash entry updated unsuccessfully', 'status' => 'error']);
         } elseif (!$this->_attempt_update_entry($se_cash_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense cash entry updated unsuccessfully']);
-        } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_cash_slip_id, 'assets/se_cash_payments/')) {
-            $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
+            $response = $this->respond(['response' => 'Supplies expense cash entry updated unsuccessfully', 'status' => 'error']);
         } else {
             $db->transCommit();
-            $response = $this->respond(['response' => 'Supplies expense cash entry updated successfully']);
+            $response = $this->respond(['response' => 'Supplies expense cash entry updated successfully', 'status' => 'success']);
         }
 
         $db->close();
@@ -323,7 +320,7 @@ class Se_cash_payments extends MYTController
                     return false;
                 }
 
-                $file_name = $file->getName();
+                $original_name = $file->getName();
                 $max_file_size = 5 * 1024 * 1024; // 5 MB in bytes
             
                 if ($file->getSize() > $max_file_size) {
@@ -331,7 +328,9 @@ class Se_cash_payments extends MYTController
                 }
 
                 if ($file->isValid() && !$file->hasMoved()) {
-                    $file_name = $file->getName();
+                    $extension = $file->getExtension();
+                    $random_str = bin2hex(random_bytes(4)); // generates 8-character random string
+                    $file_name = pathinfo($original_name, PATHINFO_FILENAME) . '_' . $random_str . '.' . $extension;
                     $mime_type = $file->getMimeType();
 
                     $where = [
@@ -603,7 +602,19 @@ class Se_cash_payments extends MYTController
             'updated_on'      => date('Y-m-d H:i:s')
         ];
 
-        return $this->cashSlipModel->update($se_cash_slip_id, $data);
+        if (!$this->cashSlipModel->update($se_cash_slip_id, $data)) {
+            return false;
+        }
+
+        if (!$this->cashSlipAttachmentModel->delete_attachment_by_se_cash_slip_id($se_cash_slip_id, $this->requested_by)) {
+            return false;
+        } elseif(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_cash_slip_id, 'assets/se_cash_payments/')) {
+            // $db->transRollback();
+            // $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
+            return false;
+        }
+
+        return true;
     }
 
     /**

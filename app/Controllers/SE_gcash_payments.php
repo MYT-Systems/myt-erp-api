@@ -264,7 +264,7 @@ class Se_gcash_payments extends MYTController
      */
     public function update($id = null)
     {
-        if (($response = $this->_api_verification('gcash_payements', 'update')) !== true)
+        if (($response = $this->_api_verification('gcash_payments', 'update')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -282,16 +282,13 @@ class Se_gcash_payments extends MYTController
             $response = $this->failNotFound('Supplies expense gcash slip not found');
         } elseif (!$this->_attempt_update_slip($se_gcash_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense gcashentry updated unsuccessfully']);
+            $response = $this->fail(['response' => 'Supplies expense gcashentry updated unsuccessfully', 'status' => 'error']);
         } elseif (!$this->_attempt_update_entry($se_gcash_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense gcash entry updated unsuccessfully']);
-        } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_gcash_slip_id, 'assets/se_gcash_payments/')) {
-            $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
+            $response = $this->fail(['response' => 'Supplies expense gcash entry updated unsuccessfully', 'status' => 'error']);
         } else {
             $db->transCommit();
-            $response = $this->respond(['response' => 'Supplies expense gcash entry updated successfully']);
+            $response = $this->respond(['response' => 'Supplies expense gcash entry updated successfully', 'status' => 'success']);
         }
 
         $db->close();
@@ -326,7 +323,7 @@ class Se_gcash_payments extends MYTController
                     return false;
                 }
 
-                $file_name = $file->getName();
+                $original_name = $file->getName();
                 $max_file_size = 5 * 1024 * 1024; // 5 MB in bytes
             
                 if ($file->getSize() > $max_file_size) {
@@ -334,7 +331,9 @@ class Se_gcash_payments extends MYTController
                 }
 
                 if ($file->isValid() && !$file->hasMoved()) {
-                    $file_name = $file->getName();
+                    $extension = $file->getExtension();
+                    $random_str = bin2hex(random_bytes(4)); // generates 8-character random string
+                    $file_name = pathinfo($original_name, PATHINFO_FILENAME) . '_' . $random_str . '.' . $extension;
                     $mime_type = $file->getMimeType();
 
                     $where = [
@@ -374,7 +373,7 @@ class Se_gcash_payments extends MYTController
      */
     public function delete_entry($id = '')
     {
-        if (($response = $this->_api_verification('gcash_payements', 'delete_entry')) !== true)
+        if (($response = $this->_api_verification('gcash_payments', 'delete_entry')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -404,7 +403,7 @@ class Se_gcash_payments extends MYTController
      */
     public function delete_slip($id = '')
     {
-        if (($response = $this->_api_verification('gcash_payements', 'delete_slip')) !== true)
+        if (($response = $this->_api_verification('gcash_payments', 'delete_slip')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -641,7 +640,19 @@ class Se_gcash_payments extends MYTController
             'updated_on'      => date('Y-m-d H:i:s')
         ];
 
-        return $this->gcashSlipModel->update($se_gcash_slip_id, $data);
+        if (!$this->gcashSlipModel->update($se_gcash_slip_id, $data)) {
+            return false;
+        }
+
+        if (!$this->gcashSlipAttachmentModel->delete_attachment_by_se_gcash_slip_id($se_gcash_slip_id, $this->requested_by)) {
+            return false;
+        } elseif(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_gcash_slip_id, 'assets/se_gcash_payments/')) {
+            // $db->transRollback();
+            // $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
+            return false;
+        }
+
+        return true;
     }
 
     /**
