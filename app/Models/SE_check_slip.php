@@ -53,6 +53,7 @@ SELECT *,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE id = se_check_slip.printed_by) AS printed_by_name,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE id = se_check_slip.added_by) AS added_by_name,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE id = se_check_slip.updated_by) AS updated_by_name,
+    (SELECT CONCAT(first_name, ' ', middle_name, ' ', last_name) FROM user WHERE id = se_check_slip.acknowledged_by) AS acknowledged_by_name,
     (SELECT trade_name FROM supplier WHERE id = se_check_slip.supplier_id) AS supplier_name,
     (SELECT trade_name FROM vendor WHERE id = se_check_slip.vendor_id) AS vendor_name
 FROM se_check_slip

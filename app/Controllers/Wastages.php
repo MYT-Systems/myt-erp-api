@@ -22,6 +22,11 @@ class Wastages extends MYTController
         if (($response = $this->_api_verification('wastages', 'get_wastage')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $wastage_id    = $this->request->getVar('wastage_id') ? : null;
         $wastage       = $wastage_id ? $this->wastageModel->get_details_by_id($wastage_id) : null;
         $wastage_item  = $wastage_id ? $this->wastageItemModel->get_all_wastage_item_by_wastage_id($wastage_id) : null;
@@ -47,6 +52,11 @@ class Wastages extends MYTController
     {
         if (($response = $this->_api_verification('wastages', 'get_all_wastage')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $wastages = $this->wastageModel->get_all_wastage();
 
@@ -74,6 +84,11 @@ class Wastages extends MYTController
     {
         if (($response = $this->_api_verification('wastages', 'insert_wastage_items')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $data = $this->request->getVar();
         unset($data['requester']);
@@ -220,6 +235,11 @@ class Wastages extends MYTController
         if (($response = $this->_api_verification('wastages', 'create')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
 
@@ -250,6 +270,11 @@ class Wastages extends MYTController
     {
         if (($response = $this->_api_verification('wastages', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('wastage_id'), 
@@ -285,6 +310,11 @@ class Wastages extends MYTController
         if (($response = $this->_api_verification('wastages', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id'  => $this->request->getVar('wastage_id'), 
             'is_deleted' => 0
@@ -315,6 +345,11 @@ class Wastages extends MYTController
     {
         if (($response = $this->_api_verification('wastages', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id         = $this->request->getVar('branch_id') ? : null;
         $item_id           = $this->request->getVar('item_id') ? : null;
@@ -386,6 +421,11 @@ class Wastages extends MYTController
     {
         if (($response = $this->_api_verification('wastages', 'record_action')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $wastage_id = $this->request->getVar('wastage_id');
         $action     = $this->request->getVar('action');

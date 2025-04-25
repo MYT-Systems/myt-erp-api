@@ -13,6 +13,7 @@ class User extends MYTModel
         'password',
         'password_reset',
         'token',
+        'token_expiry',
         'api_key',
         'last_name',
         'first_name',

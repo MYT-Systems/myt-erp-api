@@ -22,6 +22,11 @@ class Supplies_expenses extends MYTController
         if (($response = $this->_api_verification('supplies_expenses', 'get_supplies_expense')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplies_expense_id         = $this->request->getVar('supplies_expense_id') ? : null;
 
         $supplies_expense            = $supplies_expense_id ? $this->suppliesExpenseModel->get_details_by_id($supplies_expense_id) : null;
@@ -32,7 +37,7 @@ class Supplies_expenses extends MYTController
             $response = $this->failNotFound('No supplies expense found');
         } else {
             $supplies_expense[0]['se_items'] = $supplies_expense_item;
-            $supplies_expense[0]['attachment'] = $supplies_expense_attachment;
+            $supplies_expense[0]['attachments'] = $supplies_expense_attachment ? $supplies_expense_attachment : [];
             
             $payments = [];
             $invoice_no = '';
@@ -56,6 +61,11 @@ class Supplies_expenses extends MYTController
     {
         if (($response = $this->_api_verification('supplies_expenses', 'get_all_supplies_expense')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $supplier_id = $this->request->getVar('supplier_id') ? : null;
         $supplies_expenses = $this->suppliesExpenseModel->get_all_supplies_expense($supplier_id);
@@ -87,6 +97,11 @@ class Supplies_expenses extends MYTController
     {
         if (($response = $this->_api_verification('supplies_expenses', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -123,6 +138,11 @@ class Supplies_expenses extends MYTController
         if (($response = $this->_api_verification('supplies_expenses', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplies_expense_id = $this->request->getVar('supplies_expense_id');
         $where = ['id' => $supplies_expense_id, 'is_deleted' => 0];
 
@@ -156,6 +176,11 @@ class Supplies_expenses extends MYTController
         if (($response = $this->_api_verification('supplies_expenses', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplies_expense_id = $this->request->getVar('supplies_expense_id');
 
         $where = ['id' => $supplies_expense_id, 'is_deleted' => 0];
@@ -179,6 +204,11 @@ class Supplies_expenses extends MYTController
     {
         if (($response = $this->_api_verification('supplies_expenses', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $supplier_id           = $this->request->getVar('supplier_id') ? : null;
         $vendor_id             = $this->request->getVar('vendor_id') ? : null;
@@ -241,6 +271,11 @@ class Supplies_expenses extends MYTController
         if (($response = $this->_api_verification('supplies_expenses', 'send_email_to_supplier')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplies_expense_id = $this->request->getVar('supplies_expense_id');
         $where               = ['id' => $supplies_expense_id, 'is_deleted' => 0];
 
@@ -267,6 +302,11 @@ class Supplies_expenses extends MYTController
         if (($response = $this->_api_verification('supplies_expenses', 'change_status')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('supplies_expense_id'), 
             'is_deleted' => 0
@@ -292,6 +332,11 @@ class Supplies_expenses extends MYTController
     {
         if (($response = $this->_api_verification('supplies_expenses', 'add_payment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $where = [
             'id' => $this->request->getVar('supplies_expense_id'),
@@ -420,6 +465,7 @@ class Supplies_expenses extends MYTController
             'forwarder_id'          => $this->request->getVar('forwarder_id'),
             'supplies_expense_date' => $this->request->getVar('supplies_expense_date') ? : null,
             'type'                  => $this->request->getVar('expense_type_id'),
+            'payment_method'        => $this->request->getVar('payment_method') ? : null,
             // 'delivery_address'      => $this->request->getVar('delivery_address') ? : null,
             'remarks'               => $this->request->getVar('remarks') ? : null,
             'requisitioner'         => $this->request->getVar('requisitioner') ? : null,
@@ -429,6 +475,12 @@ class Supplies_expenses extends MYTController
         ];
 
         if (!$this->suppliesExpenseModel->update($supplies_expense_id, $values)) {
+            return false;
+        }
+
+        if (!$this->suppliesExpenseAttachmentModel->delete_attachments_by_supplies_expense_id($supplies_expense_id, $this->requested_by)) {
+            return false;
+        } elseif ($this->request->getFile('file') || $this->request->getFileMultiple('file') AND !$this->_attempt_upload_file_base64($this->suppliesExpenseAttachmentModel, ['supplies_expense_id' => $supplies_expense_id])) {
             return false;
         }
 

@@ -25,6 +25,11 @@ class Vendors extends MYTController
         if (($response = $this->_api_verification('vendors', 'get_vendor')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $vendor_id = $this->request->getVar('vendor_id') ? : null;
         $vendor    = $vendor_id ? $this->vendorModel->get_details_by_id($vendor_id) : null;
 
@@ -49,6 +54,11 @@ class Vendors extends MYTController
         if (($response = $this->_api_verification('vendors', 'get_all_vendor')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $vendors = $this->vendorModel->get_all_vendor();
 
         if (!$vendors) {
@@ -71,6 +81,11 @@ class Vendors extends MYTController
     {
         if ($response = $this->_api_verification('vendors', 'create') !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $phone_no = $this->request->getVar('phone_no');
         if ($response = $this->_is_existing($this->vendorModel, ['phone_no' => $phone_no]))
@@ -105,6 +120,11 @@ class Vendors extends MYTController
         if (($response = $this->_api_verification('vendors', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $vendor_id = $this->request->getVar('vendor_id');
         $where       = ['id' => $vendor_id, 'is_deleted' => 0];
 
@@ -134,6 +154,11 @@ class Vendors extends MYTController
     {
         if (($response = $this->_api_verification('vendors', 'delete')) !== true)
             return $response;
+    
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $vendor_id = $this->request->getVar('vendor_id');
 
@@ -158,6 +183,11 @@ class Vendors extends MYTController
     {
         if (($response = $this->_api_verification('vendors', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $trade_name             = $this->request->getVar('trade_name');
         $trade_address          = $this->request->getVar('trade_address');

@@ -22,6 +22,11 @@ class Expenses extends MYTController
         if (($response = $this->_api_verification('expenses', 'change_status')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('expense_id'),
             'is_deleted' => 0
@@ -52,6 +57,11 @@ class Expenses extends MYTController
     {
         if (($response = $this->_api_verification('expenses', 'get_expense')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $expense_id         = $this->request->getVar('expense_id') ? : null;
         $expense            = $expense_id ? $this->expenseModel->get_details_by_id($expense_id) : null;
@@ -84,6 +94,11 @@ class Expenses extends MYTController
         if (($response = $this->_api_verification('expenses', 'get_all_expense')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $expenses = $this->expenseModel->get_all_expense();
 
         if (!$expenses) {
@@ -111,6 +126,11 @@ class Expenses extends MYTController
     {
         if (($response = $this->_api_verification('expenses', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -142,6 +162,11 @@ class Expenses extends MYTController
     {
         if (($response = $this->_api_verification('expenses', 'bulk_create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $data = $this->request->getVar();
         unset($data['requester']);
@@ -177,6 +202,11 @@ class Expenses extends MYTController
         if (($response = $this->_api_verification('expenses', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('expense_id'), 
             'is_deleted' => 0
@@ -211,6 +241,11 @@ class Expenses extends MYTController
         if (($response = $this->_api_verification('expenses', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id'         => $this->request->getVar('expense_id'), 
             'is_deleted' => 0
@@ -241,6 +276,11 @@ class Expenses extends MYTController
     {
         if (($response = $this->_api_verification('expenses', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id         = $this->request->getVar('branch_id') ? : null;
         $branch_name       = $this->request->getVar('branch_name') ? : null;
@@ -278,6 +318,11 @@ class Expenses extends MYTController
     {
         if (($response = $this->_api_verification('expenses', 'get_total_expense')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $branch_id    = $this->request->getVar('branch_id');
         $expense_date = $this->request->getVar('expense_date');

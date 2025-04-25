@@ -22,6 +22,11 @@ class Franchisee_sale_billings extends MYTController
         if (($response = $this->_api_verification('franchisee_sale_billings', 'get_franchisee_sale')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $fs_billing_id = $this->request->getVar('fs_billing_id') ? : null;
         $franchisee_sale_billing    = $fs_billing_id ? $this->franchiseeSaleBillingModel->get_details_by_id($fs_billing_id) : null;
         $fs_billing_items           = $franchisee_sale_billing ? $this->fsSaleBillingItemModel->get_fs_billing_item_by_fs_billing_id($fs_billing_id) : null;
@@ -47,6 +52,11 @@ class Franchisee_sale_billings extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sale_billings', 'get_all_franchisee_sale')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchisee_sale_billings = $this->franchiseeSaleBillingModel->get_all();
 
@@ -74,6 +84,11 @@ class Franchisee_sale_billings extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sale_billings', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -104,6 +119,11 @@ class Franchisee_sale_billings extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sale_billings', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id'         => $this->request->getVar('fs_billing_id'), 
@@ -139,6 +159,11 @@ class Franchisee_sale_billings extends MYTController
         if (($response = $this->_api_verification('franchisee_sale_billings', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('fs_billing_id'), 
             'is_deleted' => 0
@@ -166,6 +191,11 @@ class Franchisee_sale_billings extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sale_billings', 'search_missing')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id         = $this->request->getVar('branch_id') ? : null;
         $franchisee_id     = $this->request->getVar('franchisee_id') ? : null;
@@ -237,6 +267,11 @@ class Franchisee_sale_billings extends MYTController
         if (($response = $this->_api_verification('franchisee_sale_billings', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_id         = $this->request->getVar('branch_id');
         $franchisee_id     = $this->request->getVar('franchisee_id');
         $month             = $this->request->getVar('month');
@@ -294,6 +329,11 @@ class Franchisee_sale_billings extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sale_billings', 'record_action')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('fs_billing_id'), 

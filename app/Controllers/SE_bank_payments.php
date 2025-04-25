@@ -29,6 +29,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payments', 'get_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_bank_entry_id = $this->request->getVar('entry_id') ? : null;
         $se_bank_entry    = $se_bank_entry_id ? $this->bankEntryModel->get_details_by_id($se_bank_entry_id) : null;
         $se_bank_slip     = $se_bank_entry ? $this->bankSlipModel->get_details_by_id($se_bank_entry[0]['id']) : null;
@@ -54,6 +59,11 @@ class Se_bank_payments extends MYTController
     {
         if (($response = $this->_api_verification('bank_payments', 'get_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_bank_slip_id = $this->request->getVar('slip_id') ? : null;
         $se_bank_slip    = $se_bank_slip_id ? $this->bankSlipModel->get_details_by_id($se_bank_slip_id) : null;
@@ -83,6 +93,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payments', 'get_all_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_entries = $this->bankEntryModel->get_all_entry();
 
         if (!$bank_entries) {
@@ -111,6 +126,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payments', 'get_all_slip')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_bank_slips = $this->bankSlipModel->get_all_slip();
 
         if (!$se_bank_slips) {
@@ -138,6 +158,11 @@ class Se_bank_payments extends MYTController
     {
         if (($response = $this->_api_verification('receives', 'delete_attachment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_bank_slip_id = $this->request->getVar('se_bank_slip_id');
         $attachment_id = $this->request->getVar('attachment_id');
@@ -223,7 +248,7 @@ class Se_bank_payments extends MYTController
                     return false;
                 }
 
-                $file_name = $file->getName();
+                $original_name = $file->getName();
                 $max_file_size = 5 * 1024 * 1024; // 5 MB in bytes
             
                 if ($file->getSize() > $max_file_size) {
@@ -231,7 +256,9 @@ class Se_bank_payments extends MYTController
                 }
 
                 if ($file->isValid() && !$file->hasMoved()) {
-                    $file_name = $file->getName();
+                    $extension = $file->getExtension();
+                    $random_str = bin2hex(random_bytes(4)); // generates 8-character random string
+                    $file_name = pathinfo($original_name, PATHINFO_FILENAME) . '_' . $random_str . '.' . $extension;
                     $mime_type = $file->getMimeType();
 
                     $where = [
@@ -274,6 +301,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payments', 'create')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $db = \Config\Database::connect();
         $db->transBegin();
 
@@ -282,7 +314,7 @@ class Se_bank_payments extends MYTController
             $response = $this->fail(['response' => 'Failed to create slip.', 'status' => 'error']);
         } elseif (($error_message = $this->_attempt_generate_entry($se_bank_slip_id)) !== true) {
             $db->transRollback();
-            return $this->respond([
+            $response = $this->respond([
                 "response" => $error_message,  
                 "status" => "error"            
             ]);
@@ -307,6 +339,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payements', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_bank_slip_id = $this->request->getVar('se_bank_slip_id');
         $where         = ['id' => $se_bank_slip_id, 'is_deleted' => 0];
 
@@ -317,16 +354,13 @@ class Se_bank_payments extends MYTController
             $response = $this->failNotFound('Supplies expense bank slip not found');
         } elseif (!$this->_attempt_update_slip($se_bank_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense bank entry updated unsuccessfully']);
+            $response = $this->fail(['response' => 'Supplies expense bank entry updated unsuccessfully', 'status' => 'error']);
         } elseif (!$this->_attempt_update_entry($se_bank_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense bank entry updated unsuccessfully']);
-        } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_bank_slip_id, 'assets/se_bank_payments/')) {
-            $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
-        } else {
+            $response = $this->fail(['response' => 'Supplies expense bank entry updated unsuccessfully', 'status' => 'error']);
+        }  else {
             $db->transCommit();
-            $response = $this->respond(['response' => 'Supplies expense bank entry updated successfully']);
+            $response = $this->respond(['response' => 'Supplies expense bank entry updated successfully', 'status' => 'success']);
         }
 
         $db->close();
@@ -341,6 +375,11 @@ class Se_bank_payments extends MYTController
     {
         if (($response = $this->_api_verification('bank_payements', 'delete_entry')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_bank_entry_id = $this->request->getVar('se_bank_entry_id');
 
@@ -366,6 +405,11 @@ class Se_bank_payments extends MYTController
     {
         if (($response = $this->_api_verification('bank_payements', 'delete_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_bank_slip_id = $this->request->getVar('se_bank_slip_id');
 
@@ -400,6 +444,11 @@ class Se_bank_payments extends MYTController
         if (($response = $this->_api_verification('bank_payments', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_id     = $this->request->getVar('bank_id') ?? null;
         $bank_no    = $this->request->getVar('bank_no') ?? null;
         $bank_date  = $this->request->getVar('bank_date') ?? null;
@@ -427,6 +476,11 @@ class Se_bank_payments extends MYTController
     {
         if (($response = $this->_api_verification('bank_payments', 'record_action')) !== true)
             return $response;
+    
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_bank_slip_id = $this->request->getVar('se_bank_slip_id');
         $action        = $this->request->getVar('action');
@@ -595,7 +649,19 @@ class Se_bank_payments extends MYTController
             'updated_on'        => date('Y-m-d H:i:s')
         ];
 
-        return $this->bankSlipModel->update($se_bank_slip_id, $data);
+        if (!$this->bankSlipModel->update($se_bank_slip_id, $data)) {
+            return false;
+        }
+
+        if (!$this->bankSlipAttachmentModel->delete_attachment_by_se_bank_slip_id($se_bank_slip_id, $this->requested_by)) {
+            return false;
+        } elseif(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_bank_slip_id, 'assets/se_bank_payments/')) {
+            // $db->transRollback();
+            // $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
+            return false;
+        }
+
+        return true;
     }
 
     /**

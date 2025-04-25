@@ -27,6 +27,11 @@ class Supplier_prices extends MYTController
         if (($response = $this->_api_verification('supplier_prices', 'get_supplier_price')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplier_price_id = $this->request->getVar('supplier_price_id') ? : null;
         $supplier_price    = $supplier_price_id ? $this->supplierPriceModel->get_details_by_id($supplier_price_id) : null;
 
@@ -52,6 +57,11 @@ class Supplier_prices extends MYTController
         if (($response = $this->_api_verification('supplier_prices', 'get_all_supplier_price')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplier_prices = $this->supplierPriceModel->get_all_supplier_price();
 
         if (!$supplier_prices) {
@@ -74,6 +84,11 @@ class Supplier_prices extends MYTController
     {
         if (($response = $this->_api_verification('supplier_prices', 'create')) !== true) {
             $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+            return $response;
+        }
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
 
@@ -129,6 +144,11 @@ class Supplier_prices extends MYTController
         if (($response = $this->_api_verification('supplier_prices', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $supplier_price_id = $this->request->getVar('supplier_price_id');
         $where = ['id' => $supplier_price_id, 'is_deleted' => 0];
 
@@ -150,6 +170,11 @@ class Supplier_prices extends MYTController
     {
         if (($response = $this->_api_verification('supplier_prices', 'delete')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $supplier_price_id = $this->request->getVar('supplier_price_id');
 
@@ -174,6 +199,11 @@ class Supplier_prices extends MYTController
     {
         if (($response = $this->_api_verification('supplier_prices', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $supplier_id   = $this->request->getVar('supplier_id') ? : null;
         $item_id = $this->request->getVar('item_id') ? : null;

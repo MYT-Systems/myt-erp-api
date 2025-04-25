@@ -29,6 +29,11 @@ class Se_check_payments extends MYTController
         if (($response = $this->_api_verification('se_check_payments', 'get_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_check_entry_id = $this->request->getVar('entry_id') ? : null;
         $se_check_entry    = $se_check_entry_id ? $this->checkEntryModel->get_details_by_id($se_check_entry_id) : null;
         $se_check_slip     = $se_check_entry ? $this->checkSlipModel->get_details_by_id($se_check_entry[0]['id']) : null;
@@ -54,6 +59,11 @@ class Se_check_payments extends MYTController
     {
         if (($response = $this->_api_verification('se_check_payments', 'get_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_check_slip_id = $this->request->getVar('slip_id') ? : null;
         $se_check_slip    = $se_check_slip_id ? $this->checkSlipModel->get_details_by_id($se_check_slip_id) : null;
@@ -82,6 +92,11 @@ class Se_check_payments extends MYTController
     {
         if (($response = $this->_api_verification('receives', 'delete_attachment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_check_slip_id = $this->request->getVar('se_check_slip_id');
         $attachment_id = $this->request->getVar('attachment_id');
@@ -149,6 +164,11 @@ class Se_check_payments extends MYTController
         if (($response = $this->_api_verification('se_check_payments', 'get_all_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $check_entries = $this->checkEntryModel->get_all_entry();
 
         if (!$check_entries) {
@@ -176,6 +196,11 @@ class Se_check_payments extends MYTController
     {
         if (($response = $this->_api_verification('se_check_payments', 'get_all_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_check_slips = $this->checkSlipModel->get_all_slip();
 
@@ -205,17 +230,22 @@ class Se_check_payments extends MYTController
         if (($response = $this->_api_verification('check_payements', 'create')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $db = \Config\Database::connect();
         $db->transBegin();
 
         if ($this->checkSlipModel->is_check_no_used($this->request->getVar('check_no'))) {
-            $response = $this->fail(['response' => 'Check number is used already.', 'status' => 'error']);
+            $response = $this->respond(['response' => 'Check number is used already', 'status' => 'error']);
         } elseif (!$se_check_slip_id = $this->_attempt_create_slip()) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to create slip.', 'status' => 'error']);
+            $response = $this->fail(['response' => 'Failed to create slip', 'status' => 'error']);
         } elseif (!$this->_attempt_generate_entry($se_check_slip_id)) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to generate check entry.', 'status' => 'error']);
+            $response = $this->fail(['response' => 'Failed to generate check entry', 'status' => 'error']);
         } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_check_slip_id, 'assets/se_check_payments/')) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
@@ -256,7 +286,7 @@ class Se_check_payments extends MYTController
                     return false;
                 }
 
-                $file_name = $file->getName();
+                $original_name = $file->getName();
                 $max_file_size = 5 * 1024 * 1024; // 5 MB in bytes
             
                 if ($file->getSize() > $max_file_size) {
@@ -264,7 +294,9 @@ class Se_check_payments extends MYTController
                 }
 
                 if ($file->isValid() && !$file->hasMoved()) {
-                    $file_name = $file->getName();
+                    $extension = $file->getExtension();
+                    $random_str = bin2hex(random_bytes(4)); // generates 8-character random string
+                    $file_name = pathinfo($original_name, PATHINFO_FILENAME) . '_' . $random_str . '.' . $extension;
                     $mime_type = $file->getMimeType();
 
                     $where = [
@@ -307,6 +339,11 @@ class Se_check_payments extends MYTController
         if (($response = $this->_api_verification('check_payements', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_check_slip_id = $this->request->getVar('se_check_slip_id');
         $where         = ['id' => $se_check_slip_id, 'is_deleted' => 0];
 
@@ -317,16 +354,13 @@ class Se_check_payments extends MYTController
             $response = $this->failNotFound('Supplies expense check slip not found');
         } elseif (!$this->_attempt_update_slip($se_check_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense checkentry updated unsuccessfully']);
+            $response = $this->respond(['response' => 'Supplies expense check entry updated unsuccessfully', 'status' => 'error']);
         } elseif (!$this->_attempt_update_entry($se_check_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense check entry updated unsuccessfully']);
-        } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_check_slip_id, 'assets/se_check_payments/')) {
-            $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
+            $response = $this->respond(['response' => 'Supplies expense check entry updated unsuccessfully', 'status' => 'error']);
         } else {
             $db->transCommit();
-            $response = $this->respond(['response' => 'Supplies expense check entry updated successfully']);
+            $response = $this->respond(['response' => 'Supplies expense check entry updated successfully', 'status' => 'success']);
         }
 
         $db->close();
@@ -341,6 +375,11 @@ class Se_check_payments extends MYTController
     {
         if (($response = $this->_api_verification('check_payements', 'delete_entry')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_check_entry_id = $this->request->getVar('se_check_entry_id');
 
@@ -366,6 +405,11 @@ class Se_check_payments extends MYTController
     {
         if (($response = $this->_api_verification('check_payements', 'delete_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_check_slip_id = $this->request->getVar('se_check_slip_id');
 
@@ -400,6 +444,11 @@ class Se_check_payments extends MYTController
         if (($response = $this->_api_verification('se_check_payments', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_id     = $this->request->getVar('bank_id') ?? null;
         $check_no    = $this->request->getVar('check_no') ?? null;
         $check_date  = $this->request->getVar('check_date') ?? null;
@@ -427,6 +476,11 @@ class Se_check_payments extends MYTController
     {
         if (($response = $this->_api_verification('se_check_payments', 'record_action')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_check_slip_id = $this->request->getVar('se_check_slip_id');
         $action        = $this->request->getVar('action');
@@ -456,6 +510,12 @@ class Se_check_payments extends MYTController
     {
         if (($response = $this->_api_verification('se_check_payments', 'generate_check_no')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         if (!$check_no = $this->checkSlipModel->generate_unused_check_no()) {
             $response = $this->fail(['response' => 'Failed to generate check no.', 'status' => 'error']);
         } else {
@@ -572,7 +632,19 @@ class Se_check_payments extends MYTController
             'updated_on'      => date('Y-m-d H:i:s')
         ];
 
-        return $this->checkSlipModel->update($se_check_slip_id, $data);
+        if (!$this->checkSlipModel->update($se_check_slip_id, $data)) {
+            return false;
+        }
+
+        if (!$this->checkSlipAttachmentModel->delete_attachment_by_se_check_slip_id($se_check_slip_id, $this->requested_by)) {
+            return false;
+        } elseif(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_check_slip_id, 'assets/se_check_payments/')) {
+            // $db->transRollback();
+            // $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
+            return false;
+        }
+
+        return true;
     }
 
     /**

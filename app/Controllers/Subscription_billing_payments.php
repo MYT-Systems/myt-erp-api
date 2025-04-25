@@ -23,6 +23,11 @@ class Subscription_billing_payments extends MYTController
         if (($response = $this->_api_verification('subscription_billing_payments', 'get_subscription_billing_payment')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $subscription_billing_payment_id    = $this->request->getVar('subscription_billing_payment_id') ? : null;
         $subscription_billing_payment       = $subscription_billing_payment_id ? $this->subscriptionBillingPaymentModel->get_details_by_id($subscription_billing_payment_id) : null;
         $subscription_billing_payment_entries = $subscription_billing_payment_id ? $this->subscriptionBillingPaymentEntryModel->get_details_by_subscription_billing_payment_id($subscription_billing_payment_id) : null;
@@ -49,6 +54,11 @@ class Subscription_billing_payments extends MYTController
         if (($response = $this->_api_verification('subscription_billing_payments', 'filter_subscription_billing_payment_status')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $status    = $this->request->getVar('status') ? : null;
         $subscription_billing_payment = $status ? $this->subscriptionBillingPaymentModel->filter_subscription_billing_payment_status($status) : null;
 
@@ -73,6 +83,11 @@ class Subscription_billing_payments extends MYTController
         if (($response = $this->_api_verification('subscription_billing_payments', 'filter_order_status')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $status    = $this->request->getVar('status') ? : null;
         $subscription_billing_payment = $status ? $this->subscriptionBillingPaymentModel->filter_order_status($status) : null;
 
@@ -96,6 +111,11 @@ class Subscription_billing_payments extends MYTController
     {
         if (($response = $this->_api_verification('subscription_billing_payments', 'get_all_subscription_billing_payment')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $subscription_billing_payments = $this->subscriptionBillingPaymentModel->get_all_subscription_billing_payment();
 
@@ -123,6 +143,11 @@ class Subscription_billing_payments extends MYTController
     {
         if (($response = $this->_api_verification('subscription_billing_payments', 'create')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -154,6 +179,11 @@ class Subscription_billing_payments extends MYTController
         if (($response = $this->_api_verification('subscription_billing_payments', 'create')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $subscription_id = $this->request->getVar('subscription_id');
         $billing_date = $this->request->getVar('billing_date');
 
@@ -180,6 +210,11 @@ class Subscription_billing_payments extends MYTController
     {
         if (($response = $this->_api_verification('subscription_billing_payments', 'update')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
             
         $subscription_billing_payment_id = $this->request->getVar('subscription_billing_payment_id');
         $where       = ['id' => $subscription_billing_payment_id, 'is_deleted' => 0];
@@ -218,6 +253,11 @@ class Subscription_billing_payments extends MYTController
     {
         if (($response = $this->_api_verification('subscription_billing_payments', 'delete')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $subscription_billing_payment_id = $this->request->getVar('subscription_billing_payment_id');
 
@@ -242,6 +282,11 @@ class Subscription_billing_payments extends MYTController
     {
         if (($response = $this->_api_verification('subscription_billing_payments', 'search')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name          = $this->request->getVar('name') ? : null;
 

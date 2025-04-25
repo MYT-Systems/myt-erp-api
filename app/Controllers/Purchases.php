@@ -23,6 +23,11 @@ class Purchases extends MYTController
         if (($response = $this->_api_verification('purchases', 'get_purchase')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $purchase_id    = $this->request->getVar('purchase_id') ? : null;
         $purchase       = $purchase_id ? $this->purchaseModel->get_details_by_id($purchase_id) : null;
         $purchase_items = $purchase_id ? $this->purchaseItemModel->get_details_by_purchase_id($purchase_id) : null;
@@ -56,6 +61,11 @@ class Purchases extends MYTController
         if (($response = $this->_api_verification('purchases', 'filter_purchase_status')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $status    = $this->request->getVar('status') ? : null;
         $purchase = $status ? $this->purchaseModel->filter_purchase_status($status) : null;
 
@@ -80,6 +90,11 @@ class Purchases extends MYTController
         if (($response = $this->_api_verification('purchases', 'filter_order_status')) !== true) 
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $status    = $this->request->getVar('status') ? : null;
         $purchase = $status ? $this->purchaseModel->filter_order_status($status) : null;
 
@@ -103,6 +118,11 @@ class Purchases extends MYTController
     {
         if (($response = $this->_api_verification('purchases', 'get_all_purchase')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $purchases = $this->purchaseModel->get_all_purchase();
 
@@ -130,6 +150,11 @@ class Purchases extends MYTController
     {
         if (($response = $this->_api_verification('purchases', 'create')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -162,6 +187,11 @@ class Purchases extends MYTController
     {
         if (($response = $this->_api_verification('purchases', 'update')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
             
         $purchase_id = $this->request->getVar('purchase_id');
         $where       = ['id' => $purchase_id, 'is_deleted' => 0];
@@ -201,6 +231,11 @@ class Purchases extends MYTController
     {
         if (($response = $this->_api_verification('purchases', 'delete')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $purchase_id = $this->request->getVar('purchase_id');
 
@@ -225,6 +260,11 @@ class Purchases extends MYTController
     {
         if (($response = $this->_api_verification('purchases', 'search')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id          = $this->request->getVar('branch_id') ? : null;
         $supplier_id        = $this->request->getVar('supplier_id') ? : null;
@@ -277,6 +317,11 @@ class Purchases extends MYTController
         if (($response = $this->_api_verification('purchases', 'send_email_to_supplier')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $purchase_id = $this->request->getVar('purchase_id');
 
         if (!$purchase = $this->purchaseModel->get_details_by_id($purchase_id)){
@@ -300,6 +345,11 @@ class Purchases extends MYTController
     {
         if (($response = $this->_api_verification('purchases', 'record_action')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('purchase_id'),
@@ -326,6 +376,11 @@ class Purchases extends MYTController
     {
         if (($response = $this->_api_verification('purchases', 'add_payment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $where = [
             'id' => $this->request->getVar('purchase_id'),

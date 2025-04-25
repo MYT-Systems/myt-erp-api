@@ -29,6 +29,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'get_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_cash_entry_id = $this->request->getVar('entry_id') ? : null;
         $se_cash_entry    = $se_cash_entry_id ? $this->cashEntryModel->get_details_by_id($se_cash_entry_id) : null;
         $se_cash_slip     = $se_cash_entry ? $this->cashSlipModel->get_details_by_id($se_cash_entry[0]['id']) : null;
@@ -54,6 +59,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payments', 'get_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_cash_slip_id = $this->request->getVar('slip_id') ? : null;
         $se_cash_slip    = $se_cash_slip_id ? $this->cashSlipModel->get_details_by_id($se_cash_slip_id) : null;
@@ -82,6 +92,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('receives', 'delete_attachment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_cash_slip_id = $this->request->getVar('se_cash_slip_id');
         $attachment_id = $this->request->getVar('attachment_id');
@@ -148,6 +163,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'get_all_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $cash_entries = $this->cashEntryModel->get_all_entry();
 
         if (!$cash_entries) {
@@ -176,6 +196,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'get_all_slip')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_cash_slips = $this->cashSlipModel->get_all_slip();
 
         if (!$se_cash_slips) {
@@ -203,6 +228,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payments', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -234,6 +264,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payements', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_cash_slip_id = $this->request->getVar('se_cash_slip_id');
         $where         = ['id' => $se_cash_slip_id, 'is_deleted' => 0];
 
@@ -244,16 +279,13 @@ class Se_cash_payments extends MYTController
             $response = $this->failNotFound('Supplies expense cash slip not found');
         } elseif (!$this->_attempt_update_slip($se_cash_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense cashentry updated unsuccessfully']);
+            $response = $this->fail(['response' => 'Supplies expense cash entry updated unsuccessfully', 'status' => 'error']);
         } elseif (!$this->_attempt_update_entry($se_cash_slip_id)) {
             $db->transRollback();
-            $response = $this->respond(['response' => 'Supplies expense cash entry updated unsuccessfully']);
-        } else if(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_cash_slip_id, 'assets/se_cash_payments/')) {
-            $db->transRollback();
-            $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
+            $response = $this->respond(['response' => 'Supplies expense cash entry updated unsuccessfully', 'status' => 'error']);
         } else {
             $db->transCommit();
-            $response = $this->respond(['response' => 'Supplies expense cash entry updated successfully']);
+            $response = $this->respond(['response' => 'Supplies expense cash entry updated successfully', 'status' => 'success']);
         }
 
         $db->close();
@@ -288,7 +320,7 @@ class Se_cash_payments extends MYTController
                     return false;
                 }
 
-                $file_name = $file->getName();
+                $original_name = $file->getName();
                 $max_file_size = 5 * 1024 * 1024; // 5 MB in bytes
             
                 if ($file->getSize() > $max_file_size) {
@@ -296,7 +328,9 @@ class Se_cash_payments extends MYTController
                 }
 
                 if ($file->isValid() && !$file->hasMoved()) {
-                    $file_name = $file->getName();
+                    $extension = $file->getExtension();
+                    $random_str = bin2hex(random_bytes(4)); // generates 8-character random string
+                    $file_name = pathinfo($original_name, PATHINFO_FILENAME) . '_' . $random_str . '.' . $extension;
                     $mime_type = $file->getMimeType();
 
                     $where = [
@@ -339,6 +373,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payements', 'delete_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $se_cash_entry_id = $this->request->getVar('se_cash_entry_id');
 
         $where = ['id' => $se_cash_entry_id, 'is_deleted' => 0];
@@ -363,6 +402,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payements', 'delete_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_cash_slip_id = $this->request->getVar('se_cash_slip_id');
 
@@ -397,6 +441,11 @@ class Se_cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_id     = $this->request->getVar('bank_id') ?? null;
         $cash_no    = $this->request->getVar('cash_no') ?? null;
         $cash_date  = $this->request->getVar('cash_date') ?? null;
@@ -424,6 +473,11 @@ class Se_cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payments', 'record_action')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $se_cash_slip_id = $this->request->getVar('se_cash_slip_id');
         $action        = $this->request->getVar('action');
@@ -548,7 +602,19 @@ class Se_cash_payments extends MYTController
             'updated_on'      => date('Y-m-d H:i:s')
         ];
 
-        return $this->cashSlipModel->update($se_cash_slip_id, $data);
+        if (!$this->cashSlipModel->update($se_cash_slip_id, $data)) {
+            return false;
+        }
+
+        if (!$this->cashSlipAttachmentModel->delete_attachment_by_se_cash_slip_id($se_cash_slip_id, $this->requested_by)) {
+            return false;
+        } elseif(($this->request->getFileMultiple('attachments')?true:false) && !$this->_upload_attachments($se_cash_slip_id, 'assets/se_cash_payments/')) {
+            // $db->transRollback();
+            // $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
+            return false;
+        }
+
+        return true;
     }
 
     /**

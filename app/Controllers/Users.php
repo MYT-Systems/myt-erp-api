@@ -31,6 +31,11 @@ class Users extends MYTController
         if (($response = $this->_api_verification('users', 'get_user')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $pin = $this->request->getVar('pin') ? : null;
         $user = $pin ? $this->userModel->get_details_by_pin($pin) : null;
 
@@ -55,6 +60,11 @@ class Users extends MYTController
         if (($response = $this->_api_verification('users', 'get_all_user')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $users = $this->userModel->get_all_users();
 
         if (!$users) {
@@ -77,6 +87,11 @@ class Users extends MYTController
     {
         if (($response = $this->_api_verification('users', 'create')) !== true) 
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $username = $this->request->getVar('username');
         if ($response = $this->_is_existing($this->userModel, ['username' => $username]))
@@ -111,6 +126,11 @@ class Users extends MYTController
         if (($response = $this->_api_verification('users', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         // $pin = $this->request->getVar('pin');
         // $where = ['pin' => $pin, 'is_deleted' => 0];
 
@@ -137,6 +157,11 @@ class Users extends MYTController
     {
         if (($response = $this->_api_verification('users', 'change_password')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $user_id = $this->request->getVar('user_id') ? : null;
         $user_id = isset($user_id) ? $user_id : $this->requested_by;
@@ -168,6 +193,11 @@ class Users extends MYTController
         if (($response = $this->_api_verification('users', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $user_id = $this->request->getVar('user_id');
 
         $where = ['id' => $user_id, 'is_deleted' => 0];
@@ -191,6 +221,11 @@ class Users extends MYTController
     {
         if (($response = $this->_api_verification('users', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $status = $this->request->getVar('status') ? : null;
         $branch_id = $this->request->getVar('branch_id') ? : null;

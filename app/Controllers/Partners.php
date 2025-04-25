@@ -25,6 +25,11 @@ class Partners extends MYTController
         if (($response = $this->_api_verification('partners', 'get_partner')) !== true)
             return $response; 
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $partner_id = $this->request->getVar('partner_id') ? : null;
         $partner    = $partner_id ? $this->partnerModel->get_details_by_id($partner_id) : null;
 
@@ -49,6 +54,11 @@ class Partners extends MYTController
         if (($response = $this->_api_verification('partners', 'get_all_partner')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $partners = $this->partnerModel->get_all_partner();
 
         if (!$partners) {
@@ -71,6 +81,11 @@ class Partners extends MYTController
     {
         if (($response = $this->_api_verification('partners', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -99,6 +114,11 @@ class Partners extends MYTController
     {
         if (($response = $this->_api_verification('partners', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $partner_id = $this->request->getVar('partner_id');
         $where = ['id' => $partner_id, 'is_deleted' => 0];
@@ -129,6 +149,11 @@ class Partners extends MYTController
         if (($response = $this->_api_verification('partners', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $partner_id = $this->request->getVar('partner_id');
 
         $where = ['id' => $partner_id, 'is_deleted' => 0];
@@ -158,6 +183,11 @@ class Partners extends MYTController
     {
         if (($response = $this->_api_verification('partners', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name     = $this->request->getVar('name');
 

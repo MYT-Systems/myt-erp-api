@@ -22,6 +22,11 @@ class Branch_groups extends MYTController
         if (($response = $this->_api_verification('branch_groups', 'get_branch_group')) !== true )
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_group_id    = $this->request->getVar('branch_group_id') ? : null;
         $branch_group       = $branch_group_id ? $this->branchGroupModel->get_details_by_id($branch_group_id) : null;
         $branch_group_details = $branch_group_id ? $this->branchGroupDetailModel->get_details_by_branch_group_id($branch_group_id) : null;
@@ -48,6 +53,11 @@ class Branch_groups extends MYTController
         if (($response = $this->_api_verification('branch_groups', 'get_all_branch_group')) !== true) {
             return $response;
         }
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         if (!$branch_groups = $this->branchGroupModel->get_all()) {
             $response = $this->failNotFound('No branch group found');
@@ -72,6 +82,11 @@ class Branch_groups extends MYTController
     public function create()
     {
         if (($response = $this->_api_verification('branch_groups', 'create')) !== true) {
+            return $response;
+        }
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
 
@@ -109,6 +124,11 @@ class Branch_groups extends MYTController
         if (($response = $this->_api_verification('branch_groups', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_group_id = $this->request->getVar('branch_group_id');
         $where   = ['id' => $branch_group_id, 'is_deleted' => 0];
 
@@ -138,6 +158,11 @@ class Branch_groups extends MYTController
         if (($response = $this->_api_verification('branch_groups', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_group_id = $this->request->getVar('branch_group_id');
         $where   = ['id' => $branch_group_id, 'is_deleted' => 0];
 
@@ -166,6 +191,11 @@ class Branch_groups extends MYTController
     {
         if (($response = $this->_api_verification('branch_groups', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name             = $this->request->getVar('name');
         $supervisor       = $this->request->getVar('supervisor');

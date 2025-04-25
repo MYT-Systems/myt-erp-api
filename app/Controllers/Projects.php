@@ -45,6 +45,11 @@ class Projects extends MYTController
             return $response;
         } 
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_id = $this->request->getVar('project_id') ? : null;
         $billing_date = $this->request->getVar('billing_date') ? : null;
 
@@ -71,7 +76,13 @@ class Projects extends MYTController
         // API verification
         if (($response = $this->_api_verification('fees', 'get_all_particulars')) !== true) {
             return $response;
-        }   
+        }  
+        
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_id = $this->request->getVar('project_id') ? : null;
         
         $where = [
@@ -131,6 +142,11 @@ class Projects extends MYTController
         if (($response = $this->_api_verification('projects', 'get_project')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_id             = $this->request->getVar('project_id') ? : null;
         $project                = $project_id ? $this->projectModel->get_details_by_id($project_id) : null;
         $project_attachment     = $project_id ? $this->projectAttachmentModel->get_details_by_project_id($project_id) : null;
@@ -184,6 +200,11 @@ class Projects extends MYTController
         if (($response = $this->_api_verification('projects', 'get_all_project')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_id = $this->request->getVar('project_id') ? : null;
 
         $projects = $this->projectModel->get_all_project($project_id);
@@ -217,6 +238,11 @@ class Projects extends MYTController
     {
         if (($response = $this->_api_verification('projects', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = ['name' => $this->request->getVar('name'), 'is_deleted' => 0];
         if ($this->projectModel->select('', $where, 1)) {
@@ -583,6 +609,11 @@ class Projects extends MYTController
         if (($response = $this->_api_verification('projects', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id'         => $this->request->getVar('project_id'), 
             'is_deleted' => 0
@@ -632,6 +663,11 @@ class Projects extends MYTController
         if (($response = $this->_api_verification('projects', 'update_recurring_is_occupied')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+        
         $where = [
             'id'         => $this->request->getVar('project_recurring_id'), 
             'is_deleted' => 0
@@ -681,6 +717,11 @@ class Projects extends MYTController
         if (($response = $this->_api_verification('projects', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('project_id'), 
             'is_deleted' => 0
@@ -720,6 +761,11 @@ class Projects extends MYTController
     {
         if (($response = $this->_api_verification('projects', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_id = $this->request->getVar('project_id');
         $name = $this->request->getVar('name');

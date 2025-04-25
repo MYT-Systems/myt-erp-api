@@ -22,6 +22,11 @@ class Inventory_groups extends MYTController
         if (($response = $this->_api_verification('inventory_groups', 'get_inventory_group')) !== true )
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $inventory_group_id      = $this->request->getVar('inventory_group_id') ? : null;
         $inventory_group         = $inventory_group_id ? $this->inventoryGroupModel->get_details_by_id($inventory_group_id) : null;
         $inventory_group_details = $inventory_group_id ? $this->inventoryGroupDetailModel->get_details_by_inventory_group_id($inventory_group_id) : null;
@@ -46,6 +51,11 @@ class Inventory_groups extends MYTController
     public function get_all_inventory_group()
     {
         if (($response = $this->_api_verification('inventory_groups', 'get_all_inventory_group')) !== true) {
+            return $response;
+        }
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
         
@@ -75,6 +85,11 @@ class Inventory_groups extends MYTController
             return $response;
         }
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $item_id = $this->request->getVar('item_id');
 
         if (!$item_levels = $this->inventoryModel->get_item_levels($item_id)) {
@@ -96,6 +111,11 @@ class Inventory_groups extends MYTController
     public function create()
     {
         if (($response = $this->_api_verification('inventory_groups', 'create')) !== true) {
+            return $response;
+        }
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
 
@@ -133,6 +153,11 @@ class Inventory_groups extends MYTController
         if (($response = $this->_api_verification('inventory_groups', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $inventory_group_id = $this->request->getVar('inventory_group_id');
         $where   = ['id' => $inventory_group_id, 'is_deleted' => 0];
 
@@ -162,6 +187,11 @@ class Inventory_groups extends MYTController
         if (($response = $this->_api_verification('inventory_groups', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $inventory_group_id = $this->request->getVar('inventory_group_id');
         $where   = ['id' => $inventory_group_id, 'is_deleted' => 0];
 
@@ -190,6 +220,11 @@ class Inventory_groups extends MYTController
     {
         if (($response = $this->_api_verification('inventory_groups', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name                = $this->request->getVar('name');
         $min                 = $this->request->getVar('min');

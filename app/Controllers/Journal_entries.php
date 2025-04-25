@@ -21,6 +21,11 @@ class Journal_entries extends MYTController
         if (($response = $this->_api_verification('journal_entries', 'get_journal_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $journal_entry_id       = $this->request->getVar('journal_entry_id') ? : null;
         $journal_entry          = $journal_entry_id ? $this->journalEntryModel->get_details_by_id($journal_entry_id) : null;
         $journal_entry_items    = $journal_entry_id ? $this->journalEntryItemModel->get_details_by_journal_entry_id($journal_entry_id) : [];
@@ -47,6 +52,11 @@ class Journal_entries extends MYTController
         if (($response = $this->_api_verification('journal_entries', 'get_all_journal_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $date_from          = $this->request->getVar('date_from') ? : null;
         $date_to            = $this->request->getVar('date_to') ? : null;
 
@@ -72,6 +82,11 @@ class Journal_entries extends MYTController
     {
         if (($response = $this->_api_verification('journal_entries', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -103,6 +118,11 @@ class Journal_entries extends MYTController
     {
         if (($response = $this->_api_verification('journal_entries', 'update')) !== true)
             return $response;
+    
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id'         => $this->request->getVar('journal_entry_id'), 
@@ -140,6 +160,11 @@ class Journal_entries extends MYTController
         if (($response = $this->_api_verification('journal_entries', 'post_journal_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('journal_entry_id'), 
             'is_deleted' => 0
@@ -166,6 +191,11 @@ class Journal_entries extends MYTController
     {
         if (($response = $this->_api_verification('journal_entries', 'delete')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('journal_entry_id'), 
@@ -197,6 +227,11 @@ class Journal_entries extends MYTController
     {
         if (($response = $this->_api_verification('project_invoices', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_invoice_id = $this->request->getVar('project_invoice_id');
         $project_id = $this->request->getVar('project_id');

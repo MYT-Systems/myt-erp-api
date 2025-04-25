@@ -133,27 +133,53 @@ class MYTController extends ResourceController
         return true;
     }
 
-    protected function _verify_requester($applicant_id, $token)
+    protected function _verify_requester($token)
     {
-        $applicantModel = new Applicant();
+        $userModel = new User();
 
-        if (empty($token) || empty($applicant_id)) {
-            $response = 'Invalid Auth token';
-            return $this->failUnauthorized($response);
+        $date_today = new \DateTime();
+        $webappResponseModel = new Webapp_response();
+
+        if (empty($token) && empty($this->requested_by)) {
+            $response = $this->failUnauthorized('Invalid Auth token');
+            return $response;
         } else {
             //Check requester token and token expiry validity
             $where = [
-                'firebase_id' => $applicant_id,
-                // 'access_token' => $token
+                'id' => $this->requested_by,
+                'token' => $token,
+                'is_deleted' => 0
             ];
-            $applicant = $applicantModel->select('', $where, 1);
 
-            if (empty($applicant)) {
-                $response = 'Applicant not found.';
-                return $this->failUnauthorized($response);
+            if (!$requester = $userModel->select('', $where, 1)) {
+                $response = $this->failUnauthorized('Token Expired');
+                return $response;
+            } else {
+                $token_expiry = new \DateTime($requester['token_expiry']);
+
+                if (empty($requester)) {
+                    $response = $this->failUnauthorized('Invalid requester');
+                    return $response;
+                } else if ($requester['token'] !== $token) {
+                    $response = $this->failUnauthorized('Invalid Auth token');
+                    return $response;
+                } else if ($date_today > $token_expiry) {
+                    $response = $this->failUnauthorized('Token Expired');
+
+                    $values = [
+                        'token' => null,
+                        'token_expiry' => null,
+                        'updated_on' => date('Y-m-d H:i:s'),
+                        'updated_by' => $this->requested_by
+                    ];
+                    $userModel->update($this->requested_by, $values);
+
+                    $webappResponseModel->record_response($this->webapp_log_id, $response);
+                    return $response;
+                }
+
+                return true;
             }
-
-            return true;
         }
     }
 

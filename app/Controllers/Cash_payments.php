@@ -27,6 +27,11 @@ class Cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'get_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $cash_entry_id = $this->request->getVar('entry_id') ? : null;
         $cash_entry    = $cash_entry_id ? $this->cashEntryModel->get_details_by_id($cash_entry_id) : null;
         $cash_slip     = $cash_entry ? $this->cashSlipModel->get_details_by_id($cash_entry[0]['id']) : null;
@@ -53,6 +58,11 @@ class Cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'get_slip')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $cash_slip_id = $this->request->getVar('slip_id') ? : null;
         $cash_slip    = $cash_slip_id ? $this->cashSlipModel->get_details_by_id($cash_slip_id) : null;
         $cash_entries = $cash_slip ? $this->cashEntryModel->get_details_by_slip_id($cash_slip[0]['id']) : null;
@@ -78,6 +88,11 @@ class Cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payments', 'get_all_entry')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $cash_entries = $this->cashEntryModel->get_all_entry();
 
@@ -107,6 +122,11 @@ class Cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'get_all_slip')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $cash_slips = $this->cashSlipModel->get_all_slip();
 
         if (!$cash_slips) {
@@ -134,6 +154,11 @@ class Cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payements', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -165,6 +190,11 @@ class Cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payements', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('cash_slip_id'), 
@@ -200,6 +230,11 @@ class Cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payements', 'delete_entry')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id'         => $this->request->getVar('cash_entry_id'), 
             'is_deleted' => 0
@@ -230,6 +265,11 @@ class Cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payements', 'delete_slip')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id'         => $this->request->getVar('cash_slip_id'), 
@@ -265,6 +305,11 @@ class Cash_payments extends MYTController
         if (($response = $this->_api_verification('cash_payments', 'search')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $payment_date = $this->request->getVar('payment_date') ?? null;
         $amount       = $this->request->getVar('amount') ?? null;
         $supplier_id  = $this->request->getVar('supplier_id') ?? null;
@@ -291,6 +336,11 @@ class Cash_payments extends MYTController
     {
         if (($response = $this->_api_verification('cash_payments', 'record_action')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('cash_slip_id'), 

@@ -23,6 +23,11 @@ class Reports extends MYTController
         if (($response = $this->_api_verification('reports', 'franchise_sales')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $franchisee_id   = $this->request->getVar('franchisee_id') ? : NULL;
         $franchisee_name = $this->request->getVar('franchisee_name') ? : NULL;
         $branch_id       = $this->request->getVar('branch_id') ? : NULL;
@@ -98,6 +103,11 @@ class Reports extends MYTController
         if (($response = $this->_api_verification('reports', 'get_bank_reconciliation')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $bank_id = $this->request->getVar('bank_id') ?: null;
         $date_from = $this->request->getVar('date_from') ?: null;
         $date_to = $this->request->getVar('date_to') ?: null;
@@ -152,6 +162,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_expense_breakdown_by_day')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $expense_type_per_day_type = $this->request->getVar('expense_type_per_day_type');
         $expense_type_per_day_date_from = $this->request->getVar('expense_type_per_day_date_from');
@@ -223,6 +238,11 @@ class Reports extends MYTController
         if (($response = $this->_api_verification('reports', 'get_expense_by_date')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $expense_type = $this->request->getVar('expense_type');
         $date_from = $this->request->getVar('date_from');
         $date_to = $this->request->getVar('date_to');
@@ -272,6 +292,11 @@ class Reports extends MYTController
         if (($response = $this->_api_verification('reports', 'get_expense_by_type')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $expense_type = $this->request->getVar('expense_type');
         $date_from = $this->request->getVar('date_from');
         $date_to = $this->request->getVar('date_to');
@@ -282,29 +307,27 @@ class Reports extends MYTController
         } else {
 
             $expense_total_arr = [];
-            $expense_type_arr = [];
-            
+
             foreach ($expenses as $item) {
                 $expense_total = (float) $item['expense_total'];
-                $expense_type = $item['expense_type'];
-            
-                if (isset($expense_total_arr[$expense_type])) {
-                    $expense_total_arr[$expense_type] += $expense_total;
+                $type = $item['expense_type'];
+
+                if (isset($expense_total_arr[$type])) {
+                    $expense_total_arr[$type] += $expense_total;
                 } else {
-                    $expense_total_arr[$expense_type] = $expense_total;
-                    $expense_type_arr[] = $expense_type;
+                    $expense_total_arr[$type] = $expense_total;
                 }
             }
 
-            $expense_totals = [];
+            // Sort the associative array by total descending
+            arsort($expense_total_arr);
 
-            foreach($expense_total_arr AS $expense_total_item) {
-                $expense_totals[] = $expense_total_item;
-            }
+            $expense_types_sorted = array_keys($expense_total_arr);
+            $expense_totals_sorted = array_values($expense_total_arr);
 
             $response = $this->respond([
-                'expense_total' => $expense_totals,
-                'expense_type' => $expense_type_arr,
+                'expense_total' => $expense_totals_sorted,
+                'expense_type' => $expense_types_sorted,
                 'status'  => 'success'
             ]);
         }
@@ -320,6 +343,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_expense')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $expense_type = $this->request->getVar('expense_type');
         $date_from = $this->request->getVar('date_from');
@@ -364,6 +392,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_project_sales')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_id = $this->request->getVar('project_id') ?? null;
         $date_from = $this->request->getVar('date_from') ?? null;
@@ -413,6 +446,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_receivable')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $invoice_no  = $this->request->getVar('invoice_no') ? : null;
         $supplier_id = $this->request->getVar('supplier_id') ? : null;
@@ -464,6 +502,11 @@ class Reports extends MYTController
         if (($response = $this->_api_verification('reports', 'get_franchisee_sales_report')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $franchisee_id    = $this->request->getVar('franchisee_id');
         $date_from        = $this->request->getVar('date_from') ? : null;
         $date_to          = $this->request->getVar('date_to') ? : null;
@@ -491,6 +534,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_payables_aging')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $supplier_id    = $this->request->getVar('supplier_id');
         $expense_type   = $this->request->getVar('expense_type') ? : null;
@@ -525,6 +573,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_statement_of_account')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $customer_id = $this->request->getVar('customer_id');
         $where = [
@@ -566,6 +619,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_receivables_aging')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
     
         $customer_id = $this->request->getVar('customer_id');
         $project_id  = $this->request->getVar('project_id') ?: null;
@@ -649,6 +707,11 @@ class Reports extends MYTController
         if (($response = $this->_api_verification('reports', 'get_franchisee_branch_payments')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         // $franchisee_id, $date_from, $date_to, $branch_id, $payment_type
         $franchisee_id    = $this->request->getVar('franchisee_id');
         $date_from        = $this->request->getVar('date_from') ? : null;
@@ -677,6 +740,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_item_transfer_transactions')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $transfer_id        = $this->request->getVar('transfer_id');
         $branch_from        = $this->request->getVar('branch_from');
@@ -743,8 +811,8 @@ class Reports extends MYTController
      */
     public function get_dashboard_reports()
     {
-        // if (($response = $this->_api_verification('reports', 'get_dashboard_reports')) !== true)
-        //     return $response;
+        if (($response = $this->_api_verification('reports', 'get_dashboard_reports')) !== true)
+            return $response;
         
         // if (!$reports = $this->reportModel->get_dashboard_reports()) {
         //     $response = $this->failNotFound('No report Found');
@@ -784,6 +852,11 @@ class Reports extends MYTController
             // ]);
         // }
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $date_from = $this->request->getVar('date_from') ?? date('Y-m');
         $date_to = $this->request->getVar('date_to') ?? date('Y-m');
         
@@ -822,6 +895,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_expired_contracts')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         if (!$expired_contracts = $this->reportModel->get_expired_contracts()) {
             $response = $this->failNotFound('No expired contracts found');
@@ -843,6 +921,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_franchisee_sale_item_report')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchisee_name = $this->request->getVar('franchisee_name');
         $item_id         = $this->request->getVar('item_id');
@@ -885,6 +968,11 @@ class Reports extends MYTController
         if (($response = $this->_api_verification('reports', 'get_summary_of_purchased_items_from_suppliers')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $item_id            = $this->request->getVar('item_id') ?? null;
         $item_name          = $this->request->getVar('item_name') ?? null;
         $purchase_date_from = $this->request->getVar('purchase_date_from') ?? null;
@@ -923,6 +1011,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_summary_of_transferred_items')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $item_id            = $this->request->getVar('item_id') ?? null;
         $item_name          = $this->request->getVar('item_name') ?? null;
@@ -966,6 +1059,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'financial_report')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         // $date_from = $this->request->getVar('date_from') ?? null;
         // $date_to   = $this->request->getVar('date_to') ?? null;
@@ -1168,6 +1266,11 @@ class Reports extends MYTController
     {
         if (($response = $this->_api_verification('reports', 'get_journal_entries')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $date_from = $this->request->getVar('date_from') ?? null;
         $date_to   = $this->request->getVar('date_to') ?? null;

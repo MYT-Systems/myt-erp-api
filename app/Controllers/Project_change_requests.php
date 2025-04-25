@@ -22,6 +22,11 @@ class Project_change_requests extends MYTController
         if (($response = $this->_api_verification('project_change_requests', 'get_project_change_request_item')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $change_request_id               = $this->request->getVar('change_request_id') ?: null;
         $project_change_request          = $change_request_id ? $this->projectChangeRequestModel->get_details_by_id($change_request_id) : null;
         $project_change_request_items    = $change_request_id ? $this->projectChangeRequestItemModel->get_details_by_project_change_request_id($change_request_id) : null;
@@ -53,6 +58,11 @@ class Project_change_requests extends MYTController
         if (($response = $this->_api_verification('project_change_requests', 'get_all_project_change_request')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_change_requests = $this->projectChangeRequestModel->get_all();
 
         if (!$project_change_requests) {
@@ -75,6 +85,11 @@ class Project_change_requests extends MYTController
     {
         if (($response = $this->_api_verification('project_change_requests', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -113,6 +128,11 @@ class Project_change_requests extends MYTController
         if (($response = $this->_api_verification('project_change_requests', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id'         => $this->request->getVar('change_request_id'), 
             'is_deleted' => 0
@@ -149,6 +169,11 @@ class Project_change_requests extends MYTController
         if (($response = $this->_api_verification('project_change_requests', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+        
         $where = [
             'id' => $this->request->getVar('project_change_request_id'), 
             'is_deleted' => 0
@@ -182,6 +207,11 @@ class Project_change_requests extends MYTController
     {
         if (($response = $this->_api_verification('project_change_requests', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name = $this->request->getVar('name');
         $project_change_request_id = $this->request->getVar('project_change_request_id');

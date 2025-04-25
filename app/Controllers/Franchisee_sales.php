@@ -22,6 +22,11 @@ class Franchisee_sales extends MYTController
         if (($response = $this->_api_verification('franchisee_sales', 'get_franchisee_sale')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $franchisee_sale_id       = $this->request->getVar('franchisee_sale_id') ? : null;
         $franchisee_sale          = $franchisee_sale_id ? $this->franchiseeSaleModel->get_details_by_id($franchisee_sale_id) : null;
         $franchisee_sale_payments = $franchisee_sale_id ? $this->franchiseeSalePaymentModel->get_details_by_franchisee_sales_id($franchisee_sale_id) : null;
@@ -49,6 +54,11 @@ class Franchisee_sales extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sales', 'get_all_franchisee_sale')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchisee_sales = $this->franchiseeSaleModel->get_all();
 
@@ -80,6 +90,11 @@ class Franchisee_sales extends MYTController
         if (($response = $this->_api_verification('franchisee_sales', 'create')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $db = \Config\Database::connect();
         $db->transBegin();
 
@@ -110,6 +125,11 @@ class Franchisee_sales extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sales', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id'         => $this->request->getVar('franchisee_sale_id'), 
@@ -194,6 +214,11 @@ class Franchisee_sales extends MYTController
         if (($response = $this->_api_verification('franchisee_sales', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('franchisee_sale_id'), 
             'is_deleted' => 0
@@ -224,6 +249,11 @@ class Franchisee_sales extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sales', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchise_sale_id       = $this->request->getVar('franchisee_sale_id');
         $franchisee_id           = $this->request->getVar('franchisee_id') ?? null;
@@ -285,6 +315,11 @@ class Franchisee_sales extends MYTController
         if (($response = $this->_api_verification('franchisee_sales', 'record_status_change')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $franchisee_sale_id = $this->request->getVar('franchisee_sale_id');
         $status             = $this->request->getVar('status');
 
@@ -310,6 +345,11 @@ class Franchisee_sales extends MYTController
     {
         if (($response = $this->_api_verification('franchisee_sale', 'close_overpaid_franchisee_sale')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchisee_sale_id = $this->request->getVar('franchisee_sale_id');
         $where = ['id' => $franchisee_sale_id, 'is_deleted' => 0];

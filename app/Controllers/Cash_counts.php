@@ -22,6 +22,11 @@ class Cash_counts extends MYTController
         if (($response = $this->_api_verification('cash_counts', 'get_cash_count')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $cash_count_id = $this->request->getVar('cash_count_id') ? : null;
         $cash_count    = $cash_count_id ? $this->cashCountModel->get_details_by_id($cash_count_id) : null;
 
@@ -45,6 +50,11 @@ class Cash_counts extends MYTController
     {
         if (($response = $this->_api_verification('cash_counts', 'get_cash_count_reports')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id') ? : null;
         $date = $this->request->getVar('date') ? : null;
@@ -123,6 +133,11 @@ class Cash_counts extends MYTController
         if (($response = $this->_api_verification('cash_counts', 'get_all_cash_count')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $cash_counts = $this->cashCountModel->get_all_cash_count();
 
         if (!$cash_counts) {
@@ -145,6 +160,11 @@ class Cash_counts extends MYTController
     {
         if (($response = $this->_api_verification('cash_counts', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -191,6 +211,11 @@ class Cash_counts extends MYTController
         if (($response = $this->_api_verification('cash_counts', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('cash_count_id'), 
             'is_deleted' => 0
@@ -222,6 +247,11 @@ class Cash_counts extends MYTController
         if (($response = $this->_api_verification('cash_counts', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $cash_count_id = $this->request->getVar('cash_count_id');
 
         $where = ['id' => $cash_count_id, 'is_deleted' => 0];
@@ -245,6 +275,11 @@ class Cash_counts extends MYTController
     {
         if (($response = $this->_api_verification('cash_counts', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id         = $this->request->getVar('branch_id');
         $branch_name       = $this->request->getVar('branch_name');
@@ -282,6 +317,11 @@ class Cash_counts extends MYTController
     {
         if (($response = $this->_api_verification('cash_counts', 'get_current_sales_report')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id = $this->request->getVar('branch_id');
         $cash_sales = $this->paymentModel->get_sales(true, $branch_id, null, null, null, 'cash') ?? 0;

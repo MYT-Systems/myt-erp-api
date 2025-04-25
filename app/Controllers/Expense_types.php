@@ -22,6 +22,11 @@ class Expense_types extends MYTController
         if (($response = $this->_api_verification('expense_types', 'get_expense_types')) !== true)
             return $response; 
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $expense_types_id = $this->request->getVar('expense_type_id') ? : null;
         $expense_types    = $this->expenseTypeModel->get_details_by_id($expense_types_id);
 
@@ -46,6 +51,11 @@ class Expense_types extends MYTController
         if (($response = $this->_api_verification('expense_types', 'get_all_expense_type')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $expense_types = $this->expenseTypeModel->get_all_expense_type();
 
         if (!$expense_types) {
@@ -69,6 +79,11 @@ class Expense_types extends MYTController
         if (($response = $this->_api_verification('expense_types', 'get_all_account_kind')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $expense_types = $this->expenseTypeModel->get_all_account_kind();
 
         if (!$expense_types) {
@@ -91,6 +106,11 @@ class Expense_types extends MYTController
     {
         if (($response = $this->_api_verification('expense_types', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -119,6 +139,11 @@ class Expense_types extends MYTController
     {
         if (($response = $this->_api_verification('expense_types', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $expense_type_id = $this->request->getVar('expense_type_id');
         $where = ['id' => $expense_type_id, 'is_deleted' => 0];
@@ -149,6 +174,11 @@ class Expense_types extends MYTController
         if (($response = $this->_api_verification('expense_types', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $expense_type_id = $this->request->getVar('expense_type_id');
 
         $where = ['id' => $expense_type_id, 'is_deleted' => 0];
@@ -178,6 +208,11 @@ class Expense_types extends MYTController
     {
         if (($response = $this->_api_verification('expense_type', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $name     = $this->request->getVar('name');
         $description  = $this->request->getVar('description');

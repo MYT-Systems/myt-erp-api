@@ -23,6 +23,11 @@ class Orders extends MYTController
         if (($response = $this->_api_verification('orders', 'get_order')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $order_id = $this->request->getVar('order_id') ? : null;
 
         $order         = $order_id ? $this->orderModel->get_details_by_id($order_id) : null;
@@ -62,6 +67,11 @@ class Orders extends MYTController
         if (($response = $this->_api_verification('orders', 'get_all_order')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_id = $this->request->getVar('branch_id') ? : null;
         $orders = $this->orderModel->get_all_order($branch_id);
 
@@ -94,6 +104,11 @@ class Orders extends MYTController
     {
         if (($response = $this->_api_verification('orders', 'bulk_create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $orders = $this->request->getVar('bulk_order');
         $filename = $this->_write_json('bulk_order', $orders);
@@ -181,6 +196,11 @@ class Orders extends MYTController
         if (($response = $this->_api_verification('orders', 'create')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
 
@@ -251,6 +271,11 @@ class Orders extends MYTController
         if (($response = $this->_api_verification('orders', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $order_id = $this->request->getVar('order_id');
 
         $where = ['id' => $order_id, 'is_deleted' => 0];
@@ -280,6 +305,11 @@ class Orders extends MYTController
     {
         if (($response = $this->_api_verification('orders', 'sales_per_branch')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id        = $this->request->getVar('branch_id') ? : null;
         $branch_name      = $this->request->getVar('branch_name') ? : null;
@@ -323,6 +353,11 @@ class Orders extends MYTController
     {
         if (($response = $this->_api_verification('orders', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id        = $this->request->getVar('branch_id') ? : null;
         $branch_name      = $this->request->getVar('branch_name') ? : null;
@@ -387,6 +422,11 @@ class Orders extends MYTController
     {
         if (($response = $this->_api_verification('orders', 'compute_possible_discounts')) !== true)
             return $response;   
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         if (!$discounts = $this->_get_computed_discounts()) {
             $response = $this->failNotFound('No discount found');

@@ -22,6 +22,11 @@ class Project_invoice_payments extends MYTController
         if (($response = $this->_api_verification('project_invoice_payments', 'get_project_invoice_payment')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_invoice_payment_id = $this->request->getVar('project_invoice_payment_id') ? : null;
         $project_invoice_payment    = $project_invoice_payment_id ? $this->projectInvoicePaymentModel->get_details_by_id($project_invoice_payment_id) : null;
         $project_invoice            = $project_invoice_payment ? $this->projectInvoiceModel->get_details_by_id($project_invoice_payment[0]['project_invoice_id']) : null;
@@ -47,6 +52,11 @@ class Project_invoice_payments extends MYTController
     {
         if (($response = $this->_api_verification('project_invoice_payments', 'get_all_project_invoice_payment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_invoice_payments = $this->projectInvoicePaymentModel->get_all();
 
@@ -75,6 +85,11 @@ class Project_invoice_payments extends MYTController
     {
         if (($response = $this->_api_verification('project_invoice_payments', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -107,6 +122,11 @@ class Project_invoice_payments extends MYTController
         if (($response = $this->_api_verification('project_invoice_payments', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id'         => $this->request->getVar('project_invoice_payment_id'), 
             'is_deleted' => 0
@@ -138,6 +158,11 @@ class Project_invoice_payments extends MYTController
         if (($response = $this->_api_verification('project_invoice_payments', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('project_invoice_payment_id'), 
             'is_deleted' => 0
@@ -168,6 +193,11 @@ class Project_invoice_payments extends MYTController
     {
         if (($response = $this->_api_verification('project_invoice_payments', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
     
         $project_id         = $this->request->getVar('project_id') ?? null;
         $customer_id        = $this->request->getVar('customer_id') ?? null;

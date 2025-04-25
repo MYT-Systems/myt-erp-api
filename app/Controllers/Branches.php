@@ -22,6 +22,11 @@ class Branches extends MYTController
         if (($response = $this->_api_verification('branches', 'get_branch')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $branch_id         = $this->request->getVar('branch_id') ? : null;
         $branch            = $branch_id ? $this->branchModel->get_details_by_id($branch_id) : null;
         $branch_attachment = $branch_id ? $this->branchAttachmentModel->get_details_by_branch_id($branch_id) : null;
@@ -48,6 +53,11 @@ class Branches extends MYTController
     {
         if (($response = $this->_api_verification('branches', 'get_all_branch')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branches = $this->branchModel->get_all_branch();
 
@@ -76,6 +86,11 @@ class Branches extends MYTController
     {
         if (($response = $this->_api_verification('branches', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = ['name' => $this->request->getVar('name')];
         if ($this->branchModel->select('', $where, 1)) {
@@ -114,6 +129,11 @@ class Branches extends MYTController
         if (($response = $this->_api_verification('branches', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id'         => $this->request->getVar('branch_id'), 
             'is_deleted' => 0
@@ -145,6 +165,11 @@ class Branches extends MYTController
         if (($response = $this->_api_verification('branches', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('branch_id'), 
             'is_deleted' => 0
@@ -175,6 +200,11 @@ class Branches extends MYTController
     {
         if (($response = $this->_api_verification('branches', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $branch_id             = $this->request->getVar('branch_id');
         $name                  = $this->request->getVar('name');

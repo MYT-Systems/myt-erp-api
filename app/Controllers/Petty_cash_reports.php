@@ -22,6 +22,11 @@ class Petty_cash_reports extends MYTController
         if (($response = $this->_api_verification('petty_cash_reports', 'get_petty_cash')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $petty_cash_id = $this->request->getVar('petty_cash_id') ? : null;
         $petty_cash    = $petty_cash_id ? $this->pettyCashModel->get_details_by_id($petty_cash_id) : null;
         $petty_cash_details = $petty_cash ? $this->pettyCashDetailModel->get_details_by_petty_cash_id($petty_cash_id) : [];
@@ -49,6 +54,11 @@ class Petty_cash_reports extends MYTController
         if (($response = $this->_api_verification('petty_cash_reports', 'get_petty_cash')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $petty_cash_detail_id = $this->request->getVar('petty_cash_detail_id') ? : null;
         
         $petty_cash_detail    = $petty_cash_detail_id ? $this->pettyCashDetailModel->get_details_by_id($petty_cash_detail_id) : null;
@@ -75,6 +85,11 @@ class Petty_cash_reports extends MYTController
     {
         if (($response = $this->_api_verification('petty_cash_reports', 'get_all_petty_cash')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $petty_cash = $this->pettyCashModel->get_all_petty_cash();
 
@@ -108,6 +123,11 @@ class Petty_cash_reports extends MYTController
         if (($response = $this->_api_verification('petty_cash_reports', 'create')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
 
@@ -135,6 +155,11 @@ class Petty_cash_reports extends MYTController
     {
         if (($response = $this->_api_verification('petty_cash_reports', 'create_details')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -172,6 +197,11 @@ class Petty_cash_reports extends MYTController
         if (($response = $this->_api_verification('petty_cash_reports', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $petty_cash_id = $this->request->getVar('petty_cash_id');
         $where = ['id' => $petty_cash_id, 'is_deleted' => 0];
 
@@ -201,6 +231,11 @@ class Petty_cash_reports extends MYTController
         if (($response = $this->_api_verification('petty_cash_reports', 'update_detail')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $petty_cash_detail_id = $this->request->getVar('petty_cash_detail_id');
         $where = ['id' => $petty_cash_detail_id, 'is_deleted' => 0];
 
@@ -229,6 +264,11 @@ class Petty_cash_reports extends MYTController
     {
         if (($response = $this->_api_verification('petty_cash_reports', 'delete')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $petty_cash_id = $this->request->getVar('petty_cash_id');
 
@@ -260,6 +300,11 @@ class Petty_cash_reports extends MYTController
         if (($response = $this->_api_verification('delete_petty_cash_detail', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $petty_cash_detail_id = $this->request->getVar('petty_cash_detail_id');
 
         $where = ['id' => $petty_cash_detail_id, 'is_deleted' => 0];
@@ -289,6 +334,11 @@ class Petty_cash_reports extends MYTController
     {
         if (($response = $this->_api_verification('petty_cash_reports', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $petty_cash_id = $this->request->getVar('petty_cash_id') ?? null;
         $type          = $this->request->getVar('type') ?? null;
@@ -346,6 +396,11 @@ class Petty_cash_reports extends MYTController
         if (($response = $this->_api_verification('petty_cash_reports', 'approve_cashout')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $petty_cash_detail_id = $this->request->getVar('petty_cash_id') ?? null;
 
         if (!$petty_cash_detail = $this->pettyCashDetailModel->get_details_by_id($petty_cash_detail_id)) {
@@ -392,6 +447,11 @@ class Petty_cash_reports extends MYTController
     {
         if (($response = $this->_api_verification('petty_cash_reports', 'get_petty_cash_status_frequency')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         if (!$petty_cash_tally = $this->pettyCashDetailModel->get_petty_cash_status_frequency()) {
             $response = $this->failNotFound('No petty cash found');

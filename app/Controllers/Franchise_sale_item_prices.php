@@ -21,6 +21,11 @@ class Franchise_sale_item_prices extends MYTController
     {
         if (($response = $this->_api_verification('franchise_sale_item_prices', 'get_franchise_sale_item_price')) !== true)
             return $response;
+        
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchise_sale_item_price_id = $this->request->getVar('franchise_sale_item_price_id') ? : null;
         $franchise_sale_item_price    = $franchise_sale_item_price_id ? $this->franchiseSaleItemPriceModel->get_details_by_id($franchise_sale_item_price_id) : null;
@@ -46,6 +51,11 @@ class Franchise_sale_item_prices extends MYTController
         if (($response = $this->_api_verification('franchise_sale_item_prices', 'get_all_franchise_sale_item_price')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $franchise_sale_item_prices = $this->franchiseSaleItemPriceModel->get_all_franchise_sale_item_price();
 
         if (!$franchise_sale_item_prices) {
@@ -68,6 +78,11 @@ class Franchise_sale_item_prices extends MYTController
     {
         if (($response = $this->_api_verification('franchise_sale_item_prices', 'create')) !== true)
             return false;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -96,6 +111,11 @@ class Franchise_sale_item_prices extends MYTController
     {
         if (($response = $this->_api_verification('franchise_sale_item_prices', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchise_sale_item_price_id = $this->request->getVar('franchise_sale_item_price_id');
         $where       = ['id' => $franchise_sale_item_price_id, 'is_deleted' => 0];
@@ -127,6 +147,11 @@ class Franchise_sale_item_prices extends MYTController
         if (($response = $this->_api_verification('franchise_sale_item_prices', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $franchise_sale_item_price_id = $this->request->getVar('franchise_sale_item_price_id');
 
         $where = ['id' => $franchise_sale_item_price_id, 'is_deleted' => 0];
@@ -156,6 +181,11 @@ class Franchise_sale_item_prices extends MYTController
     {
         if (($response = $this->_api_verification('franchise_sale_item_prices', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $item_id   = $this->request->getVar('item_id') ?? null;
         $type      = $this->request->getVar('type') ?? null;

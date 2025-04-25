@@ -48,6 +48,11 @@ class Project_expenses extends MYTController
         if (($response = $this->_api_verification('project_expense', 'get_project_expense')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_expense_id         = $this->request->getVar('project_expense_id') ? : null;
         $project_expense            = $project_expense_id ? $this->projectExpenseModel->get_details_by_id($project_expense_id) : null;
         $project_expense_attachment = $project_expense_id ? $this->projectExpenseAttachmentModel->get_details_by_project_expense_id($project_expense_id) : null;
@@ -76,6 +81,11 @@ class Project_expenses extends MYTController
     {
         if (($response = $this->_api_verification('project_expense', 'update_status')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id' => $this->request->getVar('project_expense_id'), 
@@ -131,6 +141,11 @@ class Project_expenses extends MYTController
         if (($response = $this->_api_verification('project_expense', 'get_all_project_expense')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_expenses = $this->projectExpenseModel->get_all_project_expense();
 
         if (!$project_expenses) {
@@ -158,6 +173,11 @@ class Project_expenses extends MYTController
     {
         if (($response = $this->_api_verification('project_expense', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
             $db = \Config\Database::connect();
             $db->transBegin();
@@ -230,6 +250,11 @@ class Project_expenses extends MYTController
         if (($response = $this->_api_verification('project_expense', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $project_expense_id = $this->request->getVar('project_expense_id');
         $where = ['id' => $project_expense_id, 'is_deleted' => 0];
 
@@ -258,6 +283,11 @@ class Project_expenses extends MYTController
     {
         if (($response = $this->_api_verification('project_expense', 'delete')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $project_expense_id = $this->request->getVar('project_expense_id');
 
@@ -288,6 +318,11 @@ class Project_expenses extends MYTController
     {
         if (($response = $this->_api_verification('project_expense', 'search')) !== true)
             return $response;
+    
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
             $project_id = $this->request->getVar('project_id');
             $expense_type_id = $this->request->getVar('expense_type_id');

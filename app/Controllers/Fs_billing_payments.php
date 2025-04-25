@@ -22,6 +22,11 @@ class Fs_billing_payments extends MYTController
         if (($response = $this->_api_verification('fs_billing_payments', 'get_fs_billing_payment')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $fs_billing_payment_id = $this->request->getVar('fs_billing_payment_id') ? : null;
         $fs_billing_payment    = $fs_billing_payment_id ? $this->FsBillingPaymentModel->get_details_by_id($fs_billing_payment_id) : null;
         $fs_billing            = $fs_billing_payment ? $this->franchiseeSaleBillingModel->get_details_by_id($fs_billing_payment[0]['fs_billing_id']) : null;
@@ -47,6 +52,11 @@ class Fs_billing_payments extends MYTController
     {
         if (($response = $this->_api_verification('fs_billing_payments', 'get_all_fs_billing_payment')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $fs_billing_payments = $this->FsBillingPaymentModel->get_all();
 
@@ -76,6 +86,11 @@ class Fs_billing_payments extends MYTController
         if (($response = $this->_api_verification('fs_billing_payments', 'create')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $db = \Config\Database::connect();
         $db->transBegin();
 
@@ -102,6 +117,11 @@ class Fs_billing_payments extends MYTController
     {
         if (($response = $this->_api_verification('fs_billing_payments', 'update')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $where = [
             'id'         => $this->request->getVar('fs_billing_payment_id'), 
@@ -134,6 +154,11 @@ class Fs_billing_payments extends MYTController
         if (($response = $this->_api_verification('fs_billing_payments', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $where = [
             'id' => $this->request->getVar('fs_billing_payment_id'), 
             'is_deleted' => 0
@@ -165,6 +190,11 @@ class Fs_billing_payments extends MYTController
     {
         if (($response = $this->_api_verification('fs_billing_payments', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $franchisee_id      = $this->request->getVar('franchisee_id') ?? null;
         $fs_billing_id      = $this->request->getVar('fs_billing_id') ?? null;

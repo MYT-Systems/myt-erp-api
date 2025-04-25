@@ -27,6 +27,11 @@ class Build_items extends MYTController
         if (($response = $this->_api_verification('build_item', 'get_build_item')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $build_item_id      = $this->request->getVar('build_item_id') ? : null;
         $build_item         = $build_item_id ? $this->buildItemModel->get_details_by_id($build_item_id) : null;
         $build_item_details = $build_item_id ? $this->buildItemDetailModel->get_details_by_build_item_id($build_item_id) : null;
@@ -53,6 +58,11 @@ class Build_items extends MYTController
     {
         if (($response = $this->_api_verification('build_item', 'get_production_report')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $item_id = $this->request->getVar('item_id') ?? null;
         $date_from = $this->request->getVar('date_from') ?? null;
@@ -108,6 +118,11 @@ class Build_items extends MYTController
         if (($response = $this->_api_verification('build_item', 'get_all_build_item')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $build_items = $this->buildItemModel->get_all_build_item();
 
         if (!$build_items) {
@@ -134,6 +149,11 @@ class Build_items extends MYTController
     {
         if (($response = $this->_api_verification('build_items', 'create')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -166,6 +186,11 @@ class Build_items extends MYTController
         if (($response = $this->_api_verification('build_items', 'update')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $build_item_id = $this->request->getVar('build_item_id');
         $where      = ['id' => $build_item_id, 'is_deleted' => 0];
 
@@ -197,6 +222,11 @@ class Build_items extends MYTController
         if (($response = $this->_api_verification('build_items', 'delete')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $build_item_id = $this->request->getVar('build_item_id');
         $where = ['id' => $build_item_id, 'is_deleted' => 0];
 
@@ -225,6 +255,11 @@ class Build_items extends MYTController
     {
         if (($response = $this->_api_verification('build_item', 'search')) !== true)
             return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
 
         $from_branch_id      = $this->request->getVar('from_branch_id') ?? null;
         $to_branch_id        = $this->request->getVar('to_branch_id') ?? null;
@@ -264,6 +299,11 @@ class Build_items extends MYTController
         if (($response = $this->_api_verification('build_item', 'get_bills')) !== true)
             return $response;
 
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
         $type = $this->request->getVar('type');
         if (!$build_items = $this->buildItemModel->get_bills($type)) {
             $response = $this->failNotFound('No build item found');
@@ -284,6 +324,11 @@ class Build_items extends MYTController
     {
         if (($response = $this->_api_verification('build_item', 'get_all_invoice_payments')) !== true)
             return $response;
+    
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
         
         $build_item_id       = $this->request->getVar('build_item_id') ? : null;
         $invoice_payments = $build_item_id ? $this->suppliesPaymentModel->get_all_payment_by_build_item($build_item_id) : null;
