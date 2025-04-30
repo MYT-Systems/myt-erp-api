@@ -628,6 +628,7 @@ class Project_invoices extends MYTController
             'is_wht'                => $this->request->getVar('is_wht'),
             'wht_percent'           => $this->request->getVar('wht_percent'),
             'grand_total'           => $this->request->getVar('grand_total'),
+            'discount'              => $this->request->getVar('discount'),
             'vat_type'              => $this->request->getVar('vat_type'),
             'updated_by'            => $this->requested_by,
             'updated_on'            => date('Y-m-d H:i:s')
