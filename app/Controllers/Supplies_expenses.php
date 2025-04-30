@@ -237,15 +237,15 @@ class Supplies_expenses extends MYTController
             $total_expenses = 0;
 
             foreach ($supplies_expenses as $key => $supplies_expense) {
-                $supplies_receives = $this->suppliesReceiveModel->get_id_by_se_id($supplies_expense['id']);
-                $payments = [];
+                // $supplies_receives = $this->suppliesReceiveModel->get_id_by_se_id($supplies_expense['id']);
+                $payments = $this->suppliesExpenseModel->get_all_payment_by_se($supplies_expense['id']);
 
-                foreach ($supplies_receives as $key2 => $supplies_receive) {
-                    $payments[] = $this->suppliesPaymentModel->get_all_payment_by_se($supplies_receive['id']);
-                }
+                // foreach ($supplies_receives as $key2 => $supplies_receive) {
+                //     $payments[] = $this->suppliesPaymentModel->get_all_payment_by_se($supplies_receive['id']);
+                // }
 
-                $supplies_expenses[$key]['payments'] = $payments ? $payments[0] : [];
-                $supplies_expenses[$key]['invoice_no'] = $supplies_receives;
+                $supplies_expenses[$key]['payments'] = $payments;
+                // $supplies_expenses[$key]['invoice_no'] = $supplies_receives;
 
                 // Add grand_total to total_expenses
                 $total_expenses += $supplies_expense['grand_total'] ?? 0;
