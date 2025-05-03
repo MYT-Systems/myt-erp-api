@@ -159,12 +159,12 @@ EOT;
         }
 
         if ($start_date) {
-            $sql .= ' AND CAST(supplies_payments.date AS DATE) >= ?';
+            $sql .= ' AND CAST(supplies_payments.issued_date AS DATE) >= ?';
             $binds[] = $start_date;
         }
 
         if ($end_date) {
-            $sql .= ' AND CAST(supplies_payments.date AS DATE) <= ?';
+            $sql .= ' AND CAST(supplies_payments.issued_date AS DATE) <= ?';
             $binds[] = $end_date;
         }
 
