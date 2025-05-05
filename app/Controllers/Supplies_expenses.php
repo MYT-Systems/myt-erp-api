@@ -238,7 +238,7 @@ class Supplies_expenses extends MYTController
 
             foreach ($supplies_expenses as $key => $supplies_expense) {
                 // $supplies_receives = $this->suppliesReceiveModel->get_id_by_se_id($supplies_expense['id']);
-                $payments = $this->suppliesExpenseModel->get_all_payment_by_se($supplies_expense['id']);
+                $payments = $this->suppliesPaymentModel->get_payment_details_by_se($supplies_expense['id']);
 
                 // foreach ($supplies_receives as $key2 => $supplies_receive) {
                 //     $payments[] = $this->suppliesPaymentModel->get_all_payment_by_se($supplies_receive['id']);
