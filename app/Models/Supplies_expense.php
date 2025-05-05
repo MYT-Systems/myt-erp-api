@@ -379,4 +379,5 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? (float) $query->getResultArray()[0]['commission'] : false;
     }
+
 }

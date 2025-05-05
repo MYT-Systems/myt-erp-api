@@ -64,11 +64,12 @@ EOT;
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT *,
+SELECT se_gcash_entry.*, supplies_expense.supplies_expense_date,
     (SELECT CONCAT(IF(invoice_no IS NULL, 'DR. No', 'Invoice No.'), IFNULL(invoice_no, dr_no), ' - ', grand_total) from receive WHERE receive.id = se_gcash_entry.se_id) AS invoice_label 
 FROM se_gcash_entry
-WHERE is_deleted = 0
-    AND se_gcash_slip_id = ?
+LEFT JOIN supplies_expense ON supplies_expense.id = se_gcash_entry.se_id
+WHERE se_gcash_entry.is_deleted = 0
+    AND se_gcash_entry.se_gcash_slip_id = ?
 EOT;
         $binds = [$se_gcash_slip_id];
         

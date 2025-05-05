@@ -159,12 +159,12 @@ EOT;
         }
 
         if ($start_date) {
-            $sql .= ' AND CAST(supplies_payments.date AS DATE) >= ?';
+            $sql .= ' AND CAST(supplies_payments.issued_date AS DATE) >= ?';
             $binds[] = $start_date;
         }
 
         if ($end_date) {
-            $sql .= ' AND CAST(supplies_payments.date AS DATE) <= ?';
+            $sql .= ' AND CAST(supplies_payments.issued_date AS DATE) <= ?';
             $binds[] = $end_date;
         }
 
@@ -189,6 +189,125 @@ EOT;
         }
 
         $sql .= ' ORDER BY date';
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
+    /**
+     * Get all payments for a specific supplies_expense
+     */
+    public function get_payment_details_by_se($supplies_expense_id = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+(
+    SELECT 
+        'bank' AS payment_type,
+        se_bank_slip.id,
+        NULL AS check_date,
+        se_bank_slip.payment_date,
+        se_bank_slip.bank_from,
+        se_bank_slip.from_account_no,
+        se_bank_slip.from_account_name,
+        se_bank_slip.bank_to,
+        se_bank_slip.to_account_no,
+        se_bank_slip.to_account_name,
+        se_bank_slip.transaction_fee,
+        se_bank_slip.reference_no AS payment_ref_no,
+        se_bank_slip.amount,
+        se_bank_slip.supplier_id,
+        se_bank_slip.vendor_id,
+        se_bank_slip.payee,
+        se_bank_slip.particulars,
+        se_bank_slip.acknowledged_by,
+        se_bank_slip.approved_by,
+        se_bank_slip.approved_on,
+        se_bank_slip.disapproved_by,
+        se_bank_slip.disapproved_on,
+        se_bank_slip.completed_by,
+        se_bank_slip.completed_on,
+        se_bank_slip.printed_by,
+        se_bank_slip.printed_on,
+        se_bank_slip.status
+    FROM se_bank_slip
+    LEFT JOIN se_bank_entry ON se_bank_slip.id = se_bank_entry.se_bank_slip_id
+    WHERE se_bank_slip.is_deleted = 0 
+      AND se_bank_entry.se_id = ?
+)
+UNION
+(
+    SELECT 
+        'gcash' AS payment_type,
+        se_gcash_slip.id,
+        NULL AS check_date,
+        se_gcash_slip.payment_date,
+        NULL AS bank_from,
+        NULL AS from_account_no,
+        se_gcash_slip.account_name AS from_account_name,
+        NULL AS bank_to,
+        se_gcash_slip.account_no AS to_account_no,
+        se_gcash_slip.account_name AS to_account_name,
+        0.00 AS transaction_fee,
+        se_gcash_slip.reference_no AS payment_ref_no,
+        se_gcash_slip.amount,
+        se_gcash_slip.supplier_id,
+        se_gcash_slip.vendor_id,
+        se_gcash_slip.payee,
+        se_gcash_slip.particulars,
+        se_gcash_slip.acknowledged_by,
+        se_gcash_slip.approved_by,
+        se_gcash_slip.approved_on,
+        se_gcash_slip.disapproved_by,
+        se_gcash_slip.disapproved_on,
+        se_gcash_slip.completed_by,
+        se_gcash_slip.completed_on,
+        se_gcash_slip.printed_by,
+        se_gcash_slip.printed_on,
+        se_gcash_slip.status
+    FROM se_gcash_slip
+    LEFT JOIN se_gcash_entry ON se_gcash_slip.id = se_gcash_entry.se_gcash_slip_id
+    WHERE se_gcash_slip.is_deleted = 0
+      AND se_gcash_entry.se_id = ?
+)
+UNION
+(
+    SELECT 
+        'check' AS payment_type,
+        se_check_slip.id,
+        se_check_slip.check_date,
+        se_check_slip.issued_date AS payment_date,
+        se_check_slip.bank_id AS bank_from,
+        NULL AS from_account_no,
+        NULL AS from_account_name,
+        NULL AS bank_to,
+        NULL AS to_account_no,
+        NULL AS to_account_name,
+        0.00 AS transaction_fee,
+        se_check_slip.check_no AS payment_ref_no,
+        se_check_slip.amount,
+        se_check_slip.supplier_id,
+        se_check_slip.vendor_id,
+        se_check_slip.payee,
+        se_check_slip.particulars,
+        se_check_slip.acknowledged_by,
+        se_check_slip.approved_by,
+        se_check_slip.approved_on,
+        se_check_slip.disapproved_by,
+        se_check_slip.disapproved_on,
+        se_check_slip.completed_by,
+        se_check_slip.completed_on,
+        se_check_slip.printed_by,
+        se_check_slip.printed_on,
+        se_check_slip.status
+    FROM se_check_slip
+    LEFT JOIN se_check_entry ON se_check_slip.id = se_check_entry.se_check_slip_id
+    WHERE se_check_slip.is_deleted = 0
+      AND se_check_entry.se_id = ?
+)
+EOT;
+
+        $binds = [$supplies_expense_id, $supplies_expense_id, $supplies_expense_id];
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
