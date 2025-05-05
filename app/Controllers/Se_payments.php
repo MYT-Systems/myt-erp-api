@@ -43,9 +43,14 @@ class Se_payments extends MYTController
         if (!$se_payment) {
             $response = $this->failNotFound('No payments found');
         } else {
+            $total_payments = 0;
+            foreach ($se_payment as $payment) {
+                $total_payments += (float)$payment['amount'];
+            }
             $response = $this->respond([
+                'total_payment' => $total_payments,
                 'data'   => $se_payment,
-                'status' => 'success'
+                'status' => 'success',
             ]);
         }
 
