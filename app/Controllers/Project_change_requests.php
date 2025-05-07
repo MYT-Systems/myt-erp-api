@@ -229,7 +229,7 @@ class Project_change_requests extends MYTController
         // $date_from = $this->request->getVar('date_from')??null;
         // $date_to = $this->request->getVar('date_to')??null;
 
-        if (!$project_change_requests = $this->projectChangeRequestModel->search($project_change_request_id, $project_id, $customer_id, $name, $request_date, $address, $company, $remarks, $request_no, $anything)) {
+        if (!$project_change_requests = $this->projectChangeRequestModel->search($project_change_request_id, $customer_id, $project_id, $name, $request_date, $address, $company, $remarks, $request_no, $anything)) {
             $response = $this->failNotFound('No project_change_request found');
         } else {
 
