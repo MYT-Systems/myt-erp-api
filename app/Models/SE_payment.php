@@ -466,4 +466,104 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
+    /**
+     * Get all payments for a specific supplies_expense
+     */
+    public function get_payment_by_expense($start_date = null, $end_date = null, $expense_type_id = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT *
+FROM (
+    SELECT 
+        se_cash_slip.id, 
+        se_cash_entry.se_id,  
+        se_cash_slip.payment_date AS issued_date, 
+        'cash' AS payment_mode, 
+        supplier.trade_name AS supplier, 
+        se_cash_slip.amount AS amount, 
+        se.supplies_expense_date AS po_date,
+        se.type AS expense_type_id,
+        se_cash_slip.is_deleted
+    FROM se_cash_slip
+    LEFT JOIN se_cash_entry ON se_cash_entry.se_cash_slip_id = se_cash_slip.id
+    LEFT JOIN supplies_expense se ON se.id = se_cash_entry.se_id
+    LEFT JOIN supplier ON supplier.id = se.supplier_id
+
+    UNION ALL
+
+    SELECT 
+        se_bank_slip.id, 
+        se_bank_entry.se_id, 
+        se_bank_slip.payment_date AS issued_date, 
+        'bank' AS payment_mode, 
+        supplier.trade_name AS supplier, 
+        se_bank_slip.amount, 
+        se.supplies_expense_date AS po_date,
+        se.type AS expense_type_id,
+        se_bank_slip.is_deleted
+    FROM se_bank_slip
+    LEFT JOIN se_bank_entry ON se_bank_entry.se_bank_slip_id = se_bank_slip.id
+    LEFT JOIN supplies_expense se ON se.id = se_bank_entry.se_id
+    LEFT JOIN supplier ON supplier.id = se.supplier_id
+
+    UNION ALL
+
+    SELECT 
+        se_gcash_slip.id, 
+        se_gcash_entry.se_id, 
+        se_gcash_slip.payment_date AS issued_date, 
+        'gcash' AS payment_mode, 
+        supplier.trade_name AS supplier, 
+        se_gcash_slip.amount, 
+        se.supplies_expense_date AS po_date,
+        se.type AS expense_type_id,
+        se_gcash_slip.is_deleted
+    FROM se_gcash_slip
+    LEFT JOIN se_gcash_entry ON se_gcash_entry.se_gcash_slip_id = se_gcash_slip.id
+    LEFT JOIN supplies_expense se ON se.id = se_gcash_entry.se_id
+    LEFT JOIN supplier ON supplier.id = se.supplier_id
+
+    UNION ALL
+    
+    SELECT 
+        se_check_slip.id, 
+        se_check_entry.se_id, 
+        se_check_slip.issued_date, 
+        'check' AS payment_mode, 
+        supplier.trade_name AS supplier, 
+        se_check_slip.amount, 
+        se.supplies_expense_date AS po_date,
+        se.type AS expense_type_id,
+        se_check_slip.is_deleted
+    FROM se_check_slip
+    LEFT JOIN se_check_entry ON se_check_entry.se_check_slip_id = se_check_slip.id
+    LEFT JOIN supplies_expense se ON se.id = se_check_entry.se_id
+    LEFT JOIN supplier ON supplier.id = se.supplier_id
+) supplies_payments
+WHERE supplies_payments.is_deleted = 0
+EOT;
+
+    $binds = [];
+
+    if ($start_date) {
+        $sql .= ' AND CAST(supplies_payments.issued_date AS DATE) >= ?';
+        $binds[] = $start_date;
+    }
+
+    if ($end_date) {
+        $sql .= ' AND CAST(supplies_payments.issued_date AS DATE) <= ?';
+        $binds[] = $end_date;
+    }
+
+    if ($expense_type_id) {
+        $sql .= ' AND supplies_payments.expense_type_id = ?';
+        $binds[] = $expense_type_id;
+    }
+
+        $sql .= ' ORDER BY issued_date';
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
 }
