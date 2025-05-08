@@ -1265,20 +1265,20 @@ FROM (
     )
 EOT;
 
-    $binds = [];
+        $binds = [];
 
-    if ($year) {
-        $sql .= " AND YEAR(supplies_expense.supplies_expense_date) = ?";
-        $binds[] = $year;
-    }
+        if ($year) {
+            $sql .= " AND YEAR(supplies_expense.supplies_expense_date) = ?";
+            $binds[] = $year;
+        }
 
-    if ($date_from && $date_to) {
-        $sql .= " AND supplies_expense.supplies_expense_date BETWEEN ? AND ?";
-        $binds[] = $date_from;
-        $binds[] = $date_to;
-    }
+        if ($date_from && $date_to) {
+            $sql .= " AND supplies_expense.supplies_expense_date BETWEEN ? AND ?";
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
 
-    $sql .= <<<EOT
+        $sql .= <<<EOT
     UNION ALL
 
     -- Petty Cash
@@ -1304,16 +1304,16 @@ EOT;
         AND petty_cash_detail.type = 'out'
 EOT;
 
-    if ($year) {
-        $sql .= " AND YEAR(petty_cash_detail.date) = ?";
-        $binds[] = $year;
-    }
+        if ($year) {
+            $sql .= " AND YEAR(petty_cash_detail.date) = ?";
+            $binds[] = $year;
+        }
 
-    if ($date_from && $date_to) {
-        $sql .= " AND petty_cash_detail.date BETWEEN ? AND ?";
-        $binds[] = $date_from;
-        $binds[] = $date_to;
-    }
+        if ($date_from && $date_to) {
+            $sql .= " AND petty_cash_detail.date BETWEEN ? AND ?";
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
 
         $sql .= ") AS detailed_expenses ORDER BY expense_type";
 
