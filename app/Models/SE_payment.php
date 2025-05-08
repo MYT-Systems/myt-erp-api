@@ -481,14 +481,14 @@ FROM (
         se_cash_slip.payment_date AS issued_date, 
         'cash' AS payment_mode, 
         supplier.trade_name AS supplier, 
-        se_cash_slip.amount AS amount, 
-        se.supplies_expense_date AS po_date,
-        se.type AS expense_type_id,
+        supplies_expense.grand_total AS amount, 
+        supplies_expense.supplies_expense_date AS po_date,
+        supplies_expense.type AS expense_type_id,
         se_cash_slip.is_deleted
     FROM se_cash_slip
     LEFT JOIN se_cash_entry ON se_cash_entry.se_cash_slip_id = se_cash_slip.id
-    LEFT JOIN supplies_expense se ON se.id = se_cash_entry.se_id
-    LEFT JOIN supplier ON supplier.id = se.supplier_id
+    LEFT JOIN supplies_expense ON supplies_expense.id = se_cash_entry.se_id
+    LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
 
     UNION ALL
 
@@ -498,14 +498,14 @@ FROM (
         se_bank_slip.payment_date AS issued_date, 
         'bank' AS payment_mode, 
         supplier.trade_name AS supplier, 
-        se_bank_slip.amount, 
-        se.supplies_expense_date AS po_date,
-        se.type AS expense_type_id,
+        supplies_expense.grand_total AS amount, 
+        supplies_expense.supplies_expense_date AS po_date,
+        supplies_expense.type AS expense_type_id,
         se_bank_slip.is_deleted
     FROM se_bank_slip
     LEFT JOIN se_bank_entry ON se_bank_entry.se_bank_slip_id = se_bank_slip.id
-    LEFT JOIN supplies_expense se ON se.id = se_bank_entry.se_id
-    LEFT JOIN supplier ON supplier.id = se.supplier_id
+    LEFT JOIN supplies_expense ON supplies_expense.id = se_bank_entry.se_id
+    LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
 
     UNION ALL
 
@@ -515,14 +515,14 @@ FROM (
         se_gcash_slip.payment_date AS issued_date, 
         'gcash' AS payment_mode, 
         supplier.trade_name AS supplier, 
-        se_gcash_slip.amount, 
-        se.supplies_expense_date AS po_date,
-        se.type AS expense_type_id,
+        supplies_expense.grand_total AS amount, 
+        supplies_expense.supplies_expense_date AS po_date,
+        supplies_expense.type AS expense_type_id,
         se_gcash_slip.is_deleted
     FROM se_gcash_slip
     LEFT JOIN se_gcash_entry ON se_gcash_entry.se_gcash_slip_id = se_gcash_slip.id
-    LEFT JOIN supplies_expense se ON se.id = se_gcash_entry.se_id
-    LEFT JOIN supplier ON supplier.id = se.supplier_id
+    LEFT JOIN supplies_expense ON supplies_expense.id = se_gcash_entry.se_id
+    LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
 
     UNION ALL
     
@@ -532,14 +532,14 @@ FROM (
         se_check_slip.issued_date, 
         'check' AS payment_mode, 
         supplier.trade_name AS supplier, 
-        se_check_slip.amount, 
-        se.supplies_expense_date AS po_date,
-        se.type AS expense_type_id,
+        supplies_expense.grand_total AS amount, 
+        supplies_expense.supplies_expense_date AS po_date,
+        supplies_expense.type AS expense_type_id,
         se_check_slip.is_deleted
     FROM se_check_slip
     LEFT JOIN se_check_entry ON se_check_entry.se_check_slip_id = se_check_slip.id
-    LEFT JOIN supplies_expense se ON se.id = se_check_entry.se_id
-    LEFT JOIN supplier ON supplier.id = se.supplier_id
+    LEFT JOIN supplies_expense ON supplies_expense.id = se_check_entry.se_id
+    LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
 ) supplies_payments
 WHERE supplies_payments.is_deleted = 0
 EOT;
