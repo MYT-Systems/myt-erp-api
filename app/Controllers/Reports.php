@@ -1130,6 +1130,7 @@ class Reports extends MYTController
 
                 if (!isset($grouped_expenses[$type])) {
                     $grouped_expenses[$type] = [
+                        'expense_type_id' => $expense['expense_type_id'],
                         'jan' => 0, 'feb' => 0, 'mar' => 0, 'apr' => 0, 'may' => 0, 'jun' => 0,
                         'jul' => 0, 'aug' => 0, 'sep' => 0, 'oct' => 0, 'nov' => 0, 'dec' => 0,
                         'expense_total' => 0,
@@ -1167,7 +1168,7 @@ class Reports extends MYTController
                 $dec_total_expenses += $totals['dec'];
 
                 $expenses_children[] = [
-                    'id' => null, // Optional: could use expense_type or null since it's grouped
+                    'id' => $totals['expense_type_id'], // Optional: could use expense_type or null since it's grouped
                     'name' => $expense_type,
                     'jan' => $totals['jan'],
                     'feb' => $totals['feb'],
@@ -1348,6 +1349,37 @@ class Reports extends MYTController
         return $response;
     }
 
+    /**
+     * Get payments by expense
+     */
+    public function get_payment_by_expense()
+    {
+        if (($response = $this->_api_verification('reports', 'get_payment_by_expense')) !== true)
+            return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true) {
+            return $response;
+        }
+
+        $expense_type_id = $this->request->getVar('expense_type_id') ?? null;
+        $start_date = $this->request->getVar('start_date') ?? null;
+        $end_date = $this->request->getVar('end_date') ?? null;
+
+        if (!$payments = $this->suppliesPaymentModel->get_payment_by_expense($start_date, $end_date, $expense_type_id)) {
+            $response = $this->failNotFound('No payments found');
+        } else {
+
+            $response = $this->respond([
+                'data'    => $payments,
+                'status'  => 'success',
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
     // ------------------------------------------------------------------------
     // Private Functions
     // ------------------------------------------------------------------------
@@ -1366,6 +1398,7 @@ class Reports extends MYTController
         $this->pettyCashModel             = model('App\Models\Petty_cash');
         $this->pettyCashDetailModel       = model('App\Models\Petty_cash_detail');
         $this->expenseTypeModel           = model('App\Models\Expense_type');
+        $this->suppliesPaymentModel       = model('App\Models\SE_payment');
         $this->customerModel              = model('App\Models\Customer');
         $this->branchModel                = model('App\Models\Branch');
         $this->transferModel              = model('App\Models\Transfer');
