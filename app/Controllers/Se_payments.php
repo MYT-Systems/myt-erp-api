@@ -45,7 +45,7 @@ class Se_payments extends MYTController
         } else {
             $total_payments = 0;
             foreach ($se_payment as $payment) {
-                $total_payments += (float)$payment['amount'];
+                $total_payments += (float)$payment['grand_total'];
             }
             $response = $this->respond([
                 'total_payment' => $total_payments,
