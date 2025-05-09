@@ -493,9 +493,8 @@ LEFT JOIN (
         se_cash_slip.payment_date AS issued_date,
         'cash' AS payment_mode
     FROM se_cash_entry
-    INNER JOIN se_cash_slip 
-        ON se_cash_slip.id = se_cash_entry.se_cash_slip_id 
-        AND se_cash_slip.is_deleted = 0
+    INNER JOIN se_cash_slip ON se_cash_slip.id = se_cash_entry.se_cash_slip_id 
+    AND se_cash_slip.is_deleted = 0
 
     UNION ALL
 
@@ -504,9 +503,8 @@ LEFT JOIN (
         se_bank_slip.payment_date,
         'bank'
     FROM se_bank_entry
-    INNER JOIN se_bank_slip 
-        ON se_bank_slip.id = se_bank_entry.se_bank_slip_id 
-        AND se_bank_slip.is_deleted = 0
+    INNER JOIN se_bank_slip ON se_bank_slip.id = se_bank_entry.se_bank_slip_id 
+    AND se_bank_slip.is_deleted = 0
 
     UNION ALL
 
@@ -515,9 +513,8 @@ LEFT JOIN (
         se_gcash_slip.payment_date,
         'gcash'
     FROM se_gcash_entry
-    INNER JOIN se_gcash_slip 
-        ON se_gcash_slip.id = se_gcash_entry.se_gcash_slip_id 
-        AND se_gcash_slip.is_deleted = 0
+    INNER JOIN se_gcash_slip ON se_gcash_slip.id = se_gcash_entry.se_gcash_slip_id 
+    AND se_gcash_slip.is_deleted = 0
 
     UNION ALL
 
@@ -526,14 +523,15 @@ LEFT JOIN (
         se_check_slip.issued_date,
         'check'
     FROM se_check_entry
-    INNER JOIN se_check_slip 
-        ON se_check_slip.id = se_check_entry.se_check_slip_id 
-        AND se_check_slip.is_deleted = 0
-) AS payment_info 
-    ON payment_info.se_id = supplies_expense.id
-
-WHERE 
-    supplies_expense.is_deleted = 0
+    INNER JOIN se_check_slip ON se_check_slip.id = se_check_entry.se_check_slip_id 
+    AND se_check_slip.is_deleted = 0
+) AS payment_info ON payment_info.se_id = supplies_expense.id
+WHERE supplies_expense.is_deleted = 0
+AND (
+        (supplies_expense.status = 'approved' AND supplies_expense.order_status IN ('complete', 'pending', 'incomplete'))
+        OR
+        (supplies_expense.status = 'sent' AND supplies_expense.order_status IN ('complete', 'pending', 'incomplete'))
+    )
 EOT;
 
     $binds = [];
