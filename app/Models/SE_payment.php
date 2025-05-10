@@ -484,14 +484,16 @@ SELECT
     supplier.trade_name AS supplier,
     supplies_expense.grand_total,
     payment_info.issued_date,
-    payment_info.payment_mode
+    payment_info.payment_mode,
+    payment_info.bank_name
 FROM supplies_expense
 LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
 LEFT JOIN (
     SELECT 
         se_cash_entry.se_id,
         se_cash_slip.payment_date AS issued_date,
-        'cash' AS payment_mode
+        'cash' AS payment_mode,
+        NULL AS bank_name
     FROM se_cash_entry
     INNER JOIN se_cash_slip ON se_cash_slip.id = se_cash_entry.se_cash_slip_id 
     AND se_cash_slip.is_deleted = 0
@@ -501,17 +503,20 @@ LEFT JOIN (
     SELECT 
         se_bank_entry.se_id,
         se_bank_slip.payment_date,
-        'bank'
+        'bank',
+        bank.name AS bank_name
     FROM se_bank_entry
     INNER JOIN se_bank_slip ON se_bank_slip.id = se_bank_entry.se_bank_slip_id 
     AND se_bank_slip.is_deleted = 0
+    LEFT JOIN bank ON bank.id = se_bank_slip.bank_from
 
     UNION ALL
 
     SELECT 
         se_gcash_entry.se_id,
         se_gcash_slip.payment_date,
-        'gcash'
+        'gcash',
+        NULL AS bank_name
     FROM se_gcash_entry
     INNER JOIN se_gcash_slip ON se_gcash_slip.id = se_gcash_entry.se_gcash_slip_id 
     AND se_gcash_slip.is_deleted = 0
@@ -521,37 +526,38 @@ LEFT JOIN (
     SELECT 
         se_check_entry.se_id,
         se_check_slip.issued_date,
-        'check'
+        'check',
+        NULL AS bank_name
     FROM se_check_entry
     INNER JOIN se_check_slip ON se_check_slip.id = se_check_entry.se_check_slip_id 
     AND se_check_slip.is_deleted = 0
 ) AS payment_info ON payment_info.se_id = supplies_expense.id
 WHERE supplies_expense.is_deleted = 0
 AND (
-        (supplies_expense.status = 'approved' AND supplies_expense.order_status IN ('complete', 'pending', 'incomplete'))
-        OR
-        (supplies_expense.status = 'sent' AND supplies_expense.order_status IN ('complete', 'pending', 'incomplete'))
-    )
+    (supplies_expense.status = 'approved' AND supplies_expense.order_status IN ('complete', 'pending', 'incomplete'))
+    OR
+    (supplies_expense.status = 'sent' AND supplies_expense.order_status IN ('complete', 'pending', 'incomplete'))
+)
 EOT;
 
-    $binds = [];
+        $binds = [];
 
-    if ($start_date) {
-        $sql .= ' AND CAST(supplies_expense.supplies_expense_date AS DATE) >= ?';
-        $binds[] = $start_date;
-    }
+        if ($start_date) {
+            $sql .= ' AND DATE(supplies_expense.supplies_expense_date) >= ?';
+            $binds[] = $start_date;
+        }
 
-    if ($end_date) {
-        $sql .= ' AND CAST(supplies_expense.supplies_expense_date AS DATE) <= ?';
-        $binds[] = $end_date;
-    }
+        if ($end_date) {
+            $sql .= ' AND DATE(supplies_expense.supplies_expense_date) <= ?';
+            $binds[] = $end_date;
+        }
 
-    if ($expense_type_id) {
-        $sql .= ' AND supplies_expense.type = ?';
-        $binds[] = $expense_type_id;
-    }
+        if ($expense_type_id) {
+            $sql .= ' AND supplies_expense.type = ?';
+            $binds[] = $expense_type_id;
+        }
 
-        $sql .= ' ORDER BY supplies_expense_date';
+        $sql .= ' ORDER BY supplies_expense.supplies_expense_date';
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
