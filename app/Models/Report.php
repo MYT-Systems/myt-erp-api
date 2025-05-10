@@ -1219,9 +1219,10 @@ EOT;
     {
         $database = \Config\Database::connect();
 
-    $sql = <<<EOT
+        $sql = <<<EOT
 SELECT 
     doc_no,
+    expense_type_id,
     expense_type,
     jan,
     feb,
@@ -1240,6 +1241,7 @@ FROM (
     -- Supplies Expense
     SELECT 
         supplies_expense.id AS doc_no,
+        supplies_expense.type AS expense_type_id,
         expense_type.name AS expense_type,
         CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 1 THEN supplies_expense.grand_total ELSE 0 END AS jan,
         CASE WHEN MONTH(supplies_expense.supplies_expense_date) = 2 THEN supplies_expense.grand_total ELSE 0 END AS feb,
@@ -1276,12 +1278,13 @@ EOT;
             $binds[] = $date_to;
         }
 
-    $sql .= <<<EOT
+        $sql .= <<<EOT
     UNION ALL
 
     -- Petty Cash
     SELECT 
         petty_cash_detail.id AS doc_no,
+        petty_cash_detail.out_type AS expense_type_id,
         expense_type.name AS expense_type,
         CASE WHEN MONTH(petty_cash_detail.date) = 1 THEN petty_cash_detail.amount ELSE 0 END AS jan,
         CASE WHEN MONTH(petty_cash_detail.date) = 2 THEN petty_cash_detail.amount ELSE 0 END AS feb,
@@ -1317,4 +1320,5 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : [];
     }
+
 }
