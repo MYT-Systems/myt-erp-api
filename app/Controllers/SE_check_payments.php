@@ -6,6 +6,7 @@ use App\Models\SE_check_entry;
 use App\Models\SE_check_slip;
 use App\Models\SE_check_slip_attachment;
 use App\Models\Supplies_receive;
+use App\Models\Project_expense;
 use App\Models\Webapp_response;
 
 class Se_check_payments extends MYTController
@@ -582,24 +583,42 @@ class Se_check_payments extends MYTController
                 return false;
             }
 
-            if ($supplies_expense = $this->suppliesExpenseModel->get_details_by_id($se_id)) {
-                $new_balance = $supplies_expense[0]['balance'] - $amounts[$key];
+            if ($type == 'supplies_expense') {
+                if ($supplies_expense = $this->suppliesExpenseModel->get_details_by_id($se_id)) {
+                    $new_balance = $supplies_expense[0]['balance'] - $amounts[$key];
 
-                $order_status = ($new_balance <= 0) ? 'complete' : 'incomplete';
+                    $order_status = ($new_balance <= 0) ? 'complete' : 'incomplete';
 
-                $supplies_expense_data = [
-                    'paid_amount' => $supplies_expense[0]['paid_amount'] + $amounts[$key],
-                    'balance'     => $new_balance,
-                    'order_status' => $order_status,
-                    'updated_on' => date('Y-m-d H:i:s'),
-                    'updated_by' => $this->requested_by
-                ];
+                    $supplies_expense_data = [
+                        'paid_amount' => $supplies_expense[0]['paid_amount'] + $amounts[$key],
+                        'balance'     => $new_balance,
+                        'order_status' => $order_status,
+                        'updated_on' => date('Y-m-d H:i:s'),
+                        'updated_by' => $this->requested_by
+                    ];
 
-                if (!$this->suppliesExpenseModel->update($se_id, $supplies_expense_data)) {
-                    return false;
+                    if (!$this->suppliesExpenseModel->update($se_id, $supplies_expense_data)) {
+                        return false;
+                    }
+                } else {
+                    var_dump("Supplies expense id {$se_id} not found");
                 }
-            } else {
-                var_dump("Supplies expense receive id {$se_id} not found");
+            } elseif ($type == 'project_expense') {
+                if ($project_expense = $this->projectExpenseModel->get_details_by_id($se_id)) {
+
+                    $supplies_expense_data = [
+                        'paid_amount' => $project_expense[0]['paid_amount'] + $amounts[$key],
+                        'balance'     => $new_balance,
+                        'updated_on' => date('Y-m-d H:i:s'),
+                        'updated_by' => $this->requested_by
+                    ];
+
+                    if (!$this->projectExpenseModel->update($se_id, $supplies_expense_data)) {
+                        return false;
+                    }
+                } else {
+                    var_dump("Project expense id {$se_id} not found");
+                }
             }
         }
 
@@ -784,6 +803,7 @@ class Se_check_payments extends MYTController
         $this->suppliesExpenseModel     = model('App\Models\Supplies_expense');
         $this->checkSlipAttachmentModel      = new SE_check_slip_attachment();
         $this->seReceiveModel      = new Supplies_receive();
+        $this->projectExpenseModel = new Project_expense();
         $this->webappResponseModel = new Webapp_response();
     }
 }

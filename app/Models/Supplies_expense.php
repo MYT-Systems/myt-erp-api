@@ -108,6 +108,7 @@ SELECT supplies_expense.*,
 FROM supplies_expense
 WHERE supplies_expense.is_deleted = 0 
 AND supplies_expense.status = 'approved'
+AND supplies_expense.paid_amount = 0.00
 EOT;
 
         $binds = [];

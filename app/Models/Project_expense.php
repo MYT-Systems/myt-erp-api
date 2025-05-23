@@ -145,6 +145,7 @@ SELECT project_expense.*,
 FROM project_expense
 WHERE project_expense.is_deleted = 0 
 AND project_expense.status = 'approved'
+AND project_expense.paid_amount = 0.00
 EOT;
 
         $binds = [];
