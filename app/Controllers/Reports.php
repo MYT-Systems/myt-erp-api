@@ -1200,6 +1200,98 @@ class Reports extends MYTController
             }
             return ($a_priority < $b_priority) ? -1 : 1;
         });
+
+        // Project Expenses
+        $proj_expenses_children = [];
+        $total_proj_expenses = 0;
+        $jan_total_proj_expenses = 0;
+        $feb_total_proj_expenses = 0;
+        $mar_total_proj_expenses = 0;
+        $apr_total_proj_expenses = 0;
+        $may_total_proj_expenses = 0;
+        $jun_total_proj_expenses = 0;
+        $jul_total_proj_expenses = 0;
+        $aug_total_proj_expenses = 0;
+        $sep_total_proj_expenses = 0;
+        $oct_total_proj_expenses = 0;
+        $nov_total_proj_expenses = 0;
+        $dec_total_proj_expenses = 0;
+        
+        $proj_expenses = $this->expenseTypeModel->get_all_expense_type();
+
+        if (!empty($proj_expenses)) {
+            foreach ($proj_expenses as $key => $account_type) {
+
+                $jan_total_child = 0;
+                $feb_total_child = 0;
+                $mar_total_child = 0;
+                $apr_total_child = 0;
+                $may_total_child = 0;
+                $jun_total_child = 0;
+                $jul_total_child = 0;
+                $aug_total_child = 0;
+                $sep_total_child = 0;
+                $oct_total_child = 0;
+                $nov_total_child = 0;
+                $dec_total_child = 0;
+                $total_child = 0;
+
+                $expenses = $this->reportModel->get_project_expenses_report($account_type['id'], null, null, $year);
+                if (!empty($expenses)) {
+                    foreach ($expenses as $i => $expense) {
+                        $jan_total_child += (float)$expense['jan'];
+                        $feb_total_child += (float)$expense['feb'];
+                        $mar_total_child += (float)$expense['mar'];
+                        $apr_total_child += (float)$expense['apr'];
+                        $may_total_child += (float)$expense['may'];
+                        $jun_total_child += (float)$expense['jun'];
+                        $jul_total_child += (float)$expense['jul'];
+                        $aug_total_child += (float)$expense['aug'];
+                        $sep_total_child += (float)$expense['sep'];
+                        $oct_total_child += (float)$expense['oct'];
+                        $nov_total_child += (float)$expense['nov'];
+                        $dec_total_child += (float)$expense['dec'];
+
+                        $total_child += $expense['jan'] + $expense['feb'] + $expense['mar'] + 
+                                       $expense['apr'] + $expense['may'] + $expense['jun'] + 
+                                       $expense['jul'] + $expense['aug'] + $expense['sep'] + 
+                                       $expense['oct'] + $expense['nov'] + $expense['dec'];
+                    }
+                }
+
+                $proj_expenses_children[] = [
+                    'id' => $account_type['id'],
+                    'name' => $account_type['name'],
+                    'jan' => $jan_total_child,
+                    'feb' => $feb_total_child,
+                    'mar' => $mar_total_child,
+                    'apr' => $apr_total_child,
+                    'may' => $may_total_child,
+                    'jun' => $jun_total_child,
+                    'jul' => $jul_total_child,
+                    'aug' => $aug_total_child,
+                    'sep' => $sep_total_child,
+                    'oct' => $oct_total_child,
+                    'nov' => $nov_total_child,
+                    'dec' => $dec_total_child,
+                    'total_amount' => $total_child
+                ];
+
+                $total_proj_expenses += $total_child;
+                $jan_total_proj_expenses += $jan_total_child;
+                $feb_total_proj_expenses += $feb_total_child;
+                $mar_total_proj_expenses += $mar_total_child;
+                $apr_total_proj_expenses += $apr_total_child;
+                $may_total_proj_expenses += $may_total_child;
+                $jun_total_proj_expenses += $jun_total_child;
+                $jul_total_proj_expenses += $jul_total_child;
+                $aug_total_proj_expenses += $aug_total_child;
+                $sep_total_proj_expenses += $sep_total_child;
+                $oct_total_proj_expenses += $oct_total_child;
+                $nov_total_proj_expenses += $nov_total_child;
+                $dec_total_proj_expenses += $dec_total_child;
+            }
+        }
         
         $response = $this->respond([
             'status' => 'success',
@@ -1221,7 +1313,7 @@ class Reports extends MYTController
                     'total_amount' => $total_sales, 
                 ],
                 [
-                    'name' => 'expenses',
+                    'name' => 'operating expenses',
                     'children' => $expenses_children,
                     'jan' => $jan_total_expenses,
                     'feb' => $feb_total_expenses,
@@ -1238,20 +1330,37 @@ class Reports extends MYTController
                     'total_amount' => $total_expenses, 
                 ],
                 [
+                    'name' => 'project expenses',
+                    'children' => $proj_expenses_children,
+                    'jan' => $jan_total_proj_expenses,
+                    'feb' => $feb_total_proj_expenses,
+                    'mar' => $mar_total_proj_expenses,
+                    'apr' => $apr_total_proj_expenses,
+                    'may' => $may_total_proj_expenses,
+                    'jun' => $jun_total_proj_expenses,
+                    'jul' => $jul_total_proj_expenses,
+                    'aug' => $aug_total_proj_expenses,
+                    'sep' => $sep_total_proj_expenses,
+                    'oct' => $oct_total_proj_expenses,
+                    'nov' => $nov_total_proj_expenses,
+                    'dec' => $dec_total_proj_expenses,
+                    'total_amount' => $total_proj_expenses, 
+                ],
+                [
                     'name' => 'income/loss',
-                    'jan' => $jan_total_sales - $jan_total_expenses,
-                    'feb' => $feb_total_sales - $feb_total_expenses,
-                    'mar' => $mar_total_sales - $mar_total_expenses,
-                    'apr' => $apr_total_sales - $apr_total_expenses,
-                    'may' => $may_total_sales - $may_total_expenses,
-                    'jun' => $jun_total_sales - $jun_total_expenses,
-                    'jul' => $jul_total_sales - $jul_total_expenses,
-                    'aug' => $aug_total_sales - $aug_total_expenses,
-                    'sep' => $sep_total_sales - $sep_total_expenses,
-                    'oct' => $oct_total_sales - $oct_total_expenses,
-                    'nov' => $nov_total_sales - $nov_total_expenses,
-                    'dec' => $dec_total_sales - $dec_total_expenses,
-                    'total_amount' => $total_sales - $total_expenses, 
+                    'jan' => $jan_total_sales - ($jan_total_expenses + $jan_total_proj_expenses),
+                    'feb' => $feb_total_sales - ($feb_total_expenses + $feb_total_proj_expenses),
+                    'mar' => $mar_total_sales - ($mar_total_expenses + $mar_total_proj_expenses),
+                    'apr' => $apr_total_sales - ($apr_total_expenses + $apr_total_proj_expenses),
+                    'may' => $may_total_sales - ($may_total_expenses + $may_total_proj_expenses),
+                    'jun' => $jun_total_sales - ($jun_total_expenses + $jun_total_proj_expenses),
+                    'jul' => $jul_total_sales - ($jul_total_expenses + $jul_total_proj_expenses),
+                    'aug' => $aug_total_sales - ($aug_total_expenses + $aug_total_proj_expenses),
+                    'sep' => $sep_total_sales - ($sep_total_expenses + $sep_total_proj_expenses),
+                    'oct' => $oct_total_sales - ($oct_total_expenses + $oct_total_proj_expenses),
+                    'nov' => $nov_total_sales - ($nov_total_expenses + $nov_total_proj_expenses),
+                    'dec' => $dec_total_sales - ($dec_total_expenses + $dec_total_proj_expenses),
+                    'total_amount' => $total_sales - ($total_expenses + $total_proj_expenses),
                 ]
             ]
         ]);

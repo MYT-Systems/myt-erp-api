@@ -77,6 +77,7 @@ class Supplies_expenses extends MYTController
                 $supplies_expenses[$key]['se_items'] = $supplies_expense_items;
                 $supplies_expenses[$key]['attachment'] = $supplies_expense_attachment;
                 $supplies_expenses[$key]['type'] = 'supplies_expense';
+                $supplies_expenses[$key]['balance'] = $supplies_expense['grand_total'];
             }
         }
         $project_expenses = $this->projectExpenseModel->get_project_expense($supplier_id);
@@ -85,6 +86,7 @@ class Supplies_expenses extends MYTController
                 // $project_expense_items = $this->projectExpenseItemModel->get_details_by_project_expense_id($project_expense['id']);
                 // $project_expenses[$key]['pe_items'] = $project_expense_items;
                 $project_expenses[$key]['type'] = 'project_expense';
+                $project_expenses[$key]['balance'] = $project_expense['amount'];
             }
         }
 

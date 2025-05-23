@@ -1321,4 +1321,57 @@ EOT;
         return $query ? $query->getResultArray() : [];
     }
 
+    /**
+     * Get project expenses report
+     */
+    public function get_project_expenses_report($expense_type_id, $date_from, $date_to, $year)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT 
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 1 THEN project_expense.grand_total ELSE 0 END) AS jan,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 2 THEN project_expense.grand_total ELSE 0 END) AS feb,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 3 THEN project_expense.grand_total ELSE 0 END) AS mar,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 4 THEN project_expense.grand_total ELSE 0 END) AS apr,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 5 THEN project_expense.grand_total ELSE 0 END) AS may,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 6 THEN project_expense.grand_total ELSE 0 END) AS jun,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 7 THEN project_expense.grand_total ELSE 0 END) AS jul,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 8 THEN project_expense.grand_total ELSE 0 END) AS aug,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 9 THEN project_expense.grand_total ELSE 0 END) AS sep,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 10 THEN project_expense.grand_total ELSE 0 END) AS oct,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 11 THEN project_expense.grand_total ELSE 0 END) AS nov,
+    SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 12 THEN project_expense.grand_total ELSE 0 END) AS `dec`
+FROM project_expense
+WHERE project_expense.is_deleted = 0 
+EOT;
+        $binds = [];
+
+        if ($expense_type_id) {
+            $sql .= <<<EOT
+
+AND project_expense.expense_type_id = ?
+EOT;
+            $binds[] = $expense_type_id;
+        }
+        
+        if ($year) {
+            $sql .= <<<EOT
+
+AND YEAR(project_expense.project_expense_date) = ? 
+EOT;
+            $binds[] = $year;
+        }
+
+        if ($date_from && $date_to) {
+            $sql .= <<<EOT
+
+AND project_expense.project_expense_date BETWEEN ? AND ?
+EOT;
+            $binds[] = $date_from;
+            $binds[] = $date_to;
+        }
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
+
 }
