@@ -579,7 +579,6 @@ class Se_cash_payments extends MYTController
 
                     $supplies_expense_data = [
                         'paid_amount' => $project_expense[0]['paid_amount'] + $amounts[$key],
-                        'balance'     => $new_balance,
                         'updated_on' => date('Y-m-d H:i:s'),
                         'updated_by' => $this->requested_by
                     ];
