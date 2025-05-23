@@ -1474,15 +1474,30 @@ class Reports extends MYTController
         $expense_type_id = $this->request->getVar('expense_type_id') ?? null;
         $start_date = $this->request->getVar('start_date') ?? null;
         $end_date = $this->request->getVar('end_date') ?? null;
+        $type = $this->request->getVar('type') ?? null;
 
-        if (!$payments = $this->suppliesPaymentModel->get_payment_by_expense($start_date, $end_date, $expense_type_id)) {
-            $response = $this->failNotFound('No payments found');
+        if ($type == 'operating_expenses') {
+            if (!$payments = $this->suppliesPaymentModel->get_payment_by_expense($start_date, $end_date, $expense_type_id)) {
+                $response = $this->failNotFound('No opex payments found');
+            } else {
+
+                $response = $this->respond([
+                    'data'    => $payments,
+                    'status'  => 'success',
+                ]);
+            }
+        } else if ($type == 'project_expenses') {
+            if (!$payments = $this->projectExpenseModel->get_payment_by_expense($start_date, $end_date, $expense_type_id)) {
+                $response = $this->failNotFound('No project expense payments found');
+            } else {
+
+                $response = $this->respond([
+                    'data'    => $payments,
+                    'status'  => 'success',
+                ]);
+            }
         } else {
-
-            $response = $this->respond([
-                'data'    => $payments,
-                'status'  => 'success',
-            ]);
+            $response = $this->failNotFound('Invalid type');
         }
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);

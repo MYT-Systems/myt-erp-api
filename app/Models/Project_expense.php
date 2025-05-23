@@ -160,4 +160,49 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
+    /**
+     * Get all project_expenses.
+     */
+    public function get_payment_by_expense($start_date = null, $end_date = null, $expense_type_id = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT project_expense.*, 
+    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = project_expense.added_by) AS added_by_name,
+    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = project_expense.updated_by) AS updated_by_name
+FROM project_expense
+WHERE project_expense.is_deleted = 0 
+AND project_expense.status IN ('approved', 'paid')
+EOT;
+
+        $binds = [];
+
+        if ($start_date) {
+            $sql .= <<<EOT
+
+AND project_expense.project_expense_date >= ?
+EOT;
+            $binds[] = $start_date;
+        }
+
+        if ($end_date) {
+            $sql .= <<<EOT
+
+AND project_expense.project_expense_date <= ?
+EOT;
+            $binds[] = $end_date;
+        }
+
+        if ($expense_type_id) {
+            $sql .= <<<EOT
+
+AND project_expense.expense_type_id = ?
+EOT;
+            $binds[] = $expense_type_id;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
 }
