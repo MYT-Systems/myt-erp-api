@@ -608,6 +608,7 @@ class Se_check_payments extends MYTController
 
                     $supplies_expense_data = [
                         'paid_amount' => $project_expense[0]['paid_amount'] + $amounts[$key],
+                        'status' => 'paid',
                         'updated_on' => date('Y-m-d H:i:s'),
                         'updated_by' => $this->requested_by
                     ];

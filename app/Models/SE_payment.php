@@ -39,7 +39,8 @@ SELECT *
 FROM
 (
     SELECT se_cash_slip.id, 
-        se_cash_entry.se_id, 
+        se_cash_entry.se_id,  
+        se_cash_entry.type, 
         null AS from_account_name, 
         null AS to_account_name, 
         se_cash_slip.particulars, 
@@ -61,7 +62,7 @@ FROM
         (SELECT supplies_expense.grand_total FROM supplies_expense WHERE supplies_expense.id = se_cash_entry.se_id) AS grand_total
     FROM se_cash_slip
     LEFT JOIN (
-        SELECT se_cash_entry.se_id, se_cash_entry.se_cash_slip_id
+        SELECT se_cash_entry.se_id, se_cash_entry.se_cash_slip_id, se_cash_entry.type
         FROM se_cash_entry
     ) se_cash_entry ON se_cash_entry.se_cash_slip_id = se_cash_slip.id
 
@@ -69,6 +70,7 @@ FROM
 
     SELECT se_bank_slip.id, 
     se_bank_entry.se_id, 
+    se_bank_entry.type, 
     (SELECT bank.name FROM bank WHERE bank.id = se_bank_slip.bank_from) AS from_account_name, 
     (SELECT bank.name FROM bank WHERE bank.id = se_bank_slip.bank_to) AS to_account_name, 
     se_bank_slip.particulars,
@@ -91,7 +93,7 @@ FROM
     (SELECT supplies_expense.grand_total FROM supplies_expense WHERE supplies_expense.id = se_bank_entry.se_id) AS grand_total
     FROM se_bank_slip
     LEFT JOIN (
-        SELECT se_bank_entry.se_id, se_bank_entry.se_bank_slip_id
+        SELECT se_bank_entry.se_id, se_bank_entry.se_bank_slip_id, se_bank_entry.type
         FROM se_bank_entry
     ) se_bank_entry ON se_bank_entry.se_bank_slip_id = se_bank_slip.id
 
@@ -99,6 +101,7 @@ FROM
 
     SELECT se_gcash_slip.id, 
     se_gcash_entry.se_id,
+    se_gcash_entry.type, 
     null AS from_account_name, 
     null AS to_account_name, 
     se_gcash_slip.particulars,
@@ -121,7 +124,7 @@ FROM
     (SELECT supplies_expense.grand_total FROM supplies_expense WHERE supplies_expense.id = se_gcash_entry.se_id) AS grand_total
     FROM se_gcash_slip
     LEFT JOIN (
-        SELECT se_gcash_entry.se_id, se_gcash_entry.se_gcash_slip_id
+        SELECT se_gcash_entry.se_id, se_gcash_entry.se_gcash_slip_id, se_gcash_entry.type
         FROM se_gcash_entry
     ) se_gcash_entry ON se_gcash_entry.se_gcash_slip_id = se_gcash_slip.id
 
@@ -129,6 +132,7 @@ FROM
     
     SELECT se_check_slip.id, 
     se_check_entry.se_id, 
+    se_check_entry.type,
     (SELECT bank.name FROM bank WHERE bank.id = se_check_slip.bank_id) AS from_account_name, 
     Null AS to_account_name, 
     se_check_slip.particulars, 
@@ -150,7 +154,7 @@ FROM
     (SELECT supplies_expense.grand_total FROM supplies_expense WHERE supplies_expense.id = se_check_entry.se_id) AS grand_total
     FROM se_check_slip
     LEFT JOIN (
-        SELECT se_check_entry.se_id, se_check_entry.se_check_slip_id
+        SELECT se_check_entry.se_id, se_check_entry.se_check_slip_id, se_check_entry.type
         FROM se_check_entry
     ) se_check_entry ON se_check_entry.se_check_slip_id = se_check_slip.id
 ) supplies_payments
