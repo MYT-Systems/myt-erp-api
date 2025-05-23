@@ -534,13 +534,16 @@ class Se_cash_payments extends MYTController
     {
         $se_ids = $this->request->getVar('se_ids');
         $amounts     = $this->request->getVar('amounts');
+        $types = $this->request->getVar('types');
 
         $total = 0;
         foreach ($se_ids as $key => $se_id) {
             $total += $amounts[$key];
+            $type = $types[$key];
             $data = [
                 'se_cash_slip_id' => $se_cash_slip_id,
                 'se_id'            => $se_id,
+                'type'            => $type,
                 'amount'           => $amounts[$key],
                 'added_by'         => $this->requested_by,
                 'added_on'         => date('Y-m-d H:i:s')

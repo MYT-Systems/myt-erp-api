@@ -546,6 +546,7 @@ class Se_bank_payments extends MYTController
     {
         $se_ids = $this->request->getVar('se_ids');
         $amounts = $this->request->getVar('amounts');
+        $types = $this->request->getVar('types');
         $bank_from = $this->request->getVar('bank_from');
         $transaction_fee = $this->request->getVar('transaction_fee');
 
@@ -564,11 +565,13 @@ class Se_bank_payments extends MYTController
         // Process each supplies expense
         foreach ($se_ids as $key => $se_id) {
             $amount = $amounts[$key];
+            $type = $types[$key];
 
             // Insert bank entry
             $data = [
                 'se_bank_slip_id' => $se_bank_slip_id,
                 'se_id'           => $se_id,
+                'type'            => $type,
                 'amount'          => $amount,
                 'added_by'        => $this->requested_by,
                 'added_on'        => date('Y-m-d H:i:s')

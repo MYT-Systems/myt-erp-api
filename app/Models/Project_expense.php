@@ -132,4 +132,30 @@ EOT;
         return $query ? $query->getResultArray() : false;
     }
 
+    /**
+     * Get all project_expenses.
+     */
+    public function get_project_expense($supplier_id = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT project_expense.*, 
+    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = project_expense.added_by) AS added_by_name,
+    (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = project_expense.updated_by) AS updated_by_name
+FROM project_expense
+WHERE project_expense.is_deleted = 0 
+AND project_expense.status = 'approved'
+EOT;
+
+        $binds = [];
+
+        if ($supplier_id) {
+            $sql .= " AND project_expense.supplier_id = ?";
+            $binds[] = $supplier_id;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
 }

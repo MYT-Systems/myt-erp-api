@@ -68,20 +68,34 @@ class Supplies_expenses extends MYTController
         }
 
         $supplier_id = $this->request->getVar('supplier_id') ? : null;
-        $supplies_expenses = $this->suppliesExpenseModel->get_all_supplies_expense($supplier_id);
 
-        if (!$supplies_expenses) {
-            $response = $this->failNotFound('No supplies expense found');
-        } else {
+        $supplies_expenses = $this->suppliesExpenseModel->get_all_supplies_expense($supplier_id);
+        if ($supplies_expenses) {
             foreach ($supplies_expenses as $key => $supplies_expense) {
                 $supplies_expense_items = $this->suppliesExpenseItemModel->get_details_by_supplies_expense_id($supplies_expense['id']);
                 $supplies_expense_attachment = $this->suppliesExpenseAttachmentModel->get_details_by_supplies_expense_id($supplies_expense['id']);
                 $supplies_expenses[$key]['se_items'] = $supplies_expense_items;
                 $supplies_expenses[$key]['attachment'] = $supplies_expense_attachment;
+                $supplies_expenses[$key]['type'] = 'supplies_expense';
             }
+        }
+        $project_expenses = $this->projectExpenseModel->get_project_expense($supplier_id);
+        if ($project_expenses) {
+            foreach ($project_expenses as $key => $project_expense) {
+                // $project_expense_items = $this->projectExpenseItemModel->get_details_by_project_expense_id($project_expense['id']);
+                // $project_expenses[$key]['pe_items'] = $project_expense_items;
+                $project_expenses[$key]['type'] = 'project_expense';
+            }
+        }
+
+        $expenses = array_merge($supplies_expenses, $project_expenses);
+
+        if (!$expenses) {
+            $response = $this->failNotFound('No expenses found');
+        } else {
 
             $response = $this->respond([
-                'data'   => $supplies_expenses,
+                'data'   => $expenses,
                 'status' => 'success'
             ]);
         }
@@ -785,6 +799,7 @@ class Supplies_expenses extends MYTController
         $this->branchModel                       = model('App\Models\Branch');
         $this->suppliesExpensePaymentModel       = model('App\Models\Supplies_expense_payment');
         $this->suppliesExpensePaymentDetailModel = model('App\Models\Supplies_expense_payment_detail');
+        $this->projectExpenseModel               = model('App\Models\Project_expense');
         $this->webappResponseModel               = model('App\Models\Webapp_response');
     }
 }

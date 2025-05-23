@@ -9,6 +9,7 @@ class SE_cash_entry extends MYTModel
     protected $allowedFields = [
         'se_cash_slip_id',
         'se_id', //  refers to the id of the supplies receive or supplies expense receive
+        'type',
         'amount',
         'added_by',
         'added_on',

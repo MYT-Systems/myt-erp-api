@@ -540,6 +540,7 @@ class Se_gcash_payments extends MYTController
     {
         $se_ids = $this->request->getVar('se_ids');
         $amounts = $this->request->getVar('amounts');
+        $types = $this->request->getVar('types');
 
         // Get the GCash account
         $gcash = $this->bankModel->where('name', 'GCASH')->get()->getFirstRow('array');
@@ -556,11 +557,13 @@ class Se_gcash_payments extends MYTController
 
         foreach ($se_ids as $key => $se_id) {
             $amount = $amounts[$key];
+            $type = $types[$key];
 
             // Insert GCash entry
             $data = [
                 'se_gcash_slip_id' => $se_gcash_slip_id,
                 'se_id'            => $se_id,
+                'type'            => $type,
                 'amount'           => $amount,
                 'added_by'         => $this->requested_by,
                 'added_on'         => date('Y-m-d H:i:s')
