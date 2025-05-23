@@ -1343,6 +1343,7 @@ SELECT
     SUM(CASE WHEN MONTH(project_expense.project_expense_date) = 12 THEN project_expense.grand_total ELSE 0 END) AS `dec`
 FROM project_expense
 WHERE project_expense.is_deleted = 0 
+AND project_expense.status = 'approved'
 EOT;
         $binds = [];
 
