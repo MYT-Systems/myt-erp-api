@@ -44,6 +44,22 @@ class Supplies_expenses extends MYTController
             $supplies_receives = $this->suppliesReceiveModel->get_id_by_se_id($supplies_expense[0]['id']);
             $supplies_expense[0]['invoice_no'] = $supplies_receives;
 
+            foreach ($supplies_expense as $key => $se){
+                $supplies_expense_bank = $this->suppliesExpenseBankEntryModel->get_details($se['id'], 'supplies_expense') ?? [];
+                $supplies_expense_cash = $this->suppliesExpenseCashEntryModel->get_details($se['id'], 'supplies_expense') ?? [];
+                $supplies_expense_check = $this->suppliesExpenseCheckEntryModel->get_details($se['id'], 'supplies_expense') ?? [];
+                $supplies_expense_gcash = $this->suppliesExpenseGcashEntryModel->get_details($se['id'], 'supplies_expense') ?? [];
+
+                $all_payment_entries = array_merge(
+                    $supplies_expense_bank,
+                    $supplies_expense_cash,
+                    $supplies_expense_check,
+                    $supplies_expense_gcash
+                );
+                
+                $supplies_expense[$key]['supplies_expense_payments'] = $all_payment_entries;
+            }
+
             $response = $this->respond([
                 'data'   => $supplies_expense,
                 'status' => 'success'
@@ -793,6 +809,14 @@ class Supplies_expenses extends MYTController
     {
         $this->suppliesExpenseModel              = model('App\Models\Supplies_expense');
         $this->suppliesExpenseItemModel          = model('App\Models\SE_item');
+        $this->suppliesExpenseBankEntryModel          = model('App\Models\SE_bank_entry');
+        $this->suppliesExpenseCashEntryModel          = model('App\Models\SE_cash_entry');
+        $this->suppliesExpenseCheckEntryModel          = model('App\Models\SE_check_entry');
+        $this->suppliesExpenseGcashEntryModel          = model('App\Models\SE_gcash_entry');
+        $this->suppliesExpenseBankSlipModel          = model('App\Models\SE_bank_slip');
+        $this->suppliesExpenseCashSlipModel          = model('App\Models\SE_cash_slip');
+        $this->suppliesExpenseCheckSlipModel          = model('App\Models\SE_check_slip');
+        $this->suppliesExpenseGcashSlipModel          = model('App\Models\SE_gcash_slip');
         $this->suppliesExpenseAttachmentModel    = model('App\Models\Supplies_expense_attachment');
         $this->supplierModel                     = model('App\Models\Supplier');
         $this->suppliesPaymentModel              = model('App\Models\SE_payment');

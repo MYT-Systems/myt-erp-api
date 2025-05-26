@@ -23,6 +23,23 @@ class SE_cash_entry extends MYTModel
         $this->table = 'se_cash_entry';
     }
 
+    public function get_details($se_id = null, $type = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT se_cash_entry.*, 
+FROM se_cash_entry
+LEFT JOIN se_cash_slip ON se_cash_slip.id = se_cash_entry.se_cash_slip_id
+WHERE se_cash_entry.is_deleted = 0
+    AND se_cash_entry.se_id = ?
+    AND se_cash_entry.type = ?
+EOT;
+        $binds = [$se_id, $type];
+        
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
     /**
      * Get cash entry details by ID
      */

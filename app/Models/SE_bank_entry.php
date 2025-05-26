@@ -23,6 +23,23 @@ class SE_bank_entry extends MYTModel
         $this->table = 'se_bank_entry';
     }
 
+    public function get_details($se_id = null, $type = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT se_bank_entry.*, 
+FROM se_bank_entry
+LEFT JOIN se_bank_slip ON se_bank_slip.id = se_bank_entry.se_bank_slip_id
+WHERE se_bank_entry.is_deleted = 0
+    AND se_bank_entry.se_id = ?
+    AND se_bank_entry.type = ?
+EOT;
+        $binds = [$se_id, $type];
+        
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
     /**
      * Get bank entry details by ID
      */

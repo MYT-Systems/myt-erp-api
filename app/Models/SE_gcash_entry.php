@@ -23,6 +23,23 @@ class SE_gcash_entry extends MYTModel
         $this->table = 'se_gcash_entry';
     }
 
+    public function get_details($se_id = null, $type = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT se_gcash_entry.*, 
+FROM se_gcash_entry
+LEFT JOIN se_gcash_slip ON se_gcash_slip.id = se_gcash_entry.se_gcash_slip_id
+WHERE se_gcash_entry.is_deleted = 0
+    AND se_gcash_entry.se_id = ?
+    AND se_gcash_entry.type = ?
+EOT;
+        $binds = [$se_id, $type];
+        
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
     /**
      * Get gcash entry details by ID
      */

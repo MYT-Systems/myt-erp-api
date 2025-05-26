@@ -23,6 +23,23 @@ class SE_check_entry extends MYTModel
         $this->table = 'se_check_entry';
     }
 
+    public function get_details($se_id = null, $type = null)
+    {
+        $database = \Config\Database::connect();
+        $sql = <<<EOT
+SELECT se_check_entry.*, 
+FROM se_check_entry
+LEFT JOIN se_check_slip ON se_check_slip.id = se_check_entry.se_check_slip_id
+WHERE se_check_entry.is_deleted = 0
+    AND se_check_entry.se_id = ?
+    AND se_check_entry.type = ?
+EOT;
+        $binds = [$se_id, $type];
+        
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
+
     /**
      * Get check entry details by ID
      */
