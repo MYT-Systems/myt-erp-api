@@ -27,7 +27,7 @@ class SE_check_entry extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT se_check_entry.*, 
+SELECT se_check_entry.*, se_check_slip.*
 FROM se_check_entry
 LEFT JOIN se_check_slip ON se_check_slip.id = se_check_entry.se_check_slip_id
 WHERE se_check_entry.is_deleted = 0

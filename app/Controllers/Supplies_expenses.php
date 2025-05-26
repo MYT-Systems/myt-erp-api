@@ -19,13 +19,13 @@ class Supplies_expenses extends MYTController
      */
     public function get_supplies_expense()
     {
-        if (($response = $this->_api_verification('supplies_expenses', 'get_supplies_expense')) !== true)
-            return $response;
+        // if (($response = $this->_api_verification('supplies_expenses', 'get_supplies_expense')) !== true)
+        //     return $response;
 
-        $token = $this->request->getVar('token');
-        if (($response = $this->_verify_requester($token)) !== true) {
-            return $response;
-        }
+        // $token = $this->request->getVar('token');
+        // if (($response = $this->_verify_requester($token)) !== true) {
+        //     return $response;
+        // }
 
         $supplies_expense_id         = $this->request->getVar('supplies_expense_id') ? : null;
 
