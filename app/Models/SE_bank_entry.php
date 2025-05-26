@@ -27,7 +27,7 @@ class SE_bank_entry extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT se_bank_entry.*, se_bank_slip.*, 'bank' AS payment_method
+SELECT se_bank_entry.*, se_bank_slip.*, 'bank' AS payment_method, se_bank_slip.id AS se_bank_slip_id
 FROM se_bank_entry
 LEFT JOIN se_bank_slip ON se_bank_slip.id = se_bank_entry.se_bank_slip_id
 WHERE se_bank_entry.is_deleted = 0

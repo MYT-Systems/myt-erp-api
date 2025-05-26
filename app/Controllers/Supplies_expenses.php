@@ -46,9 +46,29 @@ class Supplies_expenses extends MYTController
 
             foreach ($supplies_expense as $key => $se){
                 $supplies_expense_bank = $this->suppliesExpenseBankEntryModel->get_details($se['id'], 'supplies_expense') ?? [];
+                if ($supplies_expense_bank){
+                    foreach ($supplies_expense_bank as $bank => $se_bank){
+                        $supplies_expense_bank[$bank]['attachments'] = $this->suppliesExpenseBankSlipAttachmentModel->get_details_by_se_bank_slip_id($se_bank['se_bank_slip_id']) ?? [];
+                    }
+                }
                 $supplies_expense_cash = $this->suppliesExpenseCashEntryModel->get_details($se['id'], 'supplies_expense') ?? [];
+                if ($supplies_expense_cash){
+                    foreach ($supplies_expense_cash as $cash => $se_cash){
+                        $supplies_expense_cash[$cash]['attachments'] = $this->suppliesExpenseCashSlipAttachmentModel->get_details_by_se_cash_slip_id($se_cash['se_cash_slip_id']) ?? [];
+                    }
+                }
                 $supplies_expense_check = $this->suppliesExpenseCheckEntryModel->get_details($se['id'], 'supplies_expense') ?? [];
+                if ($supplies_expense_check){
+                    foreach ($supplies_expense_check as $check => $se_check){
+                        $supplies_expense_check[$check]['attachments'] = $this->suppliesExpenseCheckSlipAttachmentModel->get_details_by_se_check_slip_id($se_check['se_check_slip_id']) ?? [];
+                    }
+                }
                 $supplies_expense_gcash = $this->suppliesExpenseGcashEntryModel->get_details($se['id'], 'supplies_expense') ?? [];
+                if ($supplies_expense_gcash){
+                    foreach ($supplies_expense_gcash as $gcash => $se_gcash){
+                        $supplies_expense_gcash[$gcash]['attachments'] = $this->suppliesExpenseGcashSlipAttachmentModel->get_details_by_se_gcash_slip_id($se_gcash['se_gcash_slip_id']) ?? [];
+                    }
+                }
 
                 $all_payment_entries = array_merge(
                     $supplies_expense_bank,
@@ -817,6 +837,10 @@ class Supplies_expenses extends MYTController
         $this->suppliesExpenseCashSlipModel          = model('App\Models\SE_cash_slip');
         $this->suppliesExpenseCheckSlipModel          = model('App\Models\SE_check_slip');
         $this->suppliesExpenseGcashSlipModel          = model('App\Models\SE_gcash_slip');
+        $this->suppliesExpenseBankSlipAttachmentModel          = model('App\Models\SE_bank_slip_attachment');
+        $this->suppliesExpenseCashSlipAttachmentModel          = model('App\Models\SE_cash_slip_attachment');
+        $this->suppliesExpenseCheckSlipAttachmentModel          = model('App\Models\SE_check_slip_attachment');
+        $this->suppliesExpenseGcashSlipAttachmentModel          = model('App\Models\SE_gcash_slip_attachment');
         $this->suppliesExpenseAttachmentModel    = model('App\Models\Supplies_expense_attachment');
         $this->supplierModel                     = model('App\Models\Supplier');
         $this->suppliesPaymentModel              = model('App\Models\SE_payment');

@@ -27,7 +27,7 @@ class SE_cash_entry extends MYTModel
     {
         $database = \Config\Database::connect();
         $sql = <<<EOT
-SELECT se_cash_entry.*, se_cash_slip.*, 'cash' AS payment_method
+SELECT se_cash_entry.*, se_cash_slip.*, 'cash' AS payment_method, se_cash_slip.id AS se_cash_slip_id
 FROM se_cash_entry
 LEFT JOIN se_cash_slip ON se_cash_slip.id = se_cash_entry.se_cash_slip_id
 WHERE se_cash_entry.is_deleted = 0
