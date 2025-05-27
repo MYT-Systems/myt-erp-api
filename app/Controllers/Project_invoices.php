@@ -360,7 +360,8 @@ class Project_invoices extends MYTController
                 $project_invoices[$key]['project_invoice_payments'] = $project_invoice_payments;
                 $summary['total'] += $project_invoice['grand_total'];
                 $summary['total_paid_amount'] += $project_invoice['paid_amount'];
-                $summary['total_balance'] += $project_invoice['balance'];
+                // $summary['total_balance'] += $project_invoice['balance'];
+                $summary['total_balance'] += $project_invoice['grand_total'];
             }
 
             $response = $this->respond([
