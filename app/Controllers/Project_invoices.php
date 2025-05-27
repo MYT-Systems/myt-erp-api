@@ -361,7 +361,7 @@ class Project_invoices extends MYTController
                 $summary['total'] += $project_invoice['grand_total'];
                 $summary['total_paid_amount'] += $project_invoice['paid_amount'];
                 // $summary['total_balance'] += $project_invoice['balance'];
-                $summary['total_balance'] += $project_invoice['grand_total'];
+                $summary['total_balance'] += max(0, $project_invoice['grand_total'] - $project_invoice['paid_amount']);
             }
 
             $response = $this->respond([

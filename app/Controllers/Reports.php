@@ -647,7 +647,7 @@ class Reports extends MYTController
     
         // Extract invoice numbers and calculate totals
         foreach ($receivables_aging as &$value) {
-            $general_summary['total_receivables'] += $value['total'];
+            $general_summary['total_receivables'] += max(0, $value['total'] - $value['total_paid']);
             $general_summary['total_paid'] += $value['total_paid'];
     
             foreach ($aging_columns as $column) {
