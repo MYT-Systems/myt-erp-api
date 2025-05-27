@@ -895,6 +895,65 @@ EOT;
     }
 
     /**
+     * Get receivables aging
+     */
+    public function get_receivables_aging_summary($customer_id = null, $project_id = null)
+    {
+        $database = \Config\Database::connect();
+
+        $sql = <<<EOT
+SELECT 
+    project_invoice.*,
+    project.name AS project_name,
+    CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name,
+    IF (
+        project_invoice.is_closed = 1, 
+        'closed_bill', 
+        IF (
+            project_invoice.paid_amount > project_invoice.grand_total, 
+            'overpaid', 
+            project_invoice.payment_status
+        )
+    ) AS payment_status,
+    project.grand_total AS project_amount,
+    (
+        SELECT MAX(payment_date) 
+        FROM project_invoice_payment 
+        WHERE project_invoice_payment.project_invoice_id = project_invoice.id
+    ) AS payment_date,
+    (
+        SELECT MAX(deposit_date) 
+        FROM project_invoice_payment 
+        WHERE project_invoice_payment.project_invoice_id = project_invoice.id
+    ) AS deposit_date
+FROM 
+    project_invoice
+LEFT JOIN 
+    project ON project.id = project_invoice.project_id
+LEFT JOIN 
+    employee AS adder ON adder.id = project_invoice.added_by
+WHERE 
+    project_invoice.is_deleted = 0
+    AND project.is_deleted = 0
+EOT;
+
+        $binds = [];
+    
+        if ($customer_id) {
+            $sql .= " AND project.customer_id = ?";
+            $binds[] = $customer_id;
+        }
+
+        if ($project_id) {
+            $sql .= " AND project.id = ?";
+            $binds[] = $project_id;
+        }
+
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : [];
+    }
+
+    /**
      * Get statement of account
      */
     public function get_statement_of_account($customer_id = null)

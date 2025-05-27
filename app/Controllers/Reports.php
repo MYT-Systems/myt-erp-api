@@ -644,11 +644,23 @@ class Reports extends MYTController
     
         $invoice_numbers = [];
         $aging_columns = ['cur', 'one_to_thirty', 'thirtyone_to_sixty', 'sixtyone_to_ninety', 'above_ninety'];
+
+        $total_receivables = 0;
+        $total_paid = 0;
+        $receivables_aging_summaries = $this->reportModel->get_receivables_aging_summary($customer_id, $project_id);
+        if ($receivables_aging_summaries) {
+            foreach ($receivables_aging_summaries as $summary) {
+                $total_receivables += $summary['grand_total'] - $summary['paid_amount'] ?? 0;
+                $total_paid += $summary['paid_amount'] ?? 0;
+            }
+        }
+        $general_summary['total_receivables'] = $total_receivables;
+        $general_summary['total_paid'] = $total_paid;
     
         // Extract invoice numbers and calculate totals
         foreach ($receivables_aging as &$value) {
-            $general_summary['total_receivables'] += max(0, $value['total'] - $value['total_paid']);
-            $general_summary['total_paid'] += $value['total_paid'];
+            // $general_summary['total_receivables'] += max(0, $value['total'] - $value['total_paid']);
+            // $general_summary['total_paid'] += $value['total_paid'];
     
             foreach ($aging_columns as $column) {
                 if (!empty($value[$column])) {
