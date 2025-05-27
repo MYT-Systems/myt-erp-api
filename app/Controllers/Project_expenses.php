@@ -45,13 +45,13 @@ class Project_expenses extends MYTController
      */
     public function get_project_expense()
     {
-        if (($response = $this->_api_verification('project_expense', 'get_project_expense')) !== true)
-            return $response;
+        // if (($response = $this->_api_verification('project_expense', 'get_project_expense')) !== true)
+        //     return $response;
 
-        $token = $this->request->getVar('token');
-        if (($response = $this->_verify_requester($token)) !== true) {
-            return $response;
-        }
+        // $token = $this->request->getVar('token');
+        // if (($response = $this->_verify_requester($token)) !== true) {
+        //     return $response;
+        // }
 
         $project_expense_id         = $this->request->getVar('project_expense_id') ? : null;
         $project_expense            = $project_expense_id ? $this->projectExpenseModel->get_details_by_id($project_expense_id) : null;
@@ -63,6 +63,42 @@ class Project_expenses extends MYTController
         } else {
             $project_expense[0]['attachment'] = $project_expense_attachment;
             $project_expense[0]['requester_name_ids'] = $requester_name_ids;
+
+            foreach ($project_expense as $key => $se){
+                $project_expense_bank = $this->suppliesExpenseBankEntryModel->get_details($se['id'], 'project_expense') ?? [];
+                if ($project_expense_bank){
+                    foreach ($project_expense_bank as $bank => $se_bank){
+                        $project_expense_bank[$bank]['attachments'] = $this->suppliesExpenseBankSlipAttachmentModel->get_details_by_se_bank_slip_id($se_bank['se_bank_slip_id']) ?? [];
+                    }
+                }
+                $project_expense_cash = $this->suppliesExpenseCashEntryModel->get_details($se['id'], 'project_expense') ?? [];
+                if ($project_expense_cash){
+                    foreach ($project_expense_cash as $cash => $se_cash){
+                        $project_expense_cash[$cash]['attachments'] = $this->suppliesExpenseCashSlipAttachmentModel->get_details_by_se_cash_slip_id($se_cash['se_cash_slip_id']) ?? [];
+                    }
+                }
+                $project_expense_check = $this->suppliesExpenseCheckEntryModel->get_details($se['id'], 'project_expense') ?? [];
+                if ($project_expense_check){
+                    foreach ($project_expense_check as $check => $se_check){
+                        $project_expense_check[$check]['attachments'] = $this->suppliesExpenseCheckSlipAttachmentModel->get_details_by_se_check_slip_id($se_check['se_check_slip_id']) ?? [];
+                    }
+                }
+                $project_expense_gcash = $this->suppliesExpenseGcashEntryModel->get_details($se['id'], 'project_expense') ?? [];
+                if ($project_expense_gcash){
+                    foreach ($project_expense_gcash as $gcash => $se_gcash){
+                        $project_expense_gcash[$gcash]['attachments'] = $this->suppliesExpenseGcashSlipAttachmentModel->get_details_by_se_gcash_slip_id($se_gcash['se_gcash_slip_id']) ?? [];
+                    }
+                }
+
+                $all_payment_entries = array_merge(
+                    $project_expense_bank,
+                    $project_expense_cash,
+                    $project_expense_check,
+                    $project_expense_gcash
+                );
+                
+                $project_expense[$key]['project_expense_payments'] = $all_payment_entries;
+            }
 
             $response           = [];
             $response['data']   = $project_expense;
@@ -445,6 +481,18 @@ class Project_expenses extends MYTController
     protected function _load_essentials()
     {
         $this->projectExpenseAttachmentModel = model('App\Models\Project_expense_attachment');
+        $this->suppliesExpenseBankEntryModel          = model('App\Models\SE_bank_entry');
+        $this->suppliesExpenseCashEntryModel          = model('App\Models\SE_cash_entry');
+        $this->suppliesExpenseCheckEntryModel          = model('App\Models\SE_check_entry');
+        $this->suppliesExpenseGcashEntryModel          = model('App\Models\SE_gcash_entry');
+        $this->suppliesExpenseBankSlipModel          = model('App\Models\SE_bank_slip');
+        $this->suppliesExpenseCashSlipModel          = model('App\Models\SE_cash_slip');
+        $this->suppliesExpenseCheckSlipModel          = model('App\Models\SE_check_slip');
+        $this->suppliesExpenseGcashSlipModel          = model('App\Models\SE_gcash_slip');
+        $this->suppliesExpenseBankSlipAttachmentModel          = model('App\Models\SE_bank_slip_attachment');
+        $this->suppliesExpenseCashSlipAttachmentModel          = model('App\Models\SE_cash_slip_attachment');
+        $this->suppliesExpenseCheckSlipAttachmentModel          = model('App\Models\SE_check_slip_attachment');
+        $this->suppliesExpenseGcashSlipAttachmentModel          = model('App\Models\SE_gcash_slip_attachment');
         $this->requesterNameModel = model('App\Models\Requester_name');
         $this->requesterModel = model('App\Models\Requester');
         $this->projectExpenseModel = new Project_expense();
