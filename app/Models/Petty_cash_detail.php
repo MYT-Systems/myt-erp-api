@@ -184,7 +184,7 @@ EOT;
             $binds[] = $approved_on;
         }
 
-        $sql .= ' ORDER BY petty_cash_detail.date, petty_cash_detail.added_on ASC';
+        $sql .= ' ORDER BY petty_cash_detail.date ASC';
 
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
