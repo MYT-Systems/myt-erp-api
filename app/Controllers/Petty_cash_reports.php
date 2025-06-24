@@ -389,7 +389,7 @@ class Petty_cash_reports extends MYTController
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
-    }
+    } 
 
     public function approve_cashout()
     {
