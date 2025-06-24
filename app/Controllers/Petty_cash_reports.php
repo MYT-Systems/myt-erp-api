@@ -155,7 +155,7 @@ class Petty_cash_reports extends MYTController
     /**
      * Create the petty cash details
      */
-    public function create_details()
+     public function create_details()
     {
         if (($response = $this->_api_verification('petty_cash_reports', 'create_details')) !== true)
             return $response;
@@ -387,7 +387,7 @@ class Petty_cash_reports extends MYTController
             // reverse the petty cash details
             $petty_cash_details = array_values($petty_cash_details);
             $petty_cash_details = array_reverse($petty_cash_details);
-
+ 
             $response = $this->respond([
                 'status' => 'success',
                 'petty_cash' => $petty_cash[0],
@@ -489,7 +489,7 @@ class Petty_cash_reports extends MYTController
             'current_petty_cash'   => $this->request->getVar('beginning_petty_cash'),
             'details'              => $this->request->getVar('details'),
             'added_by'             => $this->requested_by,
-            'added_on'             => date('Y-m-d H:i:s'),
+            'added_on'             => date('Y-m-d H:i:s'),s
         ];
 
         if (!$petty_cash_id = $this->pettyCashModel->insert($values)) {
@@ -506,11 +506,11 @@ class Petty_cash_reports extends MYTController
     private function _attempt_create_petty_cash_detail($petty_cash_id)
     {
         $type = $this->request->getVar('type');
-        $status = ($type == 'out') ? 'request' : 'approved';
+        $status = ($type == 'out') ? : 'approved';
 
         $values = [
             'petty_cash_id' => $petty_cash_id,
-            'status'        => $status,
+            'approved'      => $status,
             'out_type'      => $this->request->getVar('out_type'),
             'type'          => $this->request->getVar('type'),
             'from'          => $this->request->getVar('from'),
@@ -530,7 +530,7 @@ class Petty_cash_reports extends MYTController
         }
 
         // Update the current petty cash in the petty cash table
-        if ($type == 'in' AND !$this->_update_current_petty_cash($petty_cash_id, $values['amount'], $values['type'])) {
+        if (!$this->_update_current_petty_cash($petty_cash_id, $values['amount'], $values['type'])) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
@@ -758,4 +758,6 @@ class Petty_cash_reports extends MYTController
         $this->pettyCashItemModel   = model('App\Models\Petty_cash_item');
         $this->webappResponseModel  = model('App\Models\Webapp_response');
     }
+
+    
 }
