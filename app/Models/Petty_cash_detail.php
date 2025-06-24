@@ -38,17 +38,19 @@ class Petty_cash_detail extends MYTModel
      */
     public function get_details_by_id($petty_cash_detail_id = null)
     {
+        // test
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT petty_cash_detail.*, 
+    expense_type.name AS expense_type_name,
     expense_type.name AS expense_type_name,
     CONCAT(user.first_name, " ", user.last_name) AS approved_by_name,
     CONCAT(requested_by_user.first_name, " ", requested_by_user.last_name) AS requested_by_name
 FROM petty_cash_detail
 LEFT JOIN expense_type ON expense_type.id = petty_cash_detail.out_type
+LEFT JOIN expense_type ON expense_type.id = petty_cash_detail.out_type
 LEFT JOIN user ON user.id = petty_cash_detail.approved_by
 LEFT JOIN user AS requested_by_user ON  requested_by_user.id = petty_cash_detail.requested_by
-LEFT JOIN employee ON employee.id = petty_cash_detail.requested_by
 WHERE petty_cash_detail.is_deleted = 0
     AND petty_cash_detail.id = ?
 EOT;
