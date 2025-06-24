@@ -137,7 +137,7 @@ EOT;
     */
     public function search($petty_cash_id, $date_from, $date_to, $type, $status = null, $approved_by = null, $approved_on = null)
     {
-        $database = \Config\Database::connect();
+        $database = \Config\Database::connect(); 
         $sql = <<<EOT
 SELECT petty_cash_detail.*,
     (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE id = petty_cash_detail.added_by) AS added_by_name,
