@@ -138,8 +138,6 @@ class Reports extends MYTController
                 $bank_summary['total_credit'] += $amount;
                 $current_balance += $amount;
             }
-
-            $bank_reconciliation[$key]['balance'] = $current_balance;
         }
 
         $bank_summary['total_balance'] = $current_balance;

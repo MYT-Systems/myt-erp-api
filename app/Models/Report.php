@@ -616,6 +616,41 @@ SELECT * FROM (
     WHERE se_bank_slip.is_deleted = 0
     AND se_bank_entry.is_deleted = 0
     AND bank.is_deleted = 0
+
+    UNION ALL
+    
+    SELECT 
+        'Debit' AS type,
+        petty_cash_detail.id AS id,
+        CONCAT('PETTY CASH NO. ', petty_cash_detail.id) AS reference_no,
+        petty_cash_detail.date AS date,
+        petty_cash_detail.amount AS paid_amount,
+        bank.name AS bank_name,  
+        bank.id AS bank_id
+    FROM petty_cash_detail
+    LEFT JOIN petty_cash ON petty_cash.id = petty_cash_detail.petty_cash_id
+    LEFT JOIN bank ON bank.id = petty_cash_detail.from
+    WHERE petty_cash.is_deleted = 0
+    AND petty_cash_detail.is_deleted = 0
+    AND petty_cash_detail.type = 'in'
+
+    UNION ALL
+
+    SELECT 
+        'Credit' AS type,
+        petty_cash_detail.id AS id,
+        CONCAT('PETTY CASH NO. ', petty_cash_detail.id) AS reference_no,
+        petty_cash_detail.date AS date,
+        petty_cash_detail.amount AS paid_amount,
+        bank.name AS bank_name, 
+        bank.id AS bank_id
+    FROM petty_cash_detail
+    LEFT JOIN petty_cash ON petty_cash.id = petty_cash_detail.petty_cash_id
+    LEFT JOIN bank ON bank.id = petty_cash_detail.from
+    WHERE petty_cash.is_deleted = 0
+    AND petty_cash_detail.is_deleted = 0
+    AND petty_cash_detail.type = 'out'
+
 ) AS temp
 WHERE 1 = 1
 EOT;
