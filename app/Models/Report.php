@@ -884,24 +884,23 @@ SELECT customer_id, customer_name, GROUP_CONCAT(cur SEPARATOR ',') AS cur, GROUP
 FROM (
   SELECT customer.id AS customer_id, project_invoice.id, customer.name AS customer_name,
     CASE
-    WHEN (project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date))- customer.terms <= 0) THEN GROUP_CONCAT(CONCAT("INV. ",project_invoice.invoice_no,'-(',project_invoice.grand_total, ')'))END AS cur,
+      WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IFNULL(project_invoice.due_date , project_invoice.invoice_date)) - customer.terms <= 0 THEN CONCAT("INV. ", project_invoice.invoice_no, "-(", ROUND(project_invoice.grand_total - project_invoice.paid_amount, 2), ")")END AS cur,
     CASE
-    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 0 AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms <= 30  THEN CONCAT("INV. ",project_invoice.invoice_no,'-(',project_invoice.grand_total, ')') END AS one_to_thirty,
+      WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IFNULL(project_invoice.due_date , project_invoice.invoice_date)) - customer.terms > 0 AND DATEDIFF(CURDATE(), IFNULL(project_invoice.due_date, project_invoice.invoice_date)) - customer.terms <= 30 THEN CONCAT("INV. ", project_invoice.invoice_no, "-(", ROUND(project_invoice.grand_total - project_invoice.paid_amount, 2), ")")END AS one_to_thirty,
     CASE
-    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 30 AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms <= 60  THEN CONCAT("INV. ",project_invoice.invoice_no,'-(',project_invoice.grand_total, ')') END AS thirtyone_to_sixty,
+      WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IFNULL(project_invoice.due_date , project_invoice.invoice_date)) - customer.terms > 30 AND DATEDIFF(CURDATE(), IFNULL(project_invoice.due_date, project_invoice.invoice_date)) - customer.terms <= 60 THEN CONCAT("INV. ", project_invoice.invoice_no, "-(", ROUND(project_invoice.grand_total - project_invoice.paid_amount, 2), ")")END AS thirtyone_to_sixty,
     CASE
-    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 60 AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms <= 90  THEN CONCAT("INV. ",project_invoice.invoice_no,'-(',project_invoice.grand_total, ')') END AS sixtyone_to_ninety,
+      WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IFNULL(project_invoice.due_date , project_invoice.invoice_date)) - customer.terms > 60 AND DATEDIFF(CURDATE(), IFNULL(project_invoice.due_date, project_invoice.invoice_date)) - customer.terms <= 90 THEN CONCAT("INV. ", project_invoice.invoice_no, "-(", ROUND(project_invoice.grand_total - project_invoice.paid_amount, 2), ")")END AS sixtyone_to_ninety,
     CASE
-    WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IF(project_invoice.due_date IS NULL, project_invoice.invoice_date, project_invoice.due_date)) - customer.terms > 90 THEN CONCAT("INV. ",project_invoice.invoice_no,'-(',project_invoice.grand_total, ')') END AS above_ninety,
-    project_invoice.grand_total as total,
-    project_invoice.paid_amount as total_paid,
-    project.id AS project_id
+      WHEN project_invoice.grand_total > project_invoice.paid_amount AND DATEDIFF(CURDATE(), IFNULL(project_invoice.due_date, project_invoice.invoice_date)) - customer.terms > 90 THEN CONCAT("INV. ", project_invoice.invoice_no, "-(", ROUND(project_invoice.grand_total - project_invoice.paid_amount, 2), ")")END AS above_ninety,
+    project_invoice.grand_total AS total,project_invoice.paid_amount AS total_paid,project.id AS project_id
   FROM project_invoice
   LEFT JOIN project ON project.id = project_invoice.project_id
   LEFT JOIN customer ON customer.id = project.customer_id
-  WHERE project_invoice.is_deleted = 0
+  WHERE 
+    project_invoice.is_deleted = 0
     AND project.is_deleted = 0
-    AND project.grand_total > project.paid_amount
+    AND project_invoice.grand_total > project_invoice.paid_amount
   GROUP BY customer.name, project_invoice.id
 ) AS data
 WHERE data.total > data.total_paid
@@ -926,6 +925,7 @@ ORDER BY customer_name;
 EOT;
 
         $query = $database->query($sql, $binds);
+        // die($database->getLastQuery());
         return $query ? $query->getResultArray() : [];
     }
 
