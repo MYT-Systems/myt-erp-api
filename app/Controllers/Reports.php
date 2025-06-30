@@ -124,22 +124,24 @@ class Reports extends MYTController
 
         $current_balance = $bank_summary['previous_balance'] ?? 0;
 
-        foreach ($bank_reconciliation as $key => $transaction) {
-            if (!is_numeric($key) || !is_array($transaction)) {
-                continue;
+        if ($bank_reconciliation) {
+            foreach ($bank_reconciliation as $key => $transaction) {
+                if (!is_numeric($key) || !is_array($transaction)) {
+                    continue;
+                }
+    
+                $amount = (float) ($transaction['paid_amount'] ?? 0);
+    
+                if ($transaction['type'] === 'Debit') {
+                    $bank_summary['total_debit'] += $amount;
+                    $current_balance -= $amount;
+                } elseif ($transaction['type'] === 'Credit') {
+                    $bank_summary['total_credit'] += $amount;
+                    $current_balance += $amount;
+                }
+    
+                $bank_reconciliation[$key]['balance'] = $current_balance;
             }
-
-            $amount = (float) ($transaction['paid_amount'] ?? 0);
-
-            if ($transaction['type'] === 'Debit') {
-                $bank_summary['total_debit'] += $amount;
-                $current_balance -= $amount;
-            } elseif ($transaction['type'] === 'Credit') {
-                $bank_summary['total_credit'] += $amount;
-                $current_balance += $amount;
-            }
-
-            $bank_reconciliation[$key]['balance'] = $current_balance;
         }
 
         $bank_summary['total_balance'] = $current_balance;
