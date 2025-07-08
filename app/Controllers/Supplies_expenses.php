@@ -122,7 +122,7 @@ class Supplies_expenses extends MYTController
                 // $project_expense_items = $this->projectExpenseItemModel->get_details_by_project_expense_id($project_expense['id']);
                 // $project_expenses[$key]['pe_items'] = $project_expense_items;
                 $project_expenses[$key]['type'] = 'project_expense';
-                $project_expenses[$key]['balance'] = $project_expense['amount'];
+                $project_expenses[$key]['balance'] = max(0, $project_expense['grand_total'] - $project_expense['paid_amount']);
             }
         }
 
