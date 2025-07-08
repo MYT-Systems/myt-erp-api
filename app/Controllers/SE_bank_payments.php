@@ -605,7 +605,7 @@ class Se_bank_payments extends MYTController
             } elseif ($type == 'project_expense') {
                 if ($project_expense = $this->projectExpenseModel->get_details_by_id($se_id)) {
                     $paid_amount_total = $project_expense[0]['paid_amount'] + $amounts[$key];
-                    $new_status = ($paid_amount_total > $project_expense[0]['grand_total']) ? 'paid' : 'approved';
+                    $new_status = ($paid_amount_total >= $project_expense[0]['grand_total']) ? 'paid' : 'approved';
 
                     $supplies_expense_data = [
                         'paid_amount' => $paid_amount_total,
