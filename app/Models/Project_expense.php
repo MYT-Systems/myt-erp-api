@@ -170,7 +170,7 @@ SELECT
     project_expense.id AS se_id,
     project_expense.project_expense_date,
     supplier.trade_name AS supplier,
-    project_expense.grand_total,
+    payment_info.amount AS grand_total,
     payment_info.issued_date,
     payment_info.payment_mode,
     payment_info.bank_name
@@ -182,7 +182,8 @@ LEFT JOIN (
         se_cash_entry.type AS payment_type,
         se_cash_slip.payment_date AS issued_date,
         'cash' AS payment_mode,
-        NULL AS bank_name
+        NULL AS bank_name,
+        se_cash_entry.amount
     FROM se_cash_entry
     INNER JOIN se_cash_slip ON se_cash_slip.id = se_cash_entry.se_cash_slip_id 
     AND se_cash_slip.is_deleted = 0
@@ -194,7 +195,8 @@ LEFT JOIN (
         se_bank_entry.type AS payment_type,
         se_bank_slip.payment_date,
         'bank',
-        bank.name AS bank_name
+        bank.name AS bank_name,
+        se_bank_entry.amount
     FROM se_bank_entry
     INNER JOIN se_bank_slip ON se_bank_slip.id = se_bank_entry.se_bank_slip_id 
     AND se_bank_slip.is_deleted = 0
@@ -207,7 +209,8 @@ LEFT JOIN (
         se_gcash_entry.type AS payment_type,
         se_gcash_slip.payment_date,
         'gcash',
-        NULL AS bank_name
+        NULL AS bank_name,
+        se_gcash_entry.amount
     FROM se_gcash_entry
     INNER JOIN se_gcash_slip ON se_gcash_slip.id = se_gcash_entry.se_gcash_slip_id 
     AND se_gcash_slip.is_deleted = 0
@@ -219,7 +222,8 @@ LEFT JOIN (
         se_check_entry.type AS payment_type,
         se_check_slip.issued_date,
         'check',
-        NULL AS bank_name
+        NULL AS bank_name,
+        se_check_entry.amount
     FROM se_check_entry
     INNER JOIN se_check_slip ON se_check_slip.id = se_check_entry.se_check_slip_id 
     AND se_check_slip.is_deleted = 0
