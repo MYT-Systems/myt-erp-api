@@ -227,7 +227,7 @@ LEFT JOIN (
     FROM se_check_entry
     INNER JOIN se_check_slip ON se_check_slip.id = se_check_entry.se_check_slip_id 
     AND se_check_slip.is_deleted = 0
-) AS payment_info ON payment_info.se_id = project_expense.id
+) AS payment_info ON payment_info.se_id = project_expense.id AND payment_info.payment_type = 'project_expense'
 WHERE project_expense.is_deleted = 0
 AND project_expense.status IN ('approved', 'paid')
 EOT;

@@ -495,6 +495,7 @@ LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
 LEFT JOIN (
     SELECT 
         se_cash_entry.se_id,
+        se_cash_entry.type AS payment_type,
         se_cash_slip.payment_date,
         'cash' AS payment_mode,
         NULL AS bank_name,
@@ -507,6 +508,7 @@ LEFT JOIN (
 
     SELECT 
         se_bank_entry.se_id,
+        se_bank_entry.type AS payment_type,
         se_bank_slip.payment_date,
         'bank',
         bank.name AS bank_name,
@@ -520,6 +522,7 @@ LEFT JOIN (
 
     SELECT 
         se_gcash_entry.se_id,
+        se_gcash_entry.type AS payment_type,
         se_gcash_slip.payment_date,
         'gcash',
         NULL AS bank_name,
@@ -532,6 +535,7 @@ LEFT JOIN (
 
     SELECT 
         se_check_entry.se_id,
+        se_check_entry.type AS payment_type,
         se_check_slip.issued_date AS payment_date,
         'check',
         NULL AS bank_name,
@@ -539,7 +543,7 @@ LEFT JOIN (
     FROM se_check_entry
     INNER JOIN se_check_slip ON se_check_slip.id = se_check_entry.se_check_slip_id 
     AND se_check_slip.is_deleted = 0
-) AS payment_info ON payment_info.se_id = supplies_expense.id
+) AS payment_info ON payment_info.se_id = supplies_expense.id AND payment_info.payment_type = 'supplies_expense'
 WHERE supplies_expense.is_deleted = 0
 AND (
     (supplies_expense.status = 'approved' AND supplies_expense.order_status IN ('complete', 'pending', 'incomplete'))
