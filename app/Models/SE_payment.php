@@ -487,7 +487,7 @@ SELECT
     supplies_expense.type,
     supplier.trade_name AS supplier,
     payment_info.amount AS grand_total,
-    payment_info.issued_date,
+    payment_info.payment_date AS issued_date,
     payment_info.payment_mode,
     payment_info.bank_name
 FROM supplies_expense
@@ -495,7 +495,7 @@ LEFT JOIN supplier ON supplier.id = supplies_expense.supplier_id
 LEFT JOIN (
     SELECT 
         se_cash_entry.se_id,
-        se_cash_slip.payment_date AS issued_date,
+        se_cash_slip.payment_date,
         'cash' AS payment_mode,
         NULL AS bank_name,
         se_cash_entry.amount
@@ -532,7 +532,7 @@ LEFT JOIN (
 
     SELECT 
         se_check_entry.se_id,
-        se_check_slip.issued_date,
+        se_check_slip.issued_date AS payment_date,
         'check',
         NULL AS bank_name,
         se_check_entry.amount
