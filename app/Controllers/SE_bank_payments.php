@@ -11,6 +11,14 @@ use App\Models\Webapp_response;
 
 class Se_bank_payments extends MYTController
 {
+    protected $bankEntryModel;
+    protected $bankSlipModel;
+    protected $bankModel;
+    protected $suppliesExpenseModel;
+    protected $bankSlipAttachmentModel;
+    protected $seReceiveModel;
+    protected $projectExpenseModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

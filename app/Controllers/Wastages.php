@@ -5,6 +5,12 @@ namespace App\Controllers;
 class Wastages extends MYTController
 {
 
+    protected $itemUnitModel;
+    protected $wastageModel;
+    protected $wastageItemModel;
+    protected $webappResponseModel;
+    protected $wastage;
+
     public function __construct()
     {
         // Headers

@@ -8,6 +8,9 @@ use App\Models\Webapp_response;
 class Vendors extends MYTController
 {
 
+    protected $vendorModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers

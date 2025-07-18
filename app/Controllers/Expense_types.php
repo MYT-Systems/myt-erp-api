@@ -5,6 +5,9 @@ namespace App\Controllers;
 class Expense_types extends MYTController
 {
 
+    protected $expenseTypeModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -20,22 +23,22 @@ class Expense_types extends MYTController
     public function get_expense_types()
     {
         if (($response = $this->_api_verification('expense_types', 'get_expense_types')) !== true)
-            return $response; 
+            return $response;
 
         $token = $this->request->getVar('token');
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
 
-        $expense_types_id = $this->request->getVar('expense_type_id') ? : null;
-        $expense_types    = $this->expenseTypeModel->get_details_by_id($expense_types_id);
+        $expense_types_id = $this->request->getVar('expense_type_id') ?: null;
+        $expense_types = $this->expenseTypeModel->get_details_by_id($expense_types_id);
 
         if (!$expense_types) {
             $response = $this->failNotFound('No expense_type found');
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $expense_types
+                'data' => $expense_types
             ]);
         }
 
@@ -63,7 +66,7 @@ class Expense_types extends MYTController
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $expense_types
+                'data' => $expense_types
             ]);
         }
 
@@ -91,7 +94,7 @@ class Expense_types extends MYTController
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $expense_types
+                'data' => $expense_types
             ]);
         }
 
@@ -115,14 +118,14 @@ class Expense_types extends MYTController
         $db = \Config\Database::connect();
         $db->transBegin();
 
-        if (!$expense_types_id= $this->_attempt_create()) {
+        if (!$expense_types_id = $this->_attempt_create()) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to create expense_type.', 'status' => $this->errorMessage]);
         } else {
             $db->transCommit();
             $response = $this->respond([
-                'response'     => 'expense_type created successfully.',
-                'status'       => 'success',
+                'response' => 'expense_type created successfully.',
+                'status' => 'success',
                 'id' => $expense_types_id
             ]);
         }
@@ -214,14 +217,14 @@ class Expense_types extends MYTController
             return $response;
         }
 
-        $name     = $this->request->getVar('name');
-        $description  = $this->request->getVar('description');
+        $name = $this->request->getVar('name');
+        $description = $this->request->getVar('description');
         if (!$expense_types = $this->expenseTypeModel->search($name, $description)) {
             $response = $this->failNotFound('No expense found');
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $expense_types
+                'data' => $expense_types
             ]);
         }
 
@@ -242,10 +245,10 @@ class Expense_types extends MYTController
         $description = $this->request->getVar('description');
 
         $values = [
-            'name'        => $name,
-            'description' => $description,            
-            'added_by'    => $this->requested_by,
-            'added_on'    => date('Y-m-d H:i:s')
+            'name' => $name,
+            'description' => $description,
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$expense_types_id = $this->expenseTypeModel->insert($values)) {
@@ -262,11 +265,11 @@ class Expense_types extends MYTController
     protected function _attempt_update($id)
     {
         $values = [
-            'name'          => $this->request->getVar('name'),
-            'description'   => $this->request->getVar('description'),
-            'phone_no'      => $this->request->getVar('phone_no'),
-            'updated_by'    => $this->requested_by,
-            'updated_on'    => date('Y-m-d H:i:s')
+            'name' => $this->request->getVar('name'),
+            'description' => $this->request->getVar('description'),
+            'phone_no' => $this->request->getVar('phone_no'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->expenseTypeModel->update($id, $values))
@@ -298,7 +301,7 @@ class Expense_types extends MYTController
     protected function _load_essentials()
     {
         $this->expenseTypeModel = model('App\Models\Expense_type');
-        $this->webappResponseModel  = model('App\Models\Webapp_response');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
 
     }
 }

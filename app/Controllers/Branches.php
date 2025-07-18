@@ -5,6 +5,12 @@ namespace App\Controllers;
 class Branches extends MYTController
 {
 
+    protected $branchModel;
+    protected $branchAttachmentModel;
+    protected $inventoryGroupDetailModel;
+    protected $franchiseeModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -27,8 +33,8 @@ class Branches extends MYTController
             return $response;
         }
 
-        $branch_id         = $this->request->getVar('branch_id') ? : null;
-        $branch            = $branch_id ? $this->branchModel->get_details_by_id($branch_id) : null;
+        $branch_id = $this->request->getVar('branch_id') ?: null;
+        $branch = $branch_id ? $this->branchModel->get_details_by_id($branch_id) : null;
         $branch_attachment = $branch_id ? $this->branchAttachmentModel->get_details_by_branch_id($branch_id) : null;
 
         if (!$branch) {
@@ -38,7 +44,7 @@ class Branches extends MYTController
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $branch
+                'data' => $branch
             ]);
         }
 
@@ -71,7 +77,7 @@ class Branches extends MYTController
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $branches
+                'data' => $branches
             ]);
         }
 
@@ -105,13 +111,15 @@ class Branches extends MYTController
         if (!$branch_id = $this->_attempt_create()) {
             $this->db->transRollback();
             $response = $this->fail('Failed to create branch.');
-        } elseif ($this->request->getFile('file') AND !$response = $this->_attempt_upload_file_base64($this->branchAttachmentModel, ['branch_id' => $branch_id]) AND
-                   $response === false) {
+        } elseif (
+            $this->request->getFile('file') and !$response = $this->_attempt_upload_file_base64($this->branchAttachmentModel, ['branch_id' => $branch_id]) and
+            $response === false
+        ) {
             $this->db->transRollback();
         } else {
             $this->db->transCommit();
             $response = $this->respond([
-                'status'    => 'success',
+                'status' => 'success',
                 'branch_id' => $branch_id
             ]);
         }
@@ -135,7 +143,7 @@ class Branches extends MYTController
         }
 
         $where = [
-            'id'         => $this->request->getVar('branch_id'), 
+            'id' => $this->request->getVar('branch_id'),
             'is_deleted' => 0
         ];
 
@@ -171,7 +179,7 @@ class Branches extends MYTController
         }
 
         $where = [
-            'id' => $this->request->getVar('branch_id'), 
+            'id' => $this->request->getVar('branch_id'),
             'is_deleted' => 0
         ];
 
@@ -206,22 +214,22 @@ class Branches extends MYTController
             return $response;
         }
 
-        $branch_id             = $this->request->getVar('branch_id');
-        $name                  = $this->request->getVar('name');
-        $address               = $this->request->getVar('address');
-        $phone_no              = $this->request->getVar('phone_no');
-        $contact_person        = $this->request->getVar('contact_person');
-        $contact_person_no     = $this->request->getVar('contact_person_no');
-        $franchisee_name       = $this->request->getVar('franchisee_name');
+        $branch_id = $this->request->getVar('branch_id');
+        $name = $this->request->getVar('name');
+        $address = $this->request->getVar('address');
+        $phone_no = $this->request->getVar('phone_no');
+        $contact_person = $this->request->getVar('contact_person');
+        $contact_person_no = $this->request->getVar('contact_person_no');
+        $franchisee_name = $this->request->getVar('franchisee_name');
         $franchisee_contact_no = $this->request->getVar('franchisee_contact_no');
-        $tin_no                = $this->request->getVar('tin_no');
-        $bir_no                = $this->request->getVar('bir_no');
-        $contract_start        = $this->request->getVar('contract_start');
-        $contract_end          = $this->request->getVar('contract_end');
-        $opening_date          = $this->request->getVar('opening_date');
-        $is_open               = $this->request->getVar('is_open');
-        $is_franchise          = $this->request->getVar('is_franchise');
-        $no_inventory_group    = $this->request->getVar('no_inventory_group');
+        $tin_no = $this->request->getVar('tin_no');
+        $bir_no = $this->request->getVar('bir_no');
+        $contract_start = $this->request->getVar('contract_start');
+        $contract_end = $this->request->getVar('contract_end');
+        $opening_date = $this->request->getVar('opening_date');
+        $is_open = $this->request->getVar('is_open');
+        $is_franchise = $this->request->getVar('is_franchise');
+        $no_inventory_group = $this->request->getVar('no_inventory_group');
 
         if (!$branches = $this->branchModel->search($branch_id, $name, $address, $phone_no, $contact_person, $contact_person_no, $franchisee_name, $franchisee_contact_no, $tin_no, $bir_no, $contract_start, $contract_end, $opening_date, $is_open, $is_franchise, $no_inventory_group)) {
             $response = $this->failNotFound('No branch found');
@@ -242,42 +250,42 @@ class Branches extends MYTController
     private function _attempt_create()
     {
         $values = [
-            'name'                  => $this->request->getVar('name'),
-            'type'                  => $this->request->getVar('type'),
-            'initial_drawer'        => $this->request->getVar('initial_drawer'),
-            'address'               => $this->request->getVar('address'),
-            'phone_no'              => $this->request->getVar('phone_no'),
-            'contact_person'        => $this->request->getVar('contact_person'),
-            'contact_person_no'     => $this->request->getVar('contact_person_no'),
-            'franchisee_name'       => $this->request->getVar('franchisee_name'),
+            'name' => $this->request->getVar('name'),
+            'type' => $this->request->getVar('type'),
+            'initial_drawer' => $this->request->getVar('initial_drawer'),
+            'address' => $this->request->getVar('address'),
+            'phone_no' => $this->request->getVar('phone_no'),
+            'contact_person' => $this->request->getVar('contact_person'),
+            'contact_person_no' => $this->request->getVar('contact_person_no'),
+            'franchisee_name' => $this->request->getVar('franchisee_name'),
             'franchisee_contact_no' => $this->request->getVar('franchisee_contact_no'),
-            'tin_no'                => $this->request->getVar('tin_no'),
-            'bir_no'                => $this->request->getVar('bir_no'),
-            'contract_start'        => $this->request->getVar('contract_start'),
-            'contract_end'          => $this->request->getVar('contract_end'),
-            'opening_date'          => $this->request->getVar('opening_date'),
-            'is_franchise'          => $this->request->getVar('is_franchise'),
-            'operation_days'        => $this->request->getVar('operation_days'),
-            'operation_times'       => $this->request->getVar('operation_times'),
-            'delivery_days'         => $this->request->getVar('delivery_days'),
-            'delivery_times'        => $this->request->getVar('delivery_times'),
-            'price_level'           => $this->request->getVar('price_level'),
-            'rental_monthly_fee'    => $this->request->getVar('rental_monthly_fee'),
-            'inventory_group_id'    => $this->request->getVar('inventory_group_id'),
-            'added_by'              => $this->requested_by,
-            'added_on'              => date('Y-m-d H:i:s'),
+            'tin_no' => $this->request->getVar('tin_no'),
+            'bir_no' => $this->request->getVar('bir_no'),
+            'contract_start' => $this->request->getVar('contract_start'),
+            'contract_end' => $this->request->getVar('contract_end'),
+            'opening_date' => $this->request->getVar('opening_date'),
+            'is_franchise' => $this->request->getVar('is_franchise'),
+            'operation_days' => $this->request->getVar('operation_days'),
+            'operation_times' => $this->request->getVar('operation_times'),
+            'delivery_days' => $this->request->getVar('delivery_days'),
+            'delivery_times' => $this->request->getVar('delivery_times'),
+            'price_level' => $this->request->getVar('price_level'),
+            'rental_monthly_fee' => $this->request->getVar('rental_monthly_fee'),
+            'inventory_group_id' => $this->request->getVar('inventory_group_id'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$branch_id = $this->branchModel->insert($values)) {
-           return false;
+            return false;
         }
 
         if ($this->request->getVar('inventory_group_id')) {
             $values = [
                 'inventory_group_id' => $this->request->getVar('inventory_group_id'),
                 'branch_id' => $branch_id,
-                'added_by'  => $this->requested_by,
-                'added_on'  => date('Y-m-d H:i:s'),
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s'),
             ];
 
             if (!$this->inventoryGroupDetailModel->insert($values)) {
@@ -294,30 +302,30 @@ class Branches extends MYTController
     protected function _attempt_update($branch)
     {
         $values = [
-            'name'                  => $this->request->getVar('name'),
-            'type'                  => $this->request->getVar('type'),
-            'initial_drawer'        => $this->request->getVar('initial_drawer'),
-            'address'               => $this->request->getVar('address'),
-            'phone_no'              => $this->request->getVar('phone_no'),
-            'contact_person'        => $this->request->getVar('contact_person'),
-            'contact_person_no'     => $this->request->getVar('contact_person_no'),
-            'franchisee_name'       => $this->request->getVar('franchisee_name'),
+            'name' => $this->request->getVar('name'),
+            'type' => $this->request->getVar('type'),
+            'initial_drawer' => $this->request->getVar('initial_drawer'),
+            'address' => $this->request->getVar('address'),
+            'phone_no' => $this->request->getVar('phone_no'),
+            'contact_person' => $this->request->getVar('contact_person'),
+            'contact_person_no' => $this->request->getVar('contact_person_no'),
+            'franchisee_name' => $this->request->getVar('franchisee_name'),
             'franchisee_contact_no' => $this->request->getVar('franchisee_contact_no'),
-            'tin_no'                => $this->request->getVar('tin_no'),
-            'bir_no'                => $this->request->getVar('bir_no'),
-            'contract_start'        => $this->request->getVar('contract_start'),
-            'contract_end'          => $this->request->getVar('contract_end'),
-            'opening_date'          => $this->request->getVar('opening_date'),
-            'is_franchise'          => $this->request->getVar('is_franchise'),
-            'operation_days'        => $this->request->getVar('operation_days'),
-            'operation_times'       => $this->request->getVar('operation_times'),
-            'delivery_days'         => $this->request->getVar('delivery_days'),
-            'delivery_times'        => $this->request->getVar('delivery_times'),
-            'price_level'           => $this->request->getVar('price_level'),
-            'rental_monthly_fee'    => $this->request->getVar('rental_monthly_fee'),
-            'inventory_group_id'    => $this->request->getVar('inventory_group_id'),
-            'updated_by'            => $this->requested_by,
-            'updated_on'            => date('Y-m-d H:i:s')
+            'tin_no' => $this->request->getVar('tin_no'),
+            'bir_no' => $this->request->getVar('bir_no'),
+            'contract_start' => $this->request->getVar('contract_start'),
+            'contract_end' => $this->request->getVar('contract_end'),
+            'opening_date' => $this->request->getVar('opening_date'),
+            'is_franchise' => $this->request->getVar('is_franchise'),
+            'operation_days' => $this->request->getVar('operation_days'),
+            'operation_times' => $this->request->getVar('operation_times'),
+            'delivery_days' => $this->request->getVar('delivery_days'),
+            'delivery_times' => $this->request->getVar('delivery_times'),
+            'price_level' => $this->request->getVar('price_level'),
+            'rental_monthly_fee' => $this->request->getVar('rental_monthly_fee'),
+            'inventory_group_id' => $this->request->getVar('inventory_group_id'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->branchModel->update($branch['id'], $values)) {
@@ -326,8 +334,9 @@ class Branches extends MYTController
 
         if (!$this->branchAttachmentModel->delete_attachments_by_branch_id($branch['id'], $this->requested_by)) {
             return false;
-        } elseif ($this->request->getFile('file') AND
-                  $this->branchAttachmentModel->delete_attachments_by_branch_id($branch['id'], $this->requested_by)
+        } elseif (
+            $this->request->getFile('file') and
+            $this->branchAttachmentModel->delete_attachments_by_branch_id($branch['id'], $this->requested_by)
         ) {
             // $this->_attempt_upload_file_base64($this->branchAttachmentModel, ['expense_id' => $expense_id]);
         }
@@ -335,8 +344,8 @@ class Branches extends MYTController
         if ($this->request->getVar('opening_date') != $branch['opening_date']) {
             $values = [
                 'opening_start' => $this->request->getVar('opening_date'),
-                'updated_by'    => $this->requested_by,
-                'updated_on'    => date('Y-m-d H:i:s'),
+                'updated_by' => $this->requested_by,
+                'updated_on' => date('Y-m-d H:i:s'),
             ];
 
             if (!$this->franchiseeModel->update_schedule_by_branch_id($branch['id'], $values, $this->db)) {
@@ -370,10 +379,10 @@ class Branches extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->branchModel               = model('App\Models\Branch');
-        $this->branchAttachmentModel     = model('App\Models\Branch_attachment');
+        $this->branchModel = model('App\Models\Branch');
+        $this->branchAttachmentModel = model('App\Models\Branch_attachment');
         $this->inventoryGroupDetailModel = model('App\Models\Inventory_group_detail');
-        $this->franchiseeModel           = model('App\Models\Franchisee');
-        $this->webappResponseModel       = model('App\Models\Webapp_response');
+        $this->franchiseeModel = model('App\Models\Franchisee');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

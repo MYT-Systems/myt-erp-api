@@ -4,6 +4,10 @@ namespace App\Controllers;
 
 class Distributor_billings extends MYTController
 {
+    protected $distributorModel;
+    protected $distributorBillingModel;
+    protected $distributorBillingEntryModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

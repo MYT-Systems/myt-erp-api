@@ -5,10 +5,14 @@ namespace App\Controllers;
 class Distributors extends MYTController
 {
 
+    protected $distributorModel;
+    protected $distributorClientModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
-        $this->api_key  = $_SERVER['HTTP_API_KEY'];
+        $this->api_key = $_SERVER['HTTP_API_KEY'];
         $this->user_key = $_SERVER['HTTP_USER_KEY'];
 
         $this->_load_essentials();
@@ -20,7 +24,7 @@ class Distributors extends MYTController
     public function get_distributor()
     {
 
-        if (($response = $this->_api_verification('distributors', 'get_distributor')) !== true) 
+        if (($response = $this->_api_verification('distributors', 'get_distributor')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -28,8 +32,8 @@ class Distributors extends MYTController
             return $response;
         }
 
-        $distributor_id    = $this->request->getVar('distributor_id') ? : null;
-        $distributor       = $distributor_id ? $this->distributorModel->get_details_by_id($distributor_id) : null;
+        $distributor_id = $this->request->getVar('distributor_id') ?: null;
+        $distributor = $distributor_id ? $this->distributorModel->get_details_by_id($distributor_id) : null;
         $distributor_clients = $distributor_id ? $this->distributorClientModel->get_details_by_distributor_id($distributor_id) : null;
 
         if (!$distributor) {
@@ -52,7 +56,7 @@ class Distributors extends MYTController
      */
     public function filter_distributor_status()
     {
-        if (($response = $this->_api_verification('distributors', 'filter_distributor_status')) !== true) 
+        if (($response = $this->_api_verification('distributors', 'filter_distributor_status')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -60,7 +64,7 @@ class Distributors extends MYTController
             return $response;
         }
 
-        $status    = $this->request->getVar('status') ? : null;
+        $status = $this->request->getVar('status') ?: null;
         $distributor = $status ? $this->distributorModel->filter_distributor_status($status) : null;
 
         if (!$distributor) {
@@ -81,7 +85,7 @@ class Distributors extends MYTController
      */
     public function filter_order_status()
     {
-        if (($response = $this->_api_verification('distributors', 'filter_order_status')) !== true) 
+        if (($response = $this->_api_verification('distributors', 'filter_order_status')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -89,7 +93,7 @@ class Distributors extends MYTController
             return $response;
         }
 
-        $status    = $this->request->getVar('status') ? : null;
+        $status = $this->request->getVar('status') ?: null;
         $distributor = $status ? $this->distributorModel->filter_order_status($status) : null;
 
         if (!$distributor) {
@@ -97,7 +101,7 @@ class Distributors extends MYTController
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $distributor
+                'data' => $distributor
             ]);
         }
 
@@ -110,7 +114,7 @@ class Distributors extends MYTController
      */
     public function get_all_distributor()
     {
-        if (($response = $this->_api_verification('distributors', 'get_all_distributor')) !== true) 
+        if (($response = $this->_api_verification('distributors', 'get_all_distributor')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -129,7 +133,7 @@ class Distributors extends MYTController
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $distributors
+                'data' => $distributors
             ]);
         }
 
@@ -142,7 +146,7 @@ class Distributors extends MYTController
      */
     public function create()
     {
-        if (($response = $this->_api_verification('distributors', 'create')) !== true) 
+        if (($response = $this->_api_verification('distributors', 'create')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -163,7 +167,7 @@ class Distributors extends MYTController
             $db->transCommit();
             $response = $this->respond([
                 'distributor_id' => $distributor_id,
-                'response'    => 'distributor created successfully'
+                'response' => 'distributor created successfully'
             ]);
         }
 
@@ -177,20 +181,20 @@ class Distributors extends MYTController
      */
     public function update($id = null)
     {
-        if (($response = $this->_api_verification('distributors', 'update')) !== true) 
+        if (($response = $this->_api_verification('distributors', 'update')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
-            
+
         $distributor_id = $this->request->getVar('distributor_id');
-        $where       = ['id' => $distributor_id, 'is_deleted' => 0];
+        $where = ['id' => $distributor_id, 'is_deleted' => 0];
 
         $db = \Config\Database::connect();
         $db->transBegin();
-        
+
         if (!$distributor = $this->distributorModel->select('', $where, 1)) {
             $response = $this->failNotFound('distributor not found');
         } elseif (!$this->_attempt_update($distributor)) {
@@ -199,17 +203,17 @@ class Distributors extends MYTController
         } elseif (!$this->_attempt_update_distributor_clients($distributor, $db)) {
             $db->transRollback();
             $response = $this->respond([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'Failed to generate PO items'
             ]);
         } else {
             $db->transCommit();
             $response = $this->respond([
                 'distributor_id' => $distributor_id,
-                'response'    => 'distributor updated successfully'
+                'response' => 'distributor updated successfully'
             ]);
         }
-        
+
         $db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
@@ -220,14 +224,14 @@ class Distributors extends MYTController
      */
     public function delete($id = null)
     {
-        if (($response = $this->_api_verification('distributors', 'delete')) !== true) 
+        if (($response = $this->_api_verification('distributors', 'delete')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
-        
+
         $distributor_id = $this->request->getVar('distributor_id');
 
         $where = ['id' => $distributor_id, 'is_deleted' => 0];
@@ -249,7 +253,7 @@ class Distributors extends MYTController
      */
     public function search()
     {
-        if (($response = $this->_api_verification('distributors', 'search')) !== true) 
+        if (($response = $this->_api_verification('distributors', 'search')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -257,7 +261,7 @@ class Distributors extends MYTController
             return $response;
         }
 
-        $name          = $this->request->getVar('name') ? : null;
+        $name = $this->request->getVar('name') ?: null;
 
         if (!$distributors = $this->distributorModel->search($name, $limit_by, $anything)) {
             $response = $this->failNotFound('No distributor found');
@@ -282,12 +286,12 @@ class Distributors extends MYTController
     private function _attempt_create()
     {
         $values = [
-            'name'        => $this->request->getVar('name'),
-            'address'        => $this->request->getVar('address'),
-            'contact_person'        => $this->request->getVar('contact_person'),
-            'contact_no'        => $this->request->getVar('contact_no'),
-            'added_by'         => $this->requested_by,
-            'added_on'         => date('Y-m-d H:i:s'),
+            'name' => $this->request->getVar('name'),
+            'address' => $this->request->getVar('address'),
+            'contact_person' => $this->request->getVar('contact_person'),
+            'contact_no' => $this->request->getVar('contact_no'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$distributor_id = $this->distributorModel->insert($values)) {
@@ -303,17 +307,17 @@ class Distributors extends MYTController
     protected function _attempt_update($distributor)
     {
         $values = [
-            'name'        => $this->request->getVar('name'),
-            'address'        => $this->request->getVar('address'),
-            'contact_person'        => $this->request->getVar('contact_person'),
-            'contact_no'        => $this->request->getVar('contact_no'),
-            'updated_by'       => $this->requested_by,
-            'updated_on'       => date('Y-m-d H:i:s')
+            'name' => $this->request->getVar('name'),
+            'address' => $this->request->getVar('address'),
+            'contact_person' => $this->request->getVar('contact_person'),
+            'contact_no' => $this->request->getVar('contact_no'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->distributorModel->update($distributor['id'], $values))
             return false;
-    
+
         return true;
     }
 
@@ -336,7 +340,7 @@ class Distributors extends MYTController
             $db->transRollback();
             $db->close();
             return false;
-        } 
+        }
 
         $db->transCommit();
         $db->close();
@@ -349,9 +353,9 @@ class Distributors extends MYTController
      */
     protected function _attempt_generate_distributor_clients($distributor_id, $db)
     {
-        $customer_ids   = $this->request->getVar('customer_ids');
+        $customer_ids = $this->request->getVar('customer_ids');
         $project_ids = $this->request->getVar('project_ids');
-        $distributor_client_dates      = $this->request->getVar('distributor_client_dates');
+        $distributor_client_dates = $this->request->getVar('distributor_client_dates');
 
         $grand_total = 0;
 
@@ -359,10 +363,10 @@ class Distributors extends MYTController
             $data = [
                 'distributor_id' => $distributor_id,
                 'customer_id' => $customer_id,
-                'project_id'     => $project_ids[$key],
+                'project_id' => $project_ids[$key],
                 'distributor_client_date' => $distributor_client_dates[$key],
-                'added_by'    => $this->requested_by,
-                'added_on'    => date('Y-m-d H:i:s')
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s')
             ];
 
 
@@ -375,8 +379,8 @@ class Distributors extends MYTController
     }
 
     /*
-    * Attempt update PO items
-    */
+     * Attempt update PO items
+     */
     protected function _attempt_update_distributor_clients($distributor, $db)
     {
         // // delete all items first
@@ -384,19 +388,19 @@ class Distributors extends MYTController
             return false;
         }
 
-        $customer_ids   = $this->request->getVar('customer_ids');
+        $customer_ids = $this->request->getVar('customer_ids');
         $project_ids = $this->request->getVar('project_ids');
-        $distributor_client_dates      = $this->request->getVar('distributor_client_dates');
+        $distributor_client_dates = $this->request->getVar('distributor_client_dates');
 
         $grand_total = 0;
         foreach ($customer_ids as $key => $customer_id) {
             $data = [
                 'distributor_id' => $distributor['id'],
                 'customer_id' => $customer_id,
-                'project_id'     => $project_ids[$key],
+                'project_id' => $project_ids[$key],
                 'distributor_client_date' => $distributor_client_dates[$key],
-                'added_by'    => $this->requested_by,
-                'added_on'    => date('Y-m-d H:i:s')
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s')
             ];
 
             if (!$this->distributorClientModel->insert($data, $this->requested_by, $db)) {
@@ -412,9 +416,9 @@ class Distributors extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->distributorModel               = model('App\Models\Distributor');
-        $this->distributorClientModel           = model('App\Models\Distributor_client');
-        $this->webappResponseModel         = model('App\Models\Webapp_response');
-        
+        $this->distributorModel = model('App\Models\Distributor');
+        $this->distributorClientModel = model('App\Models\Distributor_client');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
+
     }
 }

@@ -5,6 +5,10 @@ namespace App\Controllers;
 class Franchise_sale_item_prices extends MYTController
 {
 
+    protected $franchiseSaleItemPriceModel;
+    protected $itemModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -21,21 +25,21 @@ class Franchise_sale_item_prices extends MYTController
     {
         if (($response = $this->_api_verification('franchise_sale_item_prices', 'get_franchise_sale_item_price')) !== true)
             return $response;
-        
+
         $token = $this->request->getVar('token');
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
 
-        $franchise_sale_item_price_id = $this->request->getVar('franchise_sale_item_price_id') ? : null;
-        $franchise_sale_item_price    = $franchise_sale_item_price_id ? $this->franchiseSaleItemPriceModel->get_details_by_id($franchise_sale_item_price_id) : null;
+        $franchise_sale_item_price_id = $this->request->getVar('franchise_sale_item_price_id') ?: null;
+        $franchise_sale_item_price = $franchise_sale_item_price_id ? $this->franchiseSaleItemPriceModel->get_details_by_id($franchise_sale_item_price_id) : null;
 
         if (!$franchise_sale_item_price) {
             $response = $this->failNotFound('No Franchise sale item price found');
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $franchise_sale_item_price
+                'data' => $franchise_sale_item_price
             ]);
         }
 
@@ -63,7 +67,7 @@ class Franchise_sale_item_prices extends MYTController
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $franchise_sale_item_prices
+                'data' => $franchise_sale_item_prices
             ]);
         }
 
@@ -93,8 +97,8 @@ class Franchise_sale_item_prices extends MYTController
         } else {
             $this->db->transCommit();
             $response = $this->respond([
-                'response'    => 'Franchise sale item price created successfully',
-                'status'      => 'success',
+                'response' => 'Franchise sale item price created successfully',
+                'status' => 'success',
                 'franchise_sale_item_price_id' => $franchise_sale_item_price_id
             ]);
         }
@@ -118,11 +122,11 @@ class Franchise_sale_item_prices extends MYTController
         }
 
         $franchise_sale_item_price_id = $this->request->getVar('franchise_sale_item_price_id');
-        $where       = ['id' => $franchise_sale_item_price_id, 'is_deleted' => 0];
+        $where = ['id' => $franchise_sale_item_price_id, 'is_deleted' => 0];
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
-        
+
         if (!$franchise_sale_item_price = $this->franchiseSaleItemPriceModel->select('', $where, 1))
             $response = $this->failNotFound('Franchise sale item price not found');
         elseif (!$this->_attempt_update($franchise_sale_item_price)) {
@@ -187,8 +191,8 @@ class Franchise_sale_item_prices extends MYTController
             return $response;
         }
 
-        $item_id   = $this->request->getVar('item_id') ?? null;
-        $type      = $this->request->getVar('type') ?? null;
+        $item_id = $this->request->getVar('item_id') ?? null;
+        $type = $this->request->getVar('type') ?? null;
         $item_name = $this->request->getVar('item_name') ?? null;
         $branch_id = $this->request->getVar('branch_id') ?? null;
 
@@ -197,8 +201,8 @@ class Franchise_sale_item_prices extends MYTController
         } else {
             $response = $this->respond([
                 'response' => 'Franchise sale item prices found',
-                'status'   => 'success',
-                'data'     => $franchise_sale_item_prices
+                'status' => 'success',
+                'data' => $franchise_sale_item_prices
             ]);
         }
 
@@ -216,15 +220,15 @@ class Franchise_sale_item_prices extends MYTController
     private function _attempt_create()
     {
         $values = [
-            'item_id'       => $this->request->getVar('item_id'),
-            'item_unit_id'  => $this->request->getVar('item_unit_id'),
-            'unit'          => $this->request->getVar('unit'),
-            'type'          => $this->request->getVar('type'),
-            'price_1'       => $this->request->getVar('price_1'),
-            'price_2'       => $this->request->getVar('price_2'),
-            'price_3'       => $this->request->getVar('price_3'),
-            'added_by'      => $this->requested_by,
-            'added_on'      => date('Y-m-d H:i:s'),
+            'item_id' => $this->request->getVar('item_id'),
+            'item_unit_id' => $this->request->getVar('item_unit_id'),
+            'unit' => $this->request->getVar('unit'),
+            'type' => $this->request->getVar('type'),
+            'price_1' => $this->request->getVar('price_1'),
+            'price_2' => $this->request->getVar('price_2'),
+            'price_3' => $this->request->getVar('price_3'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$franchise_sale_item_price_id = $this->franchiseSaleItemPriceModel->insert_on_duplicate($values, $this->requested_by, $this->db)) {
@@ -248,15 +252,15 @@ class Franchise_sale_item_prices extends MYTController
             return false;
 
         $values = [
-            'item_id'       => $this->request->getVar('item_id'),
-            'item_unit_id'  => $this->request->getVar('item_unit_id'),
-            'unit'          => $this->request->getVar('unit'),
-            'type'          => $this->request->getVar('type'),
-            'price_1'       => $this->request->getVar('price_1'),
-            'price_2'       => $this->request->getVar('price_2'),
-            'price_3'       => $this->request->getVar('price_3'),
-            'updated_by'    => $this->requested_by,
-            'updated_on'    => date('Y-m-d H:i:s')
+            'item_id' => $this->request->getVar('item_id'),
+            'item_unit_id' => $this->request->getVar('item_unit_id'),
+            'unit' => $this->request->getVar('unit'),
+            'type' => $this->request->getVar('type'),
+            'price_1' => $this->request->getVar('price_1'),
+            'price_2' => $this->request->getVar('price_2'),
+            'price_3' => $this->request->getVar('price_3'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->franchiseSaleItemPriceModel->insert_on_duplicate($values, $this->requested_by, $this->db)) {
@@ -288,7 +292,7 @@ class Franchise_sale_item_prices extends MYTController
 
         if (!$this->_update_item_is_for_sale($franchise_sale_item_price['item_id'], 0))
             return false;
-        
+
         return true;
     }
 
@@ -299,8 +303,8 @@ class Franchise_sale_item_prices extends MYTController
     {
         $values = [
             'is_for_sale' => $is_for_sale,
-            'updated_by'  => $this->requested_by,
-            'updated_on'  => date('Y-m-d H:i:s')
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->itemModel->update($item_id, $values)) {
@@ -325,7 +329,7 @@ class Franchise_sale_item_prices extends MYTController
     protected function _load_essentials()
     {
         $this->franchiseSaleItemPriceModel = model('App\Models\Franchise_sale_item_price');
-        $this->itemModel                   = model('App\Models\Item');
-        $this->webappResponseModel         = model('App\Models\Webapp_response');
+        $this->itemModel = model('App\Models\Item');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

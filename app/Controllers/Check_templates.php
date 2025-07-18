@@ -7,6 +7,8 @@ use App\Models\Webapp_response;
 
 class Check_templates extends MYTController
 {
+    protected $check_templateModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

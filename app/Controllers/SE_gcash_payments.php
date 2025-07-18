@@ -11,6 +11,14 @@ use App\Models\Webapp_response;
 
 class Se_gcash_payments extends MYTController
 {
+    protected $gcashEntryModel;
+    protected $gcashSlipModel;
+    protected $bankModel;
+    protected $suppliesExpenseModel;
+    protected $gcashSlipAttachmentModel;
+    protected $seReceiveModel;
+    protected $projectExpenseModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

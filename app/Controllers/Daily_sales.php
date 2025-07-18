@@ -16,6 +16,17 @@ use App\Models\Webapp_response;
 class Daily_sales extends MYTController
 {
 
+    protected $dailySaleModel;
+    protected $dsDeductionModel;
+    protected $cashCountModel;
+    protected $expenseModel;
+    protected $paymentModel;
+    protected $endingInventoryModel;
+    protected $orderDetailIngredModel;
+    protected $storeDepositModel;
+    protected $storeDepositAttachmentModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -38,15 +49,15 @@ class Daily_sales extends MYTController
             return $response;
         }
 
-        $daily_sale_id = $this->request->getVar('daily_sale_id') ? : null;
-        $daily_sale    = $daily_sale_id ? $this->cashCountModel->get_details_by_id($daily_sale_id) : null;
+        $daily_sale_id = $this->request->getVar('daily_sale_id') ?: null;
+        $daily_sale = $daily_sale_id ? $this->cashCountModel->get_details_by_id($daily_sale_id) : null;
 
         if (!$daily_sale) {
             $response = $this->failNotFound('No daily_sale found');
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $daily_sale
+                'data' => $daily_sale
             ]);
         }
 
@@ -74,14 +85,14 @@ class Daily_sales extends MYTController
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $daily_sales
+                'data' => $daily_sales
             ]);
         }
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
-    
+
     /**
      * Add employee deduction for daily sale
      */
@@ -111,7 +122,7 @@ class Daily_sales extends MYTController
             ];
         }
 
-        if ($data AND !$this->dsDeductionModel->insertBatch($data)) {
+        if ($data and !$this->dsDeductionModel->insertBatch($data)) {
             $response = $this->fail('Unable to add employee deductions');
         } else {
             $response = $this->respond([
@@ -138,7 +149,7 @@ class Daily_sales extends MYTController
         }
 
         $branch_id = $this->request->getVar('branch_id');
-        $date = $this->request->getVar('date') ? : date("Y-m-d");
+        $date = $this->request->getVar('date') ?: date("Y-m-d");
         $system_sales = $this->orderDetailIngredModel->get_system_inventory_sales_by_item($branch_id, $date);
         $total_system_sales = $this->orderDetailIngredModel->get_system_inventory_sales($branch_id, $date);
         $actual_sales = $this->orderDetailIngredModel->get_actual_inventory_sales_by_item($branch_id, $date);
@@ -177,7 +188,7 @@ class Daily_sales extends MYTController
         $sales_date_to = $this->request->getVar('sales_date_to');
         $sales_date_to = date("Y-m-d", strtotime($sales_date_to));
         $branch_id = $this->request->getVar('branch_id');
-        
+
         if (!$this->dailySaleModel->search($branch_id, null, null, null, $sales_date_from, $sales_date_to)) {
             $response = $this->fail('No daily sales within chosen date range.');
         } elseif ($this->storeDepositModel->get_store_deposit_within_date_range($branch_id, $sales_date_from, $sales_date_to)) {
@@ -222,28 +233,29 @@ class Daily_sales extends MYTController
             'deposited_to' => $this->request->getVar('deposited_to'),
             'deposited_on' => $deposited_on,
             'deposited_by' => $this->request->getVar('deposited_by'),
-            'added_on'   => date("Y-m-d H:i:s"),
-            'added_by'   => $this->requested_by
+            'added_on' => date("Y-m-d H:i:s"),
+            'added_by' => $this->requested_by
         ];
 
-        if (!$this->storeDepositModel->insert($values)) return false;
+        if (!$this->storeDepositModel->insert($values))
+            return false;
         return $this->storeDepositModel->insertID();
     }
 
     protected function _save_file_to_database($store_deposit_id)
     {
-        $deposit_attachments = $this->request->getVar('deposit_attachments') ? : [];
+        $deposit_attachments = $this->request->getVar('deposit_attachments') ?: [];
         $data = [];
         foreach ($deposit_attachments as $attachment) {
             $data[] = [
                 'store_deposit_id' => $store_deposit_id,
                 'base64' => $attachment,
-                'added_on'   => date("Y-m-d H:i:s"),
-                'added_by'   => $this->requested_by
+                'added_on' => date("Y-m-d H:i:s"),
+                'added_by' => $this->requested_by
             ];
         }
 
-        if (count($data) > 0 AND !$this->storeDepositAttachmentModel->insertBatch($data))
+        if (count($data) > 0 and !$this->storeDepositAttachmentModel->insertBatch($data))
             return false;
         return true;
     }
@@ -278,7 +290,7 @@ class Daily_sales extends MYTController
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
-        
+
         $response = $this->_attempt_create_sales();
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
@@ -299,7 +311,7 @@ class Daily_sales extends MYTController
         }
 
         $where = [
-            'id' => $this->request->getVar('daily_sale_id'), 
+            'id' => $this->request->getVar('daily_sale_id'),
             'is_deleted' => 0
         ];
 
@@ -320,7 +332,7 @@ class Daily_sales extends MYTController
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
-    
+
     /**
      * Attempt create the daily sale
      */
@@ -343,34 +355,34 @@ class Daily_sales extends MYTController
 
         $actual_inventory_sales = $this->orderDetailIngredModel->get_actual_inventory_sales($branch_id, date("Y-m-d"));
         $net_actual_sales = $actual_inventory_sales['grand_total'] - $total_expense;
-        
+
         $system_inventory_sales = $this->orderDetailIngredModel->get_system_inventory_sales($branch_id, date("Y-m-d"));
         $net_system_sales = $system_inventory_sales['grand_total'] - $total_expense;
 
         $ending_inventory = $this->endingInventoryModel->get_branch_inventory_variance($branch_id, $current_date);
 
         $values = [
-            'branch_id'               => $branch_id,
-            'date'                    => $current_date,
-            'actual_cash_sales'       => $total_cash,
-            'system_cash_sales'       => $cash_sales,
-            'cash_sales_overage'      => $total_cash - $cash_sales, // actual - system
-            'gcash_sales'             => $gcash_sales,
-            'food_panda_sales'        => $food_panda_sales,
-            'grab_food_sales'         => $grab_food_sales,
-            'total_sales'             => $total_sales,
-            'total_expense'           => $total_expense,
-            'actual_inventory_sales'  => $actual_inventory_sales['grand_total'],
-            'net_actual_sales'        => $net_actual_sales,
-            'system_inventory_sales'  => $system_inventory_sales['grand_total'],
-            'net_system_sales'        => $net_system_sales,
+            'branch_id' => $branch_id,
+            'date' => $current_date,
+            'actual_cash_sales' => $total_cash,
+            'system_cash_sales' => $cash_sales,
+            'cash_sales_overage' => $total_cash - $cash_sales, // actual - system
+            'gcash_sales' => $gcash_sales,
+            'food_panda_sales' => $food_panda_sales,
+            'grab_food_sales' => $grab_food_sales,
+            'total_sales' => $total_sales,
+            'total_expense' => $total_expense,
+            'actual_inventory_sales' => $actual_inventory_sales['grand_total'],
+            'net_actual_sales' => $net_actual_sales,
+            'system_inventory_sales' => $system_inventory_sales['grand_total'],
+            'net_system_sales' => $net_system_sales,
             'overage_inventory_sales' => $net_actual_sales - $net_system_sales, // actual - system
-            'inventory_variance'      => $ending_inventory['inventory_variance'],
-            'cashier_id'              => $this->request->getVar('cashier_id'),
-            'prepared_by'             => $this->request->getVar('prepared_by'),
-            'prepared_on'             => date('Y-m-d H:i:s'),
-            'added_by'                => $this->requested_by,
-            'added_on'                => date('Y-m-d H:i:s')
+            'inventory_variance' => $ending_inventory['inventory_variance'],
+            'cashier_id' => $this->request->getVar('cashier_id'),
+            'prepared_by' => $this->request->getVar('prepared_by'),
+            'prepared_on' => date('Y-m-d H:i:s'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$daily_sale_id = $this->dailySaleModel->insert($values)) {
@@ -450,19 +462,19 @@ class Daily_sales extends MYTController
             return $response;
         }
 
-        $branch_id = $this->request->getVar('branch_id') ? : null;
-        $date      = $this->request->getVar('date') ? : null;
-        $date      = $date ? date('Y-m-d', strtotime($date)) : null;
+        $branch_id = $this->request->getVar('branch_id') ?: null;
+        $date = $this->request->getVar('date') ?: null;
+        $date = $date ? date('Y-m-d', strtotime($date)) : null;
 
-        $date_from = $this->request->getVar('date_from') ? : null;
+        $date_from = $this->request->getVar('date_from') ?: null;
         $date_from = $date_from ? date('Y-m-d', strtotime($date_from)) : null;
-        $date_to   = $this->request->getVar('date_to') ? : null;
-        $date_to   = $date_to ? date('Y-m-d', strtotime($date_to)) : null;
+        $date_to = $this->request->getVar('date_to') ?: null;
+        $date_to = $date_to ? date('Y-m-d', strtotime($date_to)) : null;
 
         $inventory_variance_discrepancy = $this->request->getVar('inventory_variance_discrepancy');
-        $inventory_variance_discrepancy = ($inventory_variance_discrepancy == "" OR $inventory_variance_discrepancy == null) ? null : $inventory_variance_discrepancy;
+        $inventory_variance_discrepancy = ($inventory_variance_discrepancy == "" or $inventory_variance_discrepancy == null) ? null : $inventory_variance_discrepancy;
         $cash_variance_discrepancy = $this->request->getVar('cash_variance_discrepancy');
-        $cash_variance_discrepancy = ($cash_variance_discrepancy == "" OR $cash_variance_discrepancy == null) ? null : $cash_variance_discrepancy;
+        $cash_variance_discrepancy = ($cash_variance_discrepancy == "" or $cash_variance_discrepancy == null) ? null : $cash_variance_discrepancy;
 
         if (!$daily_sales = $this->dailySaleModel->search($branch_id, $date, $inventory_variance_discrepancy, $cash_variance_discrepancy, $date_from, $date_to)) {
             $response = $this->failNotFound('No daily sale found');
@@ -481,55 +493,55 @@ class Daily_sales extends MYTController
      */
     protected function _attempt_create()
     {
-        $branch_id       = $this->request->getVar('branch_id') ? : null;
-        $sales_for_today = $this->paymentModel->get_sales(true, $branch_id) ? : 0;
-        $bill_1000       = $this->request->getVar('bill_1000') ? : 0;
-        $bill_500        = $this->request->getVar('bill_500') ? : 0;
-        $bill_200        = $this->request->getVar('bill_200') ? : 0;
-        $bill_100        = $this->request->getVar('bill_100') ? : 0;
-        $bill_50         = $this->request->getVar('bill_50') ? : 0;
-        $bill_20         = $this->request->getVar('bill_20') ? : 0;
-        $coin_10         = $this->request->getVar('coin_10') ? : 0;
-        $coin_5          = $this->request->getVar('coin_5') ? : 0;
-        $coin_1          = $this->request->getVar('coin_1') ? : 0;
-        $cent_25         = $this->request->getVar('cent_25') ? : 0;
-        $cent_10         = $this->request->getVar('cent_10') ? : 0;
-        $cent_5          = $this->request->getVar('cent_5') ? : 0;
-        $cent_1          = $this->request->getVar('cent_1') ? : 0;
-        $total_cash      = ($bill_1000 * 1000 + $bill_500 * 500 + $bill_200 * 200 + $bill_100 * 100 + 
-                            $bill_50 * 50 + $bill_20 * 20 + $coin_10 * 10 + $coin_5 * 5 + $coin_1 * 1 + 
-                            $cent_25 * 0.25 + $cent_10 * 0.10 + $cent_5 * 0.05 + $cent_1 * 0.01);
+        $branch_id = $this->request->getVar('branch_id') ?: null;
+        $sales_for_today = $this->paymentModel->get_sales(true, $branch_id) ?: 0;
+        $bill_1000 = $this->request->getVar('bill_1000') ?: 0;
+        $bill_500 = $this->request->getVar('bill_500') ?: 0;
+        $bill_200 = $this->request->getVar('bill_200') ?: 0;
+        $bill_100 = $this->request->getVar('bill_100') ?: 0;
+        $bill_50 = $this->request->getVar('bill_50') ?: 0;
+        $bill_20 = $this->request->getVar('bill_20') ?: 0;
+        $coin_10 = $this->request->getVar('coin_10') ?: 0;
+        $coin_5 = $this->request->getVar('coin_5') ?: 0;
+        $coin_1 = $this->request->getVar('coin_1') ?: 0;
+        $cent_25 = $this->request->getVar('cent_25') ?: 0;
+        $cent_10 = $this->request->getVar('cent_10') ?: 0;
+        $cent_5 = $this->request->getVar('cent_5') ?: 0;
+        $cent_1 = $this->request->getVar('cent_1') ?: 0;
+        $total_cash = ($bill_1000 * 1000 + $bill_500 * 500 + $bill_200 * 200 + $bill_100 * 100 +
+            $bill_50 * 50 + $bill_20 * 20 + $coin_10 * 10 + $coin_5 * 5 + $coin_1 * 1 +
+            $cent_25 * 0.25 + $cent_10 * 0.10 + $cent_5 * 0.05 + $cent_1 * 0.01);
 
 
         $values = [
-            'branch_id'       => $branch_id,
+            'branch_id' => $branch_id,
             'sales_report_id' => $this->request->getVar('sales_report_id'),
-            'count_date'      => date('Y-m-d H:i:s'),
-            'bill_1000'       => $billd_1000,
-            'bill_500'        => $bill_500,
-            'bill_200'        => $bill_200,
-            'bill_100'        => $bill_100,
-            'bill_50'         => $bill_50,
-            'bill_20'         => $bill_20,
-            'coin_10'         => $coin_10,
-            'coin_5'          => $coin_5,
-            'coin_1'          => $coin_1,
-            'cent_25'         => $cent_25,
-            'cent_10'         => $cent_10,
-            'cent_5'          => $cent_5,
-            'cent_1'          => $cent_1,
-            'physical_count'  => $total_cash,
-            'cash_sales'      => $sales_for_today,
-            'overage'         => $total_cash - $sales_for_today ,
-            'is_reviewed'     => $this->request->getVar('is_reviewed'),
-            'prepared_by'     => $this->request->getVar('prepared_by'),
-            'approved_by'     => $this->request->getVar('approved_by'),
-            'added_on'        => date('Y-m-d H:i:s'),
+            'count_date' => date('Y-m-d H:i:s'),
+            'bill_1000' => $billd_1000,
+            'bill_500' => $bill_500,
+            'bill_200' => $bill_200,
+            'bill_100' => $bill_100,
+            'bill_50' => $bill_50,
+            'bill_20' => $bill_20,
+            'coin_10' => $coin_10,
+            'coin_5' => $coin_5,
+            'coin_1' => $coin_1,
+            'cent_25' => $cent_25,
+            'cent_10' => $cent_10,
+            'cent_5' => $cent_5,
+            'cent_1' => $cent_1,
+            'physical_count' => $total_cash,
+            'cash_sales' => $sales_for_today,
+            'overage' => $total_cash - $sales_for_today,
+            'is_reviewed' => $this->request->getVar('is_reviewed'),
+            'prepared_by' => $this->request->getVar('prepared_by'),
+            'approved_by' => $this->request->getVar('approved_by'),
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$daily_sale_id = $this->cashCountModel->insert($values))
             return false;
-        
+
         return $daily_sale_id;
     }
 
@@ -540,10 +552,10 @@ class Daily_sales extends MYTController
     {
         $values = [
             'transaction_type_id' => $this->request->getVar('transaction_type_id'),
-            'branch_id'           => $this->request->getVar('branch_id'),
-            'commission'          => $this->request->getVar('commission'),
-            'updated_by'          => $this->requested_by,
-            'updated_on'          => date('Y-m-d H:i:s')
+            'branch_id' => $this->request->getVar('branch_id'),
+            'commission' => $this->request->getVar('commission'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->cashCountModel->update($daily_sale_id, $values))
@@ -593,6 +605,6 @@ class Daily_sales extends MYTController
         $this->orderDetailIngredModel = new Order_detail_ingredient();
         $this->storeDepositModel = new Store_deposit();
         $this->storeDepositAttachmentModel = new Store_deposit_attachment();
-        $this->webappResponseModel  = new Webapp_response();
+        $this->webappResponseModel = new Webapp_response();
     }
 }

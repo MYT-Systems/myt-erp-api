@@ -11,6 +11,13 @@ use App\Models\Webapp_response;
 
 class Se_check_payments extends MYTController
 {
+    protected $checkEntryModel;
+    protected $checkSlipModel;
+    protected $suppliesExpenseModel;
+    protected $checkSlipAttachmentModel;
+    protected $seReceiveModel;
+    protected $projectExpenseModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

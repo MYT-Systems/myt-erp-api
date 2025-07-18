@@ -13,6 +13,13 @@ use App\Models\Webapp_response;
 class Attendances extends MYTController
 {
 
+    protected $attendanceModel;
+    protected $attendanceEntryModel;
+    protected $employeeModel;
+    protected $userModel;
+    protected $userBranchModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -35,8 +42,8 @@ class Attendances extends MYTController
             return $response;
         }
 
-        $attendance_id = $this->request->getVar('attendance_id') ? : null;
-        $attendance    = $attendance_id ? $this->attendanceModel->get_details_by_id($attendance_id) : null;
+        $attendance_id = $this->request->getVar('attendance_id') ?: null;
+        $attendance = $attendance_id ? $this->attendanceModel->get_details_by_id($attendance_id) : null;
 
         if (!$attendance) {
             $response = $this->failNotFound('No attendance found');
@@ -45,7 +52,7 @@ class Attendances extends MYTController
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $attendance
+                'data' => $attendance
             ]);
         }
 
@@ -66,20 +73,20 @@ class Attendances extends MYTController
             return $response;
         }
 
-        $branch_id = $this->request->getVar('branch_id') ? : null;
+        $branch_id = $this->request->getVar('branch_id') ?: null;
 
         $attendances = $this->attendanceModel->get_all_attendance($branch_id);
 
         if (!$attendances) {
             $response = $this->failNotFound('No attendance found');
         } else {
-            foreach($attendances as $key => $attendance) {
+            foreach ($attendances as $key => $attendance) {
                 $attendances[$key]['attendance_entries'] = $this->attendanceEntryModel->get_details_by_attendance_id($attendance['id']);
             }
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $attendances
+                'data' => $attendances
             ]);
         }
 
@@ -135,33 +142,33 @@ class Attendances extends MYTController
             return $response;
         }
 
-        $branch_id = $this->request->getVar('branch_id') ? : null;
-        $branch_name = $this->request->getVar('branch_name') ? : null;
-        $employee_id = $this->request->getVar('employee_id') ? : null;
-        $employee_name = $this->request->getVar('employee_name') ? : null;
-        $date = $this->request->getVar('date') ? : null;
-        $date_from = $this->request->getVar('date_from') ? : null;
-        $date_to = $this->request->getVar('date_to') ? : null;
-        $group_by_employees = $this->request->getVar('by_employees') ? : false;
-        $group_datetime = $this->request->getVar('group_datetime') ? : false;
+        $branch_id = $this->request->getVar('branch_id') ?: null;
+        $branch_name = $this->request->getVar('branch_name') ?: null;
+        $employee_id = $this->request->getVar('employee_id') ?: null;
+        $employee_name = $this->request->getVar('employee_name') ?: null;
+        $date = $this->request->getVar('date') ?: null;
+        $date_from = $this->request->getVar('date_from') ?: null;
+        $date_to = $this->request->getVar('date_to') ?: null;
+        $group_by_employees = $this->request->getVar('by_employees') ?: false;
+        $group_datetime = $this->request->getVar('group_datetime') ?: false;
 
         if ($branches = $this->branchGroupModel->get_branches_per_supervisor($this->requested_by)) {
             $branches = array_map(function ($datum) {
                 return $datum['branch_id'];
             }, $branches);
         }
-        $branches = $branches ? : null;
+        $branches = $branches ?: null;
 
         if (!$attendances = $this->attendanceModel->search($group_by_employees, $group_datetime, $branch_id, $branch_name, $employee_id, $employee_name, $date, $date_from, $date_to, $branches)) {
             $response = $this->failNotFound('No attendance found');
         } else {
             $total_minutes_per_employee = [];
-            foreach($attendances as $key => $attendance) {
+            foreach ($attendances as $key => $attendance) {
                 if (!isset($total_minutes_per_employee[$attendance['employee_id']])) {
                     $total_minutes_per_employee[$attendance['employee_id']] = 0;
-                } 
+                }
 
-                $total_minutes_per_employee[$attendance['employee_id']] += (float)$attendance['total_minutes'];
+                $total_minutes_per_employee[$attendance['employee_id']] += (float) $attendance['total_minutes'];
 
                 $attendance_entry_work_minutes = $this->attendanceEntryModel->get_total_work_minutes($attendance['id']);
                 $attendances[$key]['total_minutes'] = $attendance_entry_work_minutes['total_worked_minutes'];
@@ -172,7 +179,7 @@ class Attendances extends MYTController
             $response = $this->respond([
                 'status' => 'success',
                 'total_minutes_per_employee' => $total_minutes_per_employee,
-                'data'   => $attendances
+                'data' => $attendances
             ]);
         }
 
@@ -192,16 +199,16 @@ class Attendances extends MYTController
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
-            
-        $username = $this->request->getVar('username') ? : null;
-        $password = $this->request->getVar('password') ? : null;
+
+        $username = $this->request->getVar('username') ?: null;
+        $password = $this->request->getVar('password') ?: null;
 
         $employee = $this->employeeModel->get_details_by_username($username);
         $user = $this->userModel->select('', ['id' => $this->requested_by, 'is_deleted' => 0], 1);
 
         if (!$employee)
             $response = $this->failNotFound('No employee found');
-        elseif ($employee[0]->type == 'office' AND $user['type'] == 'branch')
+        elseif ($employee[0]->type == 'office' and $user['type'] == 'branch')
             $response = $this->fail('Crew cannot login supervisors.');
         elseif (!password_verify($password, $employee[0]->password))
             $response = $this->failNotFound('Invalid password');
@@ -210,10 +217,10 @@ class Attendances extends MYTController
         else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $employee
+                'data' => $employee
             ]);
         }
-        
+
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
@@ -221,7 +228,8 @@ class Attendances extends MYTController
     /**
      * Record attendance (time in, time out)
      */
-    public function record_attendance() {
+    public function record_attendance()
+    {
         if (($response = $this->_api_verification('attendances', 'record_attendance')) !== true)
             return $response;
 
@@ -229,16 +237,16 @@ class Attendances extends MYTController
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
-        
-        $employee_id = $this->request->getVar('employee_id') ? : null;
-        $type        = $this->request->getVar('type') ? : null;
+
+        $employee_id = $this->request->getVar('employee_id') ?: null;
+        $type = $this->request->getVar('type') ?: null;
 
         $employee = $this->employeeModel->select('', ['id' => $employee_id, 'is_deleted' => 0], 1);
         $user = $this->userModel->select('', ['id' => $this->requested_by, 'is_deleted' => 0], 1);
 
         if (!$employee)
             $response = $this->failNotFound('No employee found');
-        elseif ($employee['type'] == 'office' AND $user['type'] == 'branch')
+        elseif ($employee['type'] == 'office' and $user['type'] == 'branch')
             $response = $this->fail('Crew cannot time in supervisors.');
         elseif (!$this->_attempt_record_attendance($employee_id, $type))
             $response = $this->fail($this->errorMessage);
@@ -246,7 +254,7 @@ class Attendances extends MYTController
             $user = $this->userModel->get_details_by_id($this->requested_by);
             $user = $user ? $user[0] : null;
             $branch_id = $user ? $user['branch_id'] : 0;
-            $branch_id = $branch_id ? : 0;
+            $branch_id = $branch_id ?: 0;
 
             $date = date('Y-m-d');
             $attendance = $this->attendanceModel->search($branch_id, $employee_id, $date);
@@ -257,7 +265,7 @@ class Attendances extends MYTController
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $employee,
+                'data' => $employee,
                 'attendance' => $attendance,
             ]);
         }
@@ -301,22 +309,22 @@ class Attendances extends MYTController
         $user = $this->userModel->get_details_by_id($this->requested_by);
         $user = $user ? $user[0] : null;
         $branch_id = $user ? $user['branch_id'] : 0;
-        $branch_id = $branch_id ? : 0;
+        $branch_id = $branch_id ?: 0;
 
         $attendance = $this->attendanceModel->get_latest_attendance_today($employee_id, $branch_id);
         $attendance = $attendance ? $attendance[0] : null;
-        
+
         if (!$type) {
-            
+
             $value = [
-                'branch_id'   => $branch_id,
+                'branch_id' => $branch_id,
                 'employee_id' => $employee_id,
-                'datetime'    => date('Y-m-d H:i:s'),
-                'added_by'    => $this->requested_by,
-                'added_on'    => date('Y-m-d H:i:s')
+                'datetime' => date('Y-m-d H:i:s'),
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s')
             ];
 
-            if (!$attendance AND !$this->attendanceModel->insert($value)) {
+            if (!$attendance and !$this->attendanceModel->insert($value)) {
                 $this->errorMessage = $this->db->error()['message'];
                 $this->db->transRollback();
                 $this->db->close();
@@ -339,7 +347,7 @@ class Attendances extends MYTController
                 return false;
             }
 
-            switch($type) {
+            switch ($type) {
                 case 'time_in':
                     // User needs to time_out first before time_in
                     if ($attendance_entry && !$attendance_entry['time_out']) {
@@ -351,9 +359,9 @@ class Attendances extends MYTController
 
                     $value = [
                         'attendance_id' => $attendance['id'],
-                        'time_in'       => date('Y-m-d H:i:s'),
-                        'added_by'      => $this->requested_by,
-                        'added_on'      => date('Y-m-d H:i:s')
+                        'time_in' => date('Y-m-d H:i:s'),
+                        'added_by' => $this->requested_by,
+                        'added_on' => date('Y-m-d H:i:s')
                     ];
 
                     if (!$this->attendanceEntryModel->insert($value)) {
@@ -364,7 +372,7 @@ class Attendances extends MYTController
                     }
 
                     break;
-                case 'time_out':                    
+                case 'time_out':
                     // If the user time_out already
                     if ($attendance_entry && $attendance_entry['time_out']) {
                         $this->errorMessage = "User has already time_out";
@@ -372,16 +380,16 @@ class Attendances extends MYTController
                         $this->db->close();
                         return false;
                     }
-                    
+
                     $time_in = $attendance_entry['time_in'];
                     $time_out = date('Y-m-d H:i:s');
                     $worked_minutes = $this->_get_worked_minutes($time_in, $time_out);
 
                     $value = [
-                        'time_out'       => date('Y-m-d H:i:s'),
+                        'time_out' => date('Y-m-d H:i:s'),
                         'worked_minutes' => $worked_minutes,
-                        'updated_by'     => $this->requested_by,
-                        'updated_on'     => date('Y-m-d H:i:s')
+                        'updated_by' => $this->requested_by,
+                        'updated_on' => date('Y-m-d H:i:s')
                     ];
 
                     if (!$this->attendanceEntryModel->update($attendance_entry['id'], $value)) {
@@ -393,8 +401,8 @@ class Attendances extends MYTController
 
                     $value = [
                         'total_minutes' => $attendance['total_minutes'] + $worked_minutes,
-                        'updated_by'    => $this->requested_by,
-                        'updated_on'    => date('Y-m-d H:i:s')
+                        'updated_by' => $this->requested_by,
+                        'updated_on' => date('Y-m-d H:i:s')
                     ];
 
                     if (!$this->attendanceModel->update($attendance['id'], $value)) {
@@ -425,7 +433,7 @@ class Attendances extends MYTController
         $time_in = new DateTime($time_in);
         $time_out = new DateTime($time_out);
         $diff = $time_in->diff($time_out);
-        
+
         return $diff->h * 60 + $diff->i;
     }
 
@@ -434,11 +442,11 @@ class Attendances extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->attendanceModel      = model('App\Models\Attendance');
+        $this->attendanceModel = model('App\Models\Attendance');
         $this->attendanceEntryModel = model('App\Models\Attendance_entry');
-        $this->employeeModel        = model('App\Models\Employee');
-        $this->userModel            = model('App\Models\User');
-        $this->userBranchModel      = model('App\Models\User_branch');
-        $this->webappResponseModel  = model('App\Models\Webapp_response');
+        $this->employeeModel = model('App\Models\Employee');
+        $this->userModel = model('App\Models\User');
+        $this->userBranchModel = model('App\Models\User_branch');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

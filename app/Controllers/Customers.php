@@ -8,6 +8,9 @@ use App\Models\Webapp_response;
 class Customers extends MYTController
 {
 
+    protected $customerModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers

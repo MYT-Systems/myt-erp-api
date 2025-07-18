@@ -8,6 +8,10 @@ use App\Models\Webapp_response;
 
 class Discounts extends MYTController
 {
+    protected $discountModel;
+    protected $paymentModel;
+    protected $discountBranchModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

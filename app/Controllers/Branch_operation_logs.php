@@ -5,6 +5,10 @@ namespace App\Controllers;
 class Branch_operation_logs extends MYTController
 {
 
+    protected $operationLogModel;
+    protected $branchModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers

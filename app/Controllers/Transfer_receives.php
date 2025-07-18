@@ -4,6 +4,16 @@ namespace App\Controllers;
 
 class Transfer_receives extends MYTController
 {
+    protected $transferReceiveModel;
+    protected $transferReceiveItemModel;
+    protected $transferItemModel;
+    protected $transferModel;
+    protected $requestModel;
+    protected $inventoryModel;
+    protected $initialInventoryModel;
+    protected $dailySaleModel;
+    protected $itemUnitModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

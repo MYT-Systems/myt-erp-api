@@ -7,6 +7,8 @@ use App\Models\Webapp_response;
 
 class Branch_commissions extends MYTController
 {
+    protected $branchCommissionModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

@@ -10,7 +10,11 @@ use App\Models\Webapp_response;
 
 class Users extends MYTController
 {
-    
+    protected $branchModel;
+    protected $userModel;
+    protected $userAssignmentModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // die("here");

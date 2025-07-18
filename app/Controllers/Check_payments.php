@@ -10,6 +10,11 @@ use App\Models\Webapp_response;
 class Check_payments extends MYTController
 {
 
+    protected $checkEntryModel;
+    protected $checkSlipModel;
+    protected $receiveModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -32,16 +37,16 @@ class Check_payments extends MYTController
             return $response;
         }
 
-        $check_entry_id = $this->request->getVar('entry_id') ? : null;
-        $check_entry    = $check_entry_id ? $this->checkEntryModel->get_details_by_id($check_entry_id) : null;
-        $check_slip     = $check_entry ? $this->checkSlipModel->get_details_by_id($check_entry[0]['id']) : null;
+        $check_entry_id = $this->request->getVar('entry_id') ?: null;
+        $check_entry = $check_entry_id ? $this->checkEntryModel->get_details_by_id($check_entry_id) : null;
+        $check_slip = $check_entry ? $this->checkSlipModel->get_details_by_id($check_entry[0]['id']) : null;
 
         if (!$check_entry) {
             $response = $this->failNotFound('No check invoice found');
         } else {
             $check_entry[0]['check_slip'] = $check_slip ? $check_slip : [];
             $response = $this->respond([
-                'data'   => $check_entry,
+                'data' => $check_entry,
                 'status' => 'success'
             ]);
         }
@@ -63,8 +68,8 @@ class Check_payments extends MYTController
             return $response;
         }
 
-        $check_slip_id = $this->request->getVar('slip_id') ? : null;
-        $check_slip    = $check_slip_id ? $this->checkSlipModel->get_details_by_id($check_slip_id) : null;
+        $check_slip_id = $this->request->getVar('slip_id') ?: null;
+        $check_slip = $check_slip_id ? $this->checkSlipModel->get_details_by_id($check_slip_id) : null;
         $check_entries = $check_slip ? $this->checkEntryModel->get_details_by_slip_id($check_slip[0]['id']) : null;
 
         if (!$check_slip) {
@@ -72,7 +77,7 @@ class Check_payments extends MYTController
         } else {
             $check_slip[0]['check_entries'] = $check_entries ? $check_entries : [];
             $response = $this->respond([
-                'data'   => $check_slip,
+                'data' => $check_slip,
                 'status' => 'success'
             ]);
         }
@@ -99,13 +104,13 @@ class Check_payments extends MYTController
         if (!$check_entries) {
             $response = $this->failNotFound('No check_entry found');
         } else {
-            foreach($check_entries as $key => $check_entry) {
+            foreach ($check_entries as $key => $check_entry) {
                 $check_slip = $this->checkSlipModel->get_details_by_id($check_entry['check_slip_id']);
                 $check_entries[$key]['check_slip'] = $check_slip ? $check_slip : [];
             }
 
             $response = $this->respond([
-                'data'   => $check_entries,
+                'data' => $check_entries,
                 'status' => 'success'
             ]);
         }
@@ -132,13 +137,13 @@ class Check_payments extends MYTController
         if (!$check_slips) {
             $response = $this->failNotFound('No check_entry found');
         } else {
-            foreach($check_slips as $key => $check_slip) {
+            foreach ($check_slips as $key => $check_slip) {
                 $check_entries = $this->checkEntryModel->get_details_by_slip_id($check_slip['id']);
                 $check_slips[$key]['check_entries'] = $check_entries ? $check_entries : [];
             }
 
             $response = $this->respond([
-                'data'   => $check_slips,
+                'data' => $check_slips,
                 'status' => 'success'
             ]);
         }
@@ -162,7 +167,7 @@ class Check_payments extends MYTController
 
         $db = \Config\Database::connect();
         $db->transBegin();
-        
+
         if ($this->checkSlipModel->is_check_no_used($this->request->getVar('check_no'))) {
             $response = $this->fail(['response' => 'Check number is used already.', 'status' => 'error']);
         } elseif (!$check_slip_id = $this->_attempt_create_slip()) {
@@ -195,7 +200,7 @@ class Check_payments extends MYTController
         }
 
         $where = [
-            'id' => $this->request->getVar('check_slip_id'), 
+            'id' => $this->request->getVar('check_slip_id'),
             'is_deleted' => 0
         ];
 
@@ -213,7 +218,7 @@ class Check_payments extends MYTController
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'Check slip and check entry successfully updated.', 'status' => 'success']);
-        }   
+        }
 
         $db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
@@ -269,7 +274,7 @@ class Check_payments extends MYTController
         }
 
         $where = [
-            'id' => $this->request->getVar('check_slip_id'), 
+            'id' => $this->request->getVar('check_slip_id'),
             'is_deleted' => 0
         ];
 
@@ -281,7 +286,7 @@ class Check_payments extends MYTController
         } elseif (!$this->_attempt_delete_slip($check_slip)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to delete check_slip.', 'status' => 'error']);
-        } elseif (!$this->checkEntryModel->delete_by_slip_id($check_slip['id'], $this->requested_by)){
+        } elseif (!$this->checkEntryModel->delete_by_slip_id($check_slip['id'], $this->requested_by)) {
             $db->transCommit();
             $response = $this->fail(['response' => 'Successfully deleted check slip.', 'status' => 'success']);
         } else {
@@ -307,13 +312,13 @@ class Check_payments extends MYTController
             return $response;
         }
 
-        $bank_id     = $this->request->getVar('bank_id') ?? null;
-        $check_no    = $this->request->getVar('check_no') ?? null;
-        $check_date  = $this->request->getVar('check_date') ?? null;
-        $amount      = $this->request->getVar('amount') ?? null;
+        $bank_id = $this->request->getVar('bank_id') ?? null;
+        $check_no = $this->request->getVar('check_no') ?? null;
+        $check_date = $this->request->getVar('check_date') ?? null;
+        $amount = $this->request->getVar('amount') ?? null;
         $supplier_id = $this->request->getVar('supplier_id') ?? null;
-        $vendor_id   = $this->request->getVar('vendor_id') ?? null;
-        $payee       = $this->request->getVar('payee') ?? null;
+        $vendor_id = $this->request->getVar('vendor_id') ?? null;
+        $payee = $this->request->getVar('payee') ?? null;
         $particulars = $this->request->getVar('particulars') ?? null;
 
         if (!$check_slip = $this->checkSlipModel->search($bank_id, $check_no, $check_date, $amount, $supplier_id, $vendor_id, $payee, $particulars)) {
@@ -322,7 +327,7 @@ class Check_payments extends MYTController
             $check_entries = $this->checkEntryModel->get_details_by_slip_id($check_slip[0]['id']);
             $check_slip[0]['check_entries'] = $check_entries;
             $response = $this->respond([
-                'data' => $check_slip, 
+                'data' => $check_slip,
                 'status' => 'success'
             ]);
         }
@@ -344,8 +349,8 @@ class Check_payments extends MYTController
             return $response;
         }
 
-        $where =  [
-            'id' =>$this->request->getVar('check_slip_id'), 
+        $where = [
+            'id' => $this->request->getVar('check_slip_id'),
             'is_deleted' => 0
         ];
 
@@ -385,7 +390,7 @@ class Check_payments extends MYTController
         } else {
             $response = $this->respond(['data' => $check_no, 'status' => 'success']);
         }
-        
+
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
@@ -400,17 +405,17 @@ class Check_payments extends MYTController
     protected function _attempt_create_slip()
     {
         $data = [
-            'bank_id'         => $this->request->getVar('bank_id'),
-            'check_no'        => $this->request->getVar('check_no'),
-            'check_date'      => $this->request->getVar('check_date'),
-            'issued_date'     => $this->request->getVar('issued_date'),
-            'supplier_id'     => $this->request->getVar('supplier_id'),
-            'vendor_id'       => $this->request->getVar('vendor_id'),
-            'payee'           => $this->request->getVar('payee'),
-            'particulars'     => $this->request->getVar('particulars'),
+            'bank_id' => $this->request->getVar('bank_id'),
+            'check_no' => $this->request->getVar('check_no'),
+            'check_date' => $this->request->getVar('check_date'),
+            'issued_date' => $this->request->getVar('issued_date'),
+            'supplier_id' => $this->request->getVar('supplier_id'),
+            'vendor_id' => $this->request->getVar('vendor_id'),
+            'payee' => $this->request->getVar('payee'),
+            'particulars' => $this->request->getVar('particulars'),
             'acknowledged_by' => $this->request->getVar('acknowledged_by'),
-            'added_by'        => $this->requested_by,
-            'added_on'        => date('Y-m-d H:i:s')
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$check_slip_id = $this->checkSlipModel->insert($data)) {
@@ -426,17 +431,17 @@ class Check_payments extends MYTController
     protected function _attempt_generate_entry($check_slip_id)
     {
         $receive_ids = $this->request->getVar('receive_ids');
-        $amounts     = $this->request->getVar('amounts');
+        $amounts = $this->request->getVar('amounts');
 
         $total = 0;
         foreach ($receive_ids as $key => $receive_id) {
             $total += $amounts[$key];
             $data = [
                 'check_slip_id' => $check_slip_id,
-                'receive_id'    => $receive_id,
-                'amount'        => $amounts[$key],
-                'added_by'      => $this->requested_by,
-                'added_on'      => date('Y-m-d H:i:s')
+                'receive_id' => $receive_id,
+                'amount' => $amounts[$key],
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s')
             ];
 
             if (!$this->checkEntryModel->insert($data)) {
@@ -446,7 +451,7 @@ class Check_payments extends MYTController
             if ($receive = $this->receiveModel->get_details_by_id($receive_id)) {
                 $receive_data = [
                     'paid_amount' => $receive[0]['paid_amount'] + $amounts[$key],
-                    'balance'     => $receive[0]['balance'] - $amounts[$key],
+                    'balance' => $receive[0]['balance'] - $amounts[$key],
                     'updated_on' => date('Y-m-d H:i:s'),
                     'updated_by' => $this->requested_by
                 ];
@@ -458,7 +463,7 @@ class Check_payments extends MYTController
         }
 
         $values = [
-            'amount'     => $total,
+            'amount' => $total,
             'updated_by' => $this->requested_by,
             'updated_on' => date('Y-m-d H:i:s')
         ];
@@ -475,17 +480,17 @@ class Check_payments extends MYTController
     protected function _attempt_update_slip($check_slip_id)
     {
         $value = [
-            'bank_id'         => $this->request->getVar('bank_id'),
-            'check_no'        => $this->request->getVar('check_no'),
-            'check_date'      => $this->request->getVar('check_date'),
-            'issued_date'     => $this->request->getVar('issued_date'),
-            'supplier_id'     => $this->request->getVar('supplier_id'),
-            'vendor_id'       => $this->request->getVar('vendor_id'),
-            'payee'           => $this->request->getVar('payee'),
-            'particulars'     => $this->request->getVar('particulars'),
+            'bank_id' => $this->request->getVar('bank_id'),
+            'check_no' => $this->request->getVar('check_no'),
+            'check_date' => $this->request->getVar('check_date'),
+            'issued_date' => $this->request->getVar('issued_date'),
+            'supplier_id' => $this->request->getVar('supplier_id'),
+            'vendor_id' => $this->request->getVar('vendor_id'),
+            'payee' => $this->request->getVar('payee'),
+            'particulars' => $this->request->getVar('particulars'),
             'acknowledged_by' => $this->request->getVar('acknowledged_by'),
-            'updated_by'      => $this->requested_by,
-            'updated_on'      => date('Y-m-d H:i:s')
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         return $this->checkSlipModel->update($check_slip_id, $value);
@@ -502,9 +507,9 @@ class Check_payments extends MYTController
             if ($receive = $this->receiveModel->get_details_by_id($check_entry['receive_id'])) {
                 $receive_data = [
                     'paid_amount' => $receive[0]['paid_amount'] - $check_entry['amount'],
-                    'balance'     => $receive[0]['balance'] + $check_entry['amount'],
-                    'updated_on'  => date('Y-m-d H:i:s'),
-                    'updated_by'  => $this->requested_by
+                    'balance' => $receive[0]['balance'] + $check_entry['amount'],
+                    'updated_on' => date('Y-m-d H:i:s'),
+                    'updated_by' => $this->requested_by
                 ];
 
                 if (!$this->receiveModel->update($check_entry['receive_id'], $receive_data)) {
@@ -584,7 +589,7 @@ class Check_payments extends MYTController
             'updated_on' => date('Y-m-d H:i:s')
         ];
 
-        $action        = $this->request->getVar('action');
+        $action = $this->request->getVar('action');
         switch ($action) {
             case 'pending':
                 $values['status'] = 'pending';
@@ -597,7 +602,7 @@ class Check_payments extends MYTController
             case 'disapproved':
                 $values['disapproved_by'] = $this->requested_by;
                 $values['disapproved_on'] = date('Y-m-d H:i:s');
-                $values['status'] = 'disapproved'; 
+                $values['status'] = 'disapproved';
                 break;
             case 'print':
                 $values['printed_by'] = $this->requested_by;
@@ -607,7 +612,7 @@ class Check_payments extends MYTController
             case 'completed':
                 $values['completed_by'] = $this->requested_by;
                 $values['completed_on'] = date('Y-m-d H:i:s');
-                $values['status']       = 'completed';
+                $values['status'] = 'completed';
                 break;
             default:
                 return false;
@@ -625,9 +630,9 @@ class Check_payments extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->checkEntryModel     = new Check_entry();
-        $this->checkSlipModel      = new Check_slip();
-        $this->receiveModel        = new Receive();
+        $this->checkEntryModel = new Check_entry();
+        $this->checkSlipModel = new Check_slip();
+        $this->receiveModel = new Receive();
         $this->webappResponseModel = new Webapp_response();
     }
 }

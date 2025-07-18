@@ -7,6 +7,8 @@ use App\Models\Webapp_response;
 
 class Supplies_payments extends MYTController
 {
+    protected $suppliesPaymentModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

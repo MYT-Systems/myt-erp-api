@@ -8,6 +8,9 @@ use App\Models\Webapp_response;
 
 class Franchisee_payments extends MYTController
 {
+    protected $franchiseePaymentModel;
+    protected $franchiseeModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

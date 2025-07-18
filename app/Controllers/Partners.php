@@ -7,6 +7,8 @@ use App\Models\Webapp_response;
 
 class Partners extends MYTController
 {
+    protected $partnerModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

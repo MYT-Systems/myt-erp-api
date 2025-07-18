@@ -5,6 +5,11 @@ namespace App\Controllers;
 class Branch_groups extends MYTController
 {
 
+    protected $branchGroupModel;
+    protected $branchGroupDetailModel;
+    protected $userModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -19,7 +24,7 @@ class Branch_groups extends MYTController
      */
     public function get_branch_group()
     {
-        if (($response = $this->_api_verification('branch_groups', 'get_branch_group')) !== true )
+        if (($response = $this->_api_verification('branch_groups', 'get_branch_group')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -27,16 +32,16 @@ class Branch_groups extends MYTController
             return $response;
         }
 
-        $branch_group_id    = $this->request->getVar('branch_group_id') ? : null;
-        $branch_group       = $branch_group_id ? $this->branchGroupModel->get_details_by_id($branch_group_id) : null;
+        $branch_group_id = $this->request->getVar('branch_group_id') ?: null;
+        $branch_group = $branch_group_id ? $this->branchGroupModel->get_details_by_id($branch_group_id) : null;
         $branch_group_details = $branch_group_id ? $this->branchGroupDetailModel->get_details_by_branch_group_id($branch_group_id) : null;
-        
+
         if (!$branch_group) {
             $response = $this->failNotFound('No branch group found');
         } else {
             $branch_group[0]['branch_group_details'] = $branch_group_details;
             $response = $this->respond([
-                'data'   => $branch_group,
+                'data' => $branch_group,
                 'status' => 'success'
             ]);
         }
@@ -58,7 +63,7 @@ class Branch_groups extends MYTController
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
-        
+
         if (!$branch_groups = $this->branchGroupModel->get_all()) {
             $response = $this->failNotFound('No branch group found');
         } else {
@@ -130,7 +135,7 @@ class Branch_groups extends MYTController
         }
 
         $branch_group_id = $this->request->getVar('branch_group_id');
-        $where   = ['id' => $branch_group_id, 'is_deleted' => 0];
+        $where = ['id' => $branch_group_id, 'is_deleted' => 0];
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -164,7 +169,7 @@ class Branch_groups extends MYTController
         }
 
         $branch_group_id = $this->request->getVar('branch_group_id');
-        $where   = ['id' => $branch_group_id, 'is_deleted' => 0];
+        $where = ['id' => $branch_group_id, 'is_deleted' => 0];
 
         $this->db = \Config\Database::connect();
         $this->db->transBegin();
@@ -197,10 +202,10 @@ class Branch_groups extends MYTController
             return $response;
         }
 
-        $name             = $this->request->getVar('name');
-        $supervisor       = $this->request->getVar('supervisor');
-        $supervisor_id    = $this->request->getVar('supervisor_id');
-        $details          = $this->request->getVar('details');
+        $name = $this->request->getVar('name');
+        $supervisor = $this->request->getVar('supervisor');
+        $supervisor_id = $this->request->getVar('supervisor_id');
+        $details = $this->request->getVar('details');
         $number_of_branch = $this->request->getVar('number_of_branch');
 
         if (!$branch_groups = $this->branchGroupModel->search($name, $supervisor, $supervisor_id, $details, $number_of_branch)) {
@@ -211,7 +216,7 @@ class Branch_groups extends MYTController
             }
 
             $response = $this->respond([
-                'data'   => $branch_groups,
+                'data' => $branch_groups,
                 'status' => 'success'
             ]);
         }
@@ -233,8 +238,8 @@ class Branch_groups extends MYTController
 
         $values = [
             'branch_group_id' => $branch_group_id,
-            'added_by'        => $this->requested_by,
-            'added_on'        => date('Y-m-d H:i:s'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         foreach ($branch_ids as $key => $branch_id) {
@@ -244,7 +249,7 @@ class Branch_groups extends MYTController
                 return false;
             }
         }
-        
+
         $number_of_branches = count($branch_ids);
         $values = [
             'number_of_branch' => $number_of_branches,
@@ -266,13 +271,13 @@ class Branch_groups extends MYTController
     protected function _attempt_create()
     {
         $values = [
-            'name'          => $this->request->getVar('name'),
-            'supervisor'    => $this->request->getVar('supervisor'),
+            'name' => $this->request->getVar('name'),
+            'supervisor' => $this->request->getVar('supervisor'),
             'supervisor_id' => $this->request->getVar('supervisor_id'),
-            'details'       => $this->request->getVar('details'),
-            'added_by'      => $this->requested_by,
-            'added_on'      => date('Y-m-d H:i:s'),
-            'is_deleted'    => 0
+            'details' => $this->request->getVar('details'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
+            'is_deleted' => 0
         ];
 
         if (!$branch_group_id = $this->branchGroupModel->insert($values)) {
@@ -300,12 +305,12 @@ class Branch_groups extends MYTController
     protected function _attempt_update($branch_group)
     {
         $values = [
-            'name'          => $this->request->getVar('name'),
-            'supervisor'    => $this->request->getVar('supervisor'),
+            'name' => $this->request->getVar('name'),
+            'supervisor' => $this->request->getVar('supervisor'),
             'supervisor_id' => $this->request->getVar('supervisor_id'),
-            'details'       => $this->request->getVar('details'),
-            'updated_by'    => $this->requested_by,
-            'updated_on'    => date('Y-m-d H:i:s')
+            'details' => $this->request->getVar('details'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->branchGroupModel->update($branch_group['id'], $values)) {
@@ -317,10 +322,10 @@ class Branch_groups extends MYTController
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
-        
+
         if (!$this->_attempt_generate_details($branch_group['id']))
             return false;
-            
+
         return true;
     }
 
@@ -344,7 +349,7 @@ class Branch_groups extends MYTController
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
-        
+
         return true;
     }
 
@@ -353,9 +358,9 @@ class Branch_groups extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->branchGroupModel       = model('App\Models\Branch_group');
+        $this->branchGroupModel = model('App\Models\Branch_group');
         $this->branchGroupDetailModel = model('App\Models\Branch_group_detail');
-        $this->userModel              = model('App\Models\User'); 
-        $this->webappResponseModel    = model('App\Models\Webapp_response');
+        $this->userModel = model('App\Models\User');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

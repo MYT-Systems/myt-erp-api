@@ -5,6 +5,11 @@ namespace App\Controllers;
 class Subscription_billings extends MYTController
 {
 
+    protected $projectModel;
+    protected $subscriptionBillingModel;
+    protected $subscriptionBillingEntryModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers

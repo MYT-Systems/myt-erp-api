@@ -4,6 +4,17 @@ namespace App\Controllers;
 
 class Project_invoice_payments extends MYTController
 {
+    protected $bankModel;
+    protected $projectInvoicePaymentModel;
+    protected $projectInvoiceModel;
+    protected $projectInvoiceItemModel;
+    protected $projectModel;
+    protected $projectOneTimeFeeModel;
+    protected $projectRecurringCostModel;
+    protected $projectInvoicePaymentAttachmentModel;
+    protected $itemUnitModel;
+    protected $inventoryModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

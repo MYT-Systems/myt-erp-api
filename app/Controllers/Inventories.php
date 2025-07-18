@@ -5,6 +5,16 @@ namespace App\Controllers;
 class Inventories extends MYTController
 {
 
+    protected $inventoryModel;
+    protected $initialInventoryModel;
+    protected $branchModel;
+    protected $itemModel;
+    protected $purchaseItemModel;
+    protected $inventoryGroupModel;
+    protected $inventoryGroupDetailModel;
+    protected $orderDetailIngredModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -27,11 +37,11 @@ class Inventories extends MYTController
             return $response;
         }
 
-        $inventory_ids = $this->request->getVar('inventory_ids') ? : [];
-        $inventory_id  = $this->request->getVar('inventory_id') ? : null;
+        $inventory_ids = $this->request->getVar('inventory_ids') ?: [];
+        $inventory_id = $this->request->getVar('inventory_id') ?: null;
         if ($inventory_id)
             $inventory_ids[] = $inventory_id;
-        $inventory     = $inventory_ids ? $this->inventoryModel->get_details_by_ids($inventory_ids) : null;
+        $inventory = $inventory_ids ? $this->inventoryModel->get_details_by_ids($inventory_ids) : null;
 
         if (!$inventory) {
             $response = $this->failNotFound('No inventory found');
@@ -59,10 +69,10 @@ class Inventories extends MYTController
             return $response;
         }
 
-        $branch_id     = $this->request->getVar('branch_id') ? : null;
-        $is_low_level  = $this->request->getVar('is_low_level') ? : null;
-        $is_high_level = $this->request->getVar('is_high_level') ? : null;
-        $inventories   = $this->inventoryModel->get_all_inventory($branch_id, $is_low_level, $is_high_level);
+        $branch_id = $this->request->getVar('branch_id') ?: null;
+        $is_low_level = $this->request->getVar('is_low_level') ?: null;
+        $is_high_level = $this->request->getVar('is_high_level') ?: null;
+        $inventories = $this->inventoryModel->get_all_inventory($branch_id, $is_low_level, $is_high_level);
 
         if (!$inventories) {
             $response = $this->failNotFound('No inventory found');
@@ -197,8 +207,8 @@ class Inventories extends MYTController
             $response = $this->fail('No items used');
         } else {
             $response = $this->respond([
-                'data'    => $inventories,
-                'status'  => 'success'
+                'data' => $inventories,
+                'status' => 'success'
             ]);
         }
 
@@ -219,22 +229,22 @@ class Inventories extends MYTController
             return $response;
         }
 
-        $branch_id     = $this->request->getVar('branch_id');
-        $item_id       = $this->request->getVar('item_id');
+        $branch_id = $this->request->getVar('branch_id');
+        $item_id = $this->request->getVar('item_id');
         $beginning_qty = $this->request->getVar('beginning_qty');
-        $current_qty   = $this->request->getVar('current_qty');
-        $unit          = $this->request->getVar('unit');
-        $status        = $this->request->getVar('status');
-        $name          = $this->request->getVar('name');
-        $item_type     = $this->request->getVar('item_type');
-        $limit_by      = $this->request->getVar('limit_by');
-        $low_stock     = $this->request->getVar('low_stock');
-        $high_stock    = $this->request->getVar('high_stock');
-        $normal_stock  = $this->request->getVar('normal_stock');
-        $with_po       = $this->request->getVar('with_po');
-        $save_initial_inventories = $this->request->getVar('save_initial_inventories') ? : 0;
-        $for_end_inventory = $this->request->getVar('for_end_inventory') ? : 0;
-        
+        $current_qty = $this->request->getVar('current_qty');
+        $unit = $this->request->getVar('unit');
+        $status = $this->request->getVar('status');
+        $name = $this->request->getVar('name');
+        $item_type = $this->request->getVar('item_type');
+        $limit_by = $this->request->getVar('limit_by');
+        $low_stock = $this->request->getVar('low_stock');
+        $high_stock = $this->request->getVar('high_stock');
+        $normal_stock = $this->request->getVar('normal_stock');
+        $with_po = $this->request->getVar('with_po');
+        $save_initial_inventories = $this->request->getVar('save_initial_inventories') ?: 0;
+        $for_end_inventory = $this->request->getVar('for_end_inventory') ?: 0;
+
         if (!$inventories = $this->inventoryModel->search($branch_id, $item_id, $beginning_qty, $current_qty, $unit, $status, $name, $item_type, $limit_by, $low_stock, $high_stock, $normal_stock, $for_end_inventory)) {
             $response = $this->failNotFound('No inventory found');
         } else {
@@ -261,10 +271,10 @@ class Inventories extends MYTController
             $item_classifications = $this->itemModel->get_item_classification_by_branch($branch_id);
             $item_classifications = array_column($item_classifications, 'type');
             $response = $this->respond([
-                'item_classifications'         => $item_classifications,
-                'data'                         => $filtered_inventories,
+                'item_classifications' => $item_classifications,
+                'data' => $filtered_inventories,
                 'initial_inventories_is_saved' => $initial_inventories_is_saved,
-                'status'                       => 'success'
+                'status' => 'success'
             ]);
         }
 
@@ -279,10 +289,12 @@ class Inventories extends MYTController
     {
         $initial_inventories = $this->inventoryModel->get_initial_inventory($branch_id);
 
-        if (!$this->initialInventoryModel->select('', [
-            'branch_id' => $branch_id,
-            'date' => date("Y-m-d")
-        ])) {
+        if (
+            !$this->initialInventoryModel->select('', [
+                'branch_id' => $branch_id,
+                'date' => date("Y-m-d")
+            ])
+        ) {
             $data = [];
             foreach ($initial_inventories as $inventory) {
                 $data[] = [
@@ -299,8 +311,8 @@ class Inventories extends MYTController
                     'added_by' => $this->requested_by
                 ];
             }
-    
-            if (count($data) > 0 AND !$this->initialInventoryModel->insertBatch($data))
+
+            if (count($data) > 0 and !$this->initialInventoryModel->insertBatch($data))
                 return false;
         }
 
@@ -353,12 +365,12 @@ class Inventories extends MYTController
         if (!$response = $this->_is_existing($this->itemModel, ['id' => $item_id]))
             return $this->fail(['status' => 'error', 'message' => 'Item not found']);
 
-        $encoded_on_to  = $this->request->getVar('encoded_on_to');
+        $encoded_on_to = $this->request->getVar('encoded_on_to');
         $encded_on_from = $this->request->getVar('encoded_on_from');
-        $doc_type       = $this->request->getVar('doc_type');
-        $item_unit_id   = $this->request->getVar('item_unit_id');
-        $branch_name    = $this->request->getVar('branch_name');
-        $doc_no         = $this->request->getVar('doc_no');
+        $doc_type = $this->request->getVar('doc_type');
+        $item_unit_id = $this->request->getVar('item_unit_id');
+        $branch_name = $this->request->getVar('branch_name');
+        $doc_no = $this->request->getVar('doc_no');
 
         $temporary_storage_encoded_on_to = $encoded_on_to;
         $temporary_storage_encoded_on_from = $encded_on_from;
@@ -375,13 +387,14 @@ class Inventories extends MYTController
             $final_history = [];
 
             foreach ($history as $key => $value) {
-                $qty_out = (float)$value['qty_out'];
-                $qty_in = (float)$value['qty_in'];
+                $qty_out = (float) $value['qty_out'];
+                $qty_in = (float) $value['qty_in'];
                 $qty_out = $qty_out < 0 ? $qty_out * -1 : $qty_out; // this solves the problem with adjustments
                 $current_qty += $qty_in - $qty_out;
                 $history[$key]['current_qty'] = $current_qty;
 
-                if ($history[$key]['encoded_on'] >= $temporary_storage_encoded_on_from AND
+                if (
+                    $history[$key]['encoded_on'] >= $temporary_storage_encoded_on_from and
                     $history[$key]['encoded_on'] <= $temporary_storage_encoded_on_to
                 ) {
                     $final_history[$key] = $history[$key];
@@ -389,36 +402,38 @@ class Inventories extends MYTController
             }
 
             // insert a row in the beginning of the history
-            $final_history = array_merge([[
-                'id'            => 0,
-                'item_id'       => $item_id,
-                'branch_id'     => $branch_id,
-                'item_unit_id'  => $item_unit_id,
-                'qty_in'        => 0,
-                'qty_out'       => 0,
-                'current_qty'   => $inventory[0]['beginning_qty'],
-                'encoded_on'    => '',
-                'doc_type'      => 'Beginning Qty',
-                'doc_date'      => $inventory[0]['added_on']
-            ]], $final_history);
+            $final_history = array_merge([
+                [
+                    'id' => 0,
+                    'item_id' => $item_id,
+                    'branch_id' => $branch_id,
+                    'item_unit_id' => $item_unit_id,
+                    'qty_in' => 0,
+                    'qty_out' => 0,
+                    'current_qty' => $inventory[0]['beginning_qty'],
+                    'encoded_on' => '',
+                    'doc_type' => 'Beginning Qty',
+                    'doc_date' => $inventory[0]['added_on']
+                ]
+            ], $final_history);
 
             // insert a row in the end of the history
             $final_history[] = [
-                'id'            => 0,
-                'item_id'       => $item_id,
-                'branch_id'     => $branch_id,
-                'item_unit_id'  => $item_unit_id,
-                'qty_in'        => 0,
-                'qty_out'       => 0,
-                'current_qty'   => $inventory[0]['current_qty'],
-                'encoded_on'    => date('Y-m-d'),
-                'doc_type'      => 'Current Qty'
+                'id' => 0,
+                'item_id' => $item_id,
+                'branch_id' => $branch_id,
+                'item_unit_id' => $item_unit_id,
+                'qty_in' => 0,
+                'qty_out' => 0,
+                'current_qty' => $inventory[0]['current_qty'],
+                'encoded_on' => date('Y-m-d'),
+                'doc_type' => 'Current Qty'
             ];
 
             $response = $this->respond([
                 'inventory' => $inventory,
-                'history'   => $final_history,
-                'status'    => 'success',
+                'history' => $final_history,
+                'status' => 'success',
             ]);
         }
 
@@ -429,7 +444,8 @@ class Inventories extends MYTController
     /**
      * DANGER: Matches all currenty quantities to the sum of all transactions
      */
-    function match_item_history() {
+    function match_item_history()
+    {
         if (($response = $this->_api_verification('inventories', 'match_item_history')) !== true)
             return $response;
 
@@ -529,7 +545,7 @@ class Inventories extends MYTController
         ];
 
         $response = $this->respond([
-            'data' => $data, 
+            'data' => $data,
             'status' => 'success'
         ]);
 
@@ -561,7 +577,7 @@ class Inventories extends MYTController
 
         if ($transferrable_items = $this->inventoryModel->get_transferrable_items($requesting_branch_id, $requested_branch_id)) {
             $response = $this->respond([
-                'data' => $transferrable_items, 
+                'data' => $transferrable_items,
                 'status' => 'success'
             ]);
         } else {
@@ -582,17 +598,17 @@ class Inventories extends MYTController
     private function _attempt_create()
     {
         $values = [
-            'branch_id'              => $this->request->getVar('branch_id'),
-            'item_id'                => $this->request->getVar('item_id'),
-            'beginning_qty'          => $this->request->getVar('beginning_qty'),
-            'current_qty'            => $this->request->getVar('current_qty'),
-            'min'                    => $this->request->getVar('min'),
-            'max'                    => $this->request->getVar('max'),
-            'acceptable_variance'    => $this->request->getVar('acceptable_variance'),
-            'unit'                   => $this->request->getVar('unit'),
-            'status'                 => $this->request->getVar('status'),
-            'added_by'               => $this->requested_by,
-            'added_on'               => date('Y-m-d H:i:s'),
+            'branch_id' => $this->request->getVar('branch_id'),
+            'item_id' => $this->request->getVar('item_id'),
+            'beginning_qty' => $this->request->getVar('beginning_qty'),
+            'current_qty' => $this->request->getVar('current_qty'),
+            'min' => $this->request->getVar('min'),
+            'max' => $this->request->getVar('max'),
+            'acceptable_variance' => $this->request->getVar('acceptable_variance'),
+            'unit' => $this->request->getVar('unit'),
+            'status' => $this->request->getVar('status'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$inventory_id = $this->inventoryModel->insert($values)) {
@@ -609,17 +625,17 @@ class Inventories extends MYTController
     protected function _attempt_update($inventory_id)
     {
         $values = [
-            'branch_id'              => $this->request->getVar('branch_id'),
-            'item_id'                => $this->request->getVar('item_id'),
-            'beginning_qty'          => $this->request->getVar('beginning_qty'),
-            'current_qty'            => $this->request->getVar('current_qty'),
-            'min'                    => $this->request->getVar('min'),
-            'max'                    => $this->request->getVar('max'),
-            'acceptable_variance'    => $this->request->getVar('acceptable_variance'),
-            'unit'                   => $this->request->getVar('unit'),
-            'status'                 => $this->request->getVar('status'),
-            'updated_by'             => $this->requested_by,
-            'updated_on'             => date('Y-m-d H:i:s')
+            'branch_id' => $this->request->getVar('branch_id'),
+            'item_id' => $this->request->getVar('item_id'),
+            'beginning_qty' => $this->request->getVar('beginning_qty'),
+            'current_qty' => $this->request->getVar('current_qty'),
+            'min' => $this->request->getVar('min'),
+            'max' => $this->request->getVar('max'),
+            'acceptable_variance' => $this->request->getVar('acceptable_variance'),
+            'unit' => $this->request->getVar('unit'),
+            'status' => $this->request->getVar('status'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->inventoryModel->update($inventory_id, $values)) {
@@ -654,31 +670,31 @@ class Inventories extends MYTController
      */
     private function _attempt_update_warehouse_inventory()
     {
-        $item_id               = $this->request->getVar('item_id');
-        $item_unit_id          = $this->request->getVar('item_unit_id');
-        $branch_ids            = $this->request->getVar('branch_ids');
-        $inventory_group_ids   = $this->request->getVar('inventory_group_ids');
+        $item_id = $this->request->getVar('item_id');
+        $item_unit_id = $this->request->getVar('item_unit_id');
+        $branch_ids = $this->request->getVar('branch_ids');
+        $inventory_group_ids = $this->request->getVar('inventory_group_ids');
         $default_item_unit_ids = $this->request->getVar('default_item_unit_ids');
-        $minimum_levels        = $this->request->getVar('minimum_levels');
-        $maximum_levels        = $this->request->getVar('maximum_levels');
-        $acceptable_variances  = $this->request->getVar('acceptable_variances');
-        $beginning_quantities  = $this->request->getVar('beginning_quantities');
-        $units                 = $this->request->getVar('units');
-        $critical_levels       = $this->request->getVar('critical_levels');        
+        $minimum_levels = $this->request->getVar('minimum_levels');
+        $maximum_levels = $this->request->getVar('maximum_levels');
+        $acceptable_variances = $this->request->getVar('acceptable_variances');
+        $beginning_quantities = $this->request->getVar('beginning_quantities');
+        $units = $this->request->getVar('units');
+        $critical_levels = $this->request->getVar('critical_levels');
 
         foreach ($branch_ids as $key => $branch_id) {
-            $inventory_group_id   = $inventory_group_ids[$key];
-            
+            $inventory_group_id = $inventory_group_ids[$key];
+
             $values = [
-                'beginning_qty'          => $beginning_quantities[$key],
-                'min'                    => $minimum_levels[$key],
-                'max'                    => $maximum_levels[$key],
-                'critical_level'         => $critical_levels[$key],
-                'acceptable_variance'    => $acceptable_variances[$key],
-                'item_unit_id'           => $default_item_unit_ids[$key],
-                'unit'                   => $units[$key],
-                'added_by'               => $this->requested_by,
-                'added_on'               => date('Y-m-d H:i:s'),
+                'beginning_qty' => $beginning_quantities[$key],
+                'min' => $minimum_levels[$key],
+                'max' => $maximum_levels[$key],
+                'critical_level' => $critical_levels[$key],
+                'acceptable_variance' => $acceptable_variances[$key],
+                'item_unit_id' => $default_item_unit_ids[$key],
+                'unit' => $units[$key],
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s'),
             ];
 
             if ($inventory_group_id) {
@@ -687,7 +703,7 @@ class Inventories extends MYTController
                 foreach ($branches_under_inventory_group as $key2 => $inventory_group_branch) {
                     $warehouse_ids = $this->inventoryModel->get_warehouse_inventory_ids($item_id, $item_unit_id, $inventory_group_branch);
                     $warehouse_ids = array_column($warehouse_ids, 'id');
-                   // Update all the warehouses with the current data
+                    // Update all the warehouses with the current data
                     if (!$this->_update_inventory_warehouses($warehouse_ids, $values)) {
                         return false;
                     }
@@ -725,14 +741,14 @@ class Inventories extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->inventoryModel            = model('App\Models\Inventory');
-        $this->initialInventoryModel     = model('App\Models\Initial_inventory');
-        $this->branchModel               = model('App\Models\Branch');
-        $this->itemModel                 = model('App\Models\Item');
-        $this->purchaseItemModel         = model('App\Models\Purchase_item');
-        $this->inventoryGroupModel       = model('App\Models\Inventory_group');
+        $this->inventoryModel = model('App\Models\Inventory');
+        $this->initialInventoryModel = model('App\Models\Initial_inventory');
+        $this->branchModel = model('App\Models\Branch');
+        $this->itemModel = model('App\Models\Item');
+        $this->purchaseItemModel = model('App\Models\Purchase_item');
+        $this->inventoryGroupModel = model('App\Models\Inventory_group');
         $this->inventoryGroupDetailModel = model('App\Models\Inventory_group_detail');
-        $this->orderDetailIngredModel    = model('App\Models\Order_detail_ingredient');
-        $this->webappResponseModel       = model('App\Models\Webapp_response');
+        $this->orderDetailIngredModel = model('App\Models\Order_detail_ingredient');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

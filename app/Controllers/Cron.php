@@ -4,6 +4,33 @@ namespace App\Controllers;
 
 class Cron extends MYTController
 {
+    protected $userModel;
+    protected $branchModel;
+    protected $orderModel;
+    protected $orderDetailModel;
+    protected $priceLevelModel;
+    protected $paymentModel;
+    protected $discountModel;
+    protected $discountPaymentModel;
+    protected $priceLevelTypeModel;
+    protected $paymentAttachmentModel;
+    protected $productModel;
+    protected $productItemModel;
+    protected $orderProductDetailModel;
+    protected $orderDetailIngredModel;
+    protected $inventoryModel;
+    protected $itemModel;
+    protected $itemUnitModel;
+    protected $productAddonReqModel;
+    protected $attendanceModel;
+    protected $attendanceEntryModel;
+    protected $expenseModel;
+    protected $expenseItemModel;
+    protected $expenseAttachmentModel;
+
+    protected $requested_by = 0;
+    protected $orders_payload = null;
+    protected $db = null;
 
     public function __construct()
     {

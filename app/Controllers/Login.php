@@ -5,6 +5,16 @@ use DateTime;
 
 class Login extends MYTController
 {
+    protected $attendanceModel;
+    protected $attendanceEntryModel;
+    protected $employeeModel;
+    protected $userModel;
+    protected $branchModel;
+    protected $discountModel;
+    protected $userBranchModel;
+    protected $dailySaleModel;
+    protected $webappResponseModel;
+
     private $new_token;
     private $new_api_key;
 

@@ -4,6 +4,11 @@ namespace App\Controllers;
 
 class Franchisee_sale_billings extends MYTController
 {
+    protected $franchiseeSaleBillingModel;
+    protected $fsSaleBillingItemModel;
+    protected $fsBillingPaymentModel;
+    protected $franchiseeModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

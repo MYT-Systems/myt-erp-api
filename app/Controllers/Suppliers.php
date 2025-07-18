@@ -7,6 +7,9 @@ use App\Models\Webapp_response;
 
 class Suppliers extends MYTController
 {
+    protected $supplierAttachmentModel;
+    protected $supplierModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

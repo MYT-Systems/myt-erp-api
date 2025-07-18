@@ -4,6 +4,13 @@ namespace App\Controllers;
 
 class Products extends MYTController
 {
+    protected $priceLevelModel;
+    protected $priceLevelTypeModel;
+    protected $priceLevelTypeDetailModel;
+    protected $productModel;
+    protected $productItemModel;
+    protected $productAddonReqModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

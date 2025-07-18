@@ -4,6 +4,12 @@ namespace App\Controllers;
 
 class Dashboard extends MYTController
 {
+    protected $adjustmentModel;
+    protected $requestModel;
+    protected $expenseModel;
+    protected $branchModel;
+    protected $transferModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

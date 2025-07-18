@@ -4,6 +4,27 @@ namespace App\Controllers;
 
 class Orders extends MYTController
 {
+    protected $branchModel;
+    protected $orderModel;
+    protected $orderDetailModel;
+    protected $orderProductDetailModel;
+    protected $orderDetailIngredModel;
+    protected $priceLevelModel;
+    protected $paymentModel;
+    protected $discountModel;
+    protected $productItemModel;
+    protected $inventoryModel;
+    protected $branchCommissionModel;
+    protected $itemModel;
+    protected $itemUnitModel;
+    protected $discountPaymentModel;
+    protected $priceLevelTypeModel;
+    protected $paymentAttachmentModel;
+    protected $productModel;
+    protected $productAddonReqModel;
+    protected $webappResponseModel;
+    protected $orders_payload;
+    protected $db;
 
     public function __construct()
     {

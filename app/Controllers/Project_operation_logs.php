@@ -4,6 +4,9 @@ namespace App\Controllers;
 
 class Project_operation_logs extends MYTController
 {
+    protected $operationLogModel;
+    protected $projectModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

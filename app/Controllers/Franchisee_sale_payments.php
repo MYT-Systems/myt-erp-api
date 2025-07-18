@@ -5,6 +5,14 @@ namespace App\Controllers;
 class Franchisee_sale_payments extends MYTController
 {
 
+    protected $franchiseeSalePaymentModel;
+    protected $franchiseeSaleModel;
+    protected $franchiseeSaleItemModel;
+    protected $franchiseeModel;
+    protected $itemUnitModel;
+    protected $inventoryModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -27,9 +35,9 @@ class Franchisee_sale_payments extends MYTController
             return $response;
         }
 
-        $franchisee_sale_payment_id = $this->request->getVar('franchisee_sale_payment_id') ? : null;
-        $franchisee_sale_payment    = $franchisee_sale_payment_id ? $this->franchiseeSalePaymentModel->get_details_by_id($franchisee_sale_payment_id) : null;
-        $franchisee_sale            = $franchisee_sale_payment ? $this->franchiseeSaleModel->get_details_by_id($franchisee_sale_payment[0]['franchisee_sale_id']) : null;
+        $franchisee_sale_payment_id = $this->request->getVar('franchisee_sale_payment_id') ?: null;
+        $franchisee_sale_payment = $franchisee_sale_payment_id ? $this->franchiseeSalePaymentModel->get_details_by_id($franchisee_sale_payment_id) : null;
+        $franchisee_sale = $franchisee_sale_payment ? $this->franchiseeSaleModel->get_details_by_id($franchisee_sale_payment[0]['franchisee_sale_id']) : null;
 
         if (!$franchisee_sale_payment) {
             $response = $this->failNotFound('No franchisee sale payment found');
@@ -37,7 +45,7 @@ class Franchisee_sale_payments extends MYTController
             $franchisee_sale_payment[0]['franchisee_sale'] = $franchisee_sale;
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $franchisee_sale_payment
+                'data' => $franchisee_sale_payment
             ]);
         }
 
@@ -70,7 +78,7 @@ class Franchisee_sale_payments extends MYTController
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $franchisee_sale_payments
+                'data' => $franchisee_sale_payments
             ]);
         }
 
@@ -100,7 +108,7 @@ class Franchisee_sale_payments extends MYTController
         } else {
             $this->db->transCommit();
             $response = $this->respond([
-                'status'                     => 'success',
+                'status' => 'success',
                 'franchisee_sale_payment_id' => $franchisee_sale_payment_id
             ]);
         }
@@ -124,7 +132,7 @@ class Franchisee_sale_payments extends MYTController
         }
 
         $where = [
-            'id'         => $this->request->getVar('franchisee_sale_payment_id'), 
+            'id' => $this->request->getVar('franchisee_sale_payment_id'),
             'is_deleted' => 0
         ];
 
@@ -160,7 +168,7 @@ class Franchisee_sale_payments extends MYTController
         }
 
         $where = [
-            'id' => $this->request->getVar('franchisee_sale_payment_id'), 
+            'id' => $this->request->getVar('franchisee_sale_payment_id'),
             'is_deleted' => 0
         ];
 
@@ -195,18 +203,18 @@ class Franchisee_sale_payments extends MYTController
             return $response;
         }
 
-        $franchisee_id      = $this->request->getVar('franchisee_id') ?? null;
+        $franchisee_id = $this->request->getVar('franchisee_id') ?? null;
         $franchisee_sale_id = $this->request->getVar('franchisee_sale_id') ?? null;
-        $payment_method     = $this->request->getVar('payment_method') ?? null;
-        $payment_date_from  = $this->request->getVar('payment_date_from') ?? null;
-        $payment_date_to    = $this->request->getVar('payment_date_to') ?? null;
-        $from_bank_id       = $this->request->getVar('from_bank_id') ?? null;
-        $cheque_number      = $this->request->getVar('cheque_number') ?? null;
-        $cheque_date_from   = $this->request->getVar('cheque_date_from') ?? null;
-        $cheque_date_to     = $this->request->getVar('cheque_date_to') ?? null;
-        $reference_number   = $this->request->getVar('reference_number') ?? null;
+        $payment_method = $this->request->getVar('payment_method') ?? null;
+        $payment_date_from = $this->request->getVar('payment_date_from') ?? null;
+        $payment_date_to = $this->request->getVar('payment_date_to') ?? null;
+        $from_bank_id = $this->request->getVar('from_bank_id') ?? null;
+        $cheque_number = $this->request->getVar('cheque_number') ?? null;
+        $cheque_date_from = $this->request->getVar('cheque_date_from') ?? null;
+        $cheque_date_to = $this->request->getVar('cheque_date_to') ?? null;
+        $reference_number = $this->request->getVar('reference_number') ?? null;
         $transaction_number = $this->request->getVar('transaction_number') ?? null;
-        $branch_name        = $this->request->getVar('branch_name') ?? null;
+        $branch_name = $this->request->getVar('branch_name') ?? null;
 
         if (!$franchisee_sale_payments = $this->franchiseeSalePaymentModel->search($franchisee_id, $franchisee_sale_id, $payment_method, $payment_date_from, $payment_date_to, $from_bank_id, $cheque_number, $cheque_date_from, $cheque_date_to, $reference_number, $transaction_number, $branch_name)) {
             $response = $this->failNotFound('No franchisee sale payment found');
@@ -217,7 +225,7 @@ class Franchisee_sale_payments extends MYTController
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $franchisee_sale_payments
+                'data' => $franchisee_sale_payments
             ]);
         }
 
@@ -240,38 +248,38 @@ class Franchisee_sale_payments extends MYTController
                 if ($seller_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['seller_project_id'], $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $seller_inventory[0]['current_qty'] - $franchisee_sale_item['qty'],
-                        'updated_by'  => $this->requested_by,
-                        'updated_on'  => date('Y-m-d H:i:s'),
+                        'updated_by' => $this->requested_by,
+                        'updated_on' => date('Y-m-d H:i:s'),
                     ];
-    
+
                     if (!$this->inventoryModel->update($seller_inventory[0]['id'], $new_values)) {
                         $this->errorMessage = $this->db->error()['message'];
                         return false;
                     }
                 }
-    
+
                 if ($buyer_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['buyer_project_id'], $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $buyer_inventory[0]['current_qty'] + $franchisee_sale_item['qty'],
-                        'updated_by'  => $this->requested_by,
-                        'updated_on'  => date('Y-m-d H:i:s'),
+                        'updated_by' => $this->requested_by,
+                        'updated_on' => date('Y-m-d H:i:s'),
                     ];
-    
+
                     if (!$this->inventoryModel->update($buyer_inventory[0]['id'], $new_values)) {
                         $this->errorMessage = $this->db->error()['message'];
                         return false;
                     }
                 } else {
                     $new_values = [
-                        'item_id'       => $franchisee_sale_item['item_id'],
-                        'project_id'     => $franchisee_sale['buyer_project_id'],
-                        'item_unit_id'  => $item_unit[0]['id'],
+                        'item_id' => $franchisee_sale_item['item_id'],
+                        'project_id' => $franchisee_sale['buyer_project_id'],
+                        'item_unit_id' => $item_unit[0]['id'],
                         'beginning_qty' => 0,
-                        'current_qty'   => $franchisee_sale_item['qty'],
-                        'added_by'      => $this->requested_by,
-                        'added_on'      => date('Y-m-d H:i:s'),
+                        'current_qty' => $franchisee_sale_item['qty'],
+                        'added_by' => $this->requested_by,
+                        'added_on' => date('Y-m-d H:i:s'),
                     ];
-    
+
                     if (!$this->inventoryModel->insert($new_values)) {
                         $this->errorMessage = $this->db->error()['message'];
                         return false;
@@ -287,7 +295,7 @@ class Franchisee_sale_payments extends MYTController
      * Create franchisee_sale_payments
      */
     private function _attempt_create()
-    {        
+    {
         if ($franchisee_sale = $this->franchiseeSaleModel->get_details_by_id($this->request->getVar('franchisee_sale_id'))) {
             $franchisee_sale = $franchisee_sale[0];
         } else {
@@ -296,42 +304,42 @@ class Franchisee_sale_payments extends MYTController
         }
 
         $values = [
-            'franchisee_id'      => $this->request->getVar('franchisee_id'),
+            'franchisee_id' => $this->request->getVar('franchisee_id'),
             'franchisee_sale_id' => $franchisee_sale['id'],
-            'payment_type'       => $this->request->getVar('payment_type'),
-            'payment_date'       => $this->request->getVar('payment_date'),
-            'remarks'            => $this->request->getVar('remarks'),
-            'from_bank_id'       => $this->request->getVar('from_bank_id'),
-            'to_bank_name'       => $this->request->getVar('to_bank_name'),
-            'to_bank_id'         => $this->request->getVar('to_bank_id'),
-            'cheque_number'      => $this->request->getVar('cheque_number'),
-            'cheque_date'        => $this->request->getVar('cheque_date'),
-            'reference_number'   => $this->request->getVar('reference_number'),
+            'payment_type' => $this->request->getVar('payment_type'),
+            'payment_date' => $this->request->getVar('payment_date'),
+            'remarks' => $this->request->getVar('remarks'),
+            'from_bank_id' => $this->request->getVar('from_bank_id'),
+            'to_bank_name' => $this->request->getVar('to_bank_name'),
+            'to_bank_id' => $this->request->getVar('to_bank_id'),
+            'cheque_number' => $this->request->getVar('cheque_number'),
+            'cheque_date' => $this->request->getVar('cheque_date'),
+            'reference_number' => $this->request->getVar('reference_number'),
             'transaction_number' => $this->request->getVar('transaction_number'),
-            'payment_description'=> $this->request->getVar('payment_description'),
-            'invoice_no'         => $this->request->getVar('invoice_no'),
-            'term_day'           => $this->request->getVar('term_day'),
-            'delivery_address'   => $this->request->getVar('delivery_address'),
-            'paid_amount'        => $this->request->getVar('paid_amount'),
-            'grand_total'        => $this->request->getVar('grand_total'),
-            'subtotal'           => $this->request->getVar('subtotal'),
-            'service_fee'        => $this->request->getVar('service_fee'),
-            'delivery_fee'       => $this->request->getVar('delivery_fee'),
-            'withholding_tax'    => $this->request->getVar('withholding_tax'),
-            'deposit_date'       => $this->request->getVar('deposit_date'),
-            'added_by'           => $this->requested_by,
-            'added_on'           => date('Y-m-d H:i:s'),
+            'payment_description' => $this->request->getVar('payment_description'),
+            'invoice_no' => $this->request->getVar('invoice_no'),
+            'term_day' => $this->request->getVar('term_day'),
+            'delivery_address' => $this->request->getVar('delivery_address'),
+            'paid_amount' => $this->request->getVar('paid_amount'),
+            'grand_total' => $this->request->getVar('grand_total'),
+            'subtotal' => $this->request->getVar('subtotal'),
+            'service_fee' => $this->request->getVar('service_fee'),
+            'delivery_fee' => $this->request->getVar('delivery_fee'),
+            'withholding_tax' => $this->request->getVar('withholding_tax'),
+            'deposit_date' => $this->request->getVar('deposit_date'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$franchisee_sale_payment_id = $this->franchiseeSalePaymentModel->insert($values)) {
             $this->errorMessage = $this->db->error()['message'];
-           return false;
+            return false;
         }
-    
+
         if (!$this->_record_sale_payment($franchisee_sale, $values)) {
             return false;
         }
-        
+
         return $franchisee_sale_payment_id;
     }
 
@@ -348,53 +356,53 @@ class Franchisee_sale_payments extends MYTController
         $franchisee_sale = $franchisee_sale[0];
 
         $new_values = [
-            'balance'     => $franchisee_sale['balance'] + $franchisee_sale_payment['paid_amount'],
+            'balance' => $franchisee_sale['balance'] + $franchisee_sale_payment['paid_amount'],
             'paid_amount' => $franchisee_sale['paid_amount'] - $franchisee_sale_payment['paid_amount'],
-            'updated_by'  => $this->requested_by,   
-            'updated_on'  => date('Y-m-d H:i:s'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s'),
         ];
 
         if ($new_values['balance'] > 0) {
             $new_values['payment_status'] = 'open_bill';
-            $new_values['fully_paid_on']  = null;
+            $new_values['fully_paid_on'] = null;
         }
 
         if (!$this->franchiseeSaleModel->update($franchisee_sale_id, $new_values)) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
-        
+
         // Restore the credit limit back
-        if (!$this->_update_credit_limit($franchisee_sale, (float)$franchisee_sale_payment['paid_amount'] * -1)) {
+        if (!$this->_update_credit_limit($franchisee_sale, (float) $franchisee_sale_payment['paid_amount'] * -1)) {
             return false;
         }
 
         $values = [
-            'franchisee_id'      => $this->request->getVar('franchisee_id'),
+            'franchisee_id' => $this->request->getVar('franchisee_id'),
             'franchisee_sale_id' => $franchisee_sale_id,
-            'payment_type'       => $this->request->getVar('payment_type'),
-            'payment_date'       => $this->request->getVar('payment_date'),
-            'remarks'            => $this->request->getVar('remarks'),
-            'from_bank_id'       => $this->request->getVar('from_bank_id'),
-            'to_bank_id'         => $this->request->getVar('to_bank_id'),
-            'to_bank_name'       => $this->request->getVar('to_bank_name'),
-            'cheque_number'      => $this->request->getVar('cheque_number'),
-            'cheque_date'        => $this->request->getVar('cheque_date'),
-            'reference_number'   => $this->request->getVar('reference_number'),
+            'payment_type' => $this->request->getVar('payment_type'),
+            'payment_date' => $this->request->getVar('payment_date'),
+            'remarks' => $this->request->getVar('remarks'),
+            'from_bank_id' => $this->request->getVar('from_bank_id'),
+            'to_bank_id' => $this->request->getVar('to_bank_id'),
+            'to_bank_name' => $this->request->getVar('to_bank_name'),
+            'cheque_number' => $this->request->getVar('cheque_number'),
+            'cheque_date' => $this->request->getVar('cheque_date'),
+            'reference_number' => $this->request->getVar('reference_number'),
             'transaction_number' => $this->request->getVar('transaction_number'),
-            'payment_description'=> $this->request->getVar('payment_description'),
-            'invoice_no'         => $this->request->getVar('invoice_no'),
-            'term_day'           => $this->request->getVar('term_day'),
-            'delivery_address'   => $this->request->getVar('delivery_address'),
-            'paid_amount'        => $this->request->getVar('paid_amount'),
-            'grand_total'        => $this->request->getVar('grand_total'),
-            'subtotal'           => $this->request->getVar('subtotal'),
-            'service_fee'        => $this->request->getVar('service_fee'),
-            'delivery_fee'       => $this->request->getVar('delivery_fee'),
-            'withholding_tax'    => $this->request->getVar('withholding_tax'),
-            'deposit_date'       => $this->request->getVar('deposit_date'),
-            'updated_by'         => $this->requested_by,
-            'updated_on'         => date('Y-m-d H:i:s')
+            'payment_description' => $this->request->getVar('payment_description'),
+            'invoice_no' => $this->request->getVar('invoice_no'),
+            'term_day' => $this->request->getVar('term_day'),
+            'delivery_address' => $this->request->getVar('delivery_address'),
+            'paid_amount' => $this->request->getVar('paid_amount'),
+            'grand_total' => $this->request->getVar('grand_total'),
+            'subtotal' => $this->request->getVar('subtotal'),
+            'service_fee' => $this->request->getVar('service_fee'),
+            'delivery_fee' => $this->request->getVar('delivery_fee'),
+            'withholding_tax' => $this->request->getVar('withholding_tax'),
+            'deposit_date' => $this->request->getVar('deposit_date'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->franchiseeSalePaymentModel->update($franchisee_sale_payment_id, $values)) {
@@ -416,17 +424,18 @@ class Franchisee_sale_payments extends MYTController
     /**
      * Record Frachisee Sale Payment
      */
-    protected function _record_sale_payment($franchisee_sale, $values) {
+    protected function _record_sale_payment($franchisee_sale, $values)
+    {
         $update_values = [
-            'balance'     => $franchisee_sale['balance'] - $values['paid_amount'],
+            'balance' => $franchisee_sale['balance'] - $values['paid_amount'],
             'paid_amount' => $franchisee_sale['paid_amount'] + $values['paid_amount'],
-            'updated_by'  => $this->requested_by,   
-            'updated_on'  => date('Y-m-d H:i:s'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s'),
         ];
 
         if ($update_values['balance'] == 0) {
             $update_values['payment_status'] = 'closed_bill';
-            $update_values['fully_paid_on']  = date('Y-m-d H:i:s');
+            $update_values['fully_paid_on'] = date('Y-m-d H:i:s');
         }
 
         if (!$this->franchiseeSaleModel->update($franchisee_sale['id'], $update_values)) {
@@ -437,7 +446,7 @@ class Franchisee_sale_payments extends MYTController
         if (!$this->_update_credit_limit($franchisee_sale, $values['paid_amount'])) {
             return false;
         }
-        
+
         return true;
     }
 
@@ -456,20 +465,20 @@ class Franchisee_sale_payments extends MYTController
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
-        
+
         // Restore the credit limit back
         $franchisee_sale = $this->franchiseeSaleModel->get_details_by_id($franchisee_sale_payment['franchisee_sale_id'])[0];
         // Update the paid amount
         $new_values = [
-            'balance'     => $franchisee_sale['balance'] + $franchisee_sale_payment['paid_amount'],
+            'balance' => $franchisee_sale['balance'] + $franchisee_sale_payment['paid_amount'],
             'paid_amount' => $franchisee_sale['paid_amount'] - $franchisee_sale_payment['paid_amount'],
-            'updated_by'  => $this->requested_by,   
-            'updated_on'  => date('Y-m-d H:i:s'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s'),
         ];
 
         if ($new_values['balance'] > 0) {
             $new_values['payment_status'] = 'open_bill';
-            $new_values['fully_paid_on']  = null;
+            $new_values['fully_paid_on'] = null;
         }
 
         if (!$this->franchiseeSaleModel->update($franchisee_sale['id'], $new_values)) {
@@ -477,7 +486,7 @@ class Franchisee_sale_payments extends MYTController
             return false;
         }
 
-        if (!$this->_update_credit_limit($franchisee_sale, (float)$franchisee_sale_payment['paid_amount'] * -1)) {
+        if (!$this->_update_credit_limit($franchisee_sale, (float) $franchisee_sale_payment['paid_amount'] * -1)) {
             return false;
         }
 
@@ -487,13 +496,14 @@ class Franchisee_sale_payments extends MYTController
     /**
      * Increase credit limit
      */
-    private function _update_credit_limit($franchisee_sale, $amount) {
+    private function _update_credit_limit($franchisee_sale, $amount)
+    {
         $franchisee = $this->franchiseeModel->get_details_by_id($franchisee_sale['franchisee_id'])[0];
-        
+
         $new_values = [
-            'current_credit_limit' => (float)$franchisee['current_credit_limit'] + (float)$amount,
-            'updated_by'           => $this->requested_by,
-            'updated_on'           => date('Y-m-d H:i:s'),
+            'current_credit_limit' => (float) $franchisee['current_credit_limit'] + (float) $amount,
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$this->franchiseeModel->update($franchisee['id'], $new_values)) {
@@ -510,11 +520,11 @@ class Franchisee_sale_payments extends MYTController
     protected function _load_essentials()
     {
         $this->franchiseeSalePaymentModel = model('App\Models\Franchisee_sale_payment');
-        $this->franchiseeSaleModel        = model('App\Models\Franchisee_sale');
-        $this->franchiseeSaleItemModel    = model('App\Models\Franchisee_sale_item');
-        $this->franchiseeModel            = model('App\Models\Franchisee');
-        $this->itemUnitModel              = model('App\Models\Item_unit');
-        $this->inventoryModel             = model('App\Models\Inventory');
-        $this->webappResponseModel        = model('App\Models\Webapp_response');
+        $this->franchiseeSaleModel = model('App\Models\Franchisee_sale');
+        $this->franchiseeSaleItemModel = model('App\Models\Franchisee_sale_item');
+        $this->franchiseeModel = model('App\Models\Franchisee');
+        $this->itemUnitModel = model('App\Models\Item_unit');
+        $this->inventoryModel = model('App\Models\Inventory');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

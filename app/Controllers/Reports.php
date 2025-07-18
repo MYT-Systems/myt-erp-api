@@ -5,6 +5,27 @@ use DateTime;
 
 class Reports extends MYTController
 {
+    protected $reportModel;
+    protected $projectModel;
+    protected $projectInvoiceModel;
+    protected $projectExpenseModel;
+    protected $suppliesExpenseModel;
+    protected $suppliesReceiveModel;
+    protected $pettyCashModel;
+    protected $pettyCashDetailModel;
+    protected $expenseTypeModel;
+    protected $suppliesPaymentModel;
+    protected $customerModel;
+    protected $branchModel;
+    protected $transferModel;
+    protected $transferItemModel;
+    protected $franchiseeSaleModel;
+    protected $franchiseeSaleItemModel;
+    protected $franchiseeSalePaymentModel;
+    protected $fsBillingPaymentModel;
+    protected $purchaseItemModel;
+    protected $receiveModel;
+    protected $webappResponseModel;
     
     public function __construct()
     {

@@ -5,6 +5,31 @@ namespace App\Controllers;
 class Supplies_expenses extends MYTController
 {
 
+    protected $suppliesExpenseModel;
+    protected $suppliesExpenseItemModel;
+    protected $suppliesExpenseBankEntryModel;
+    protected $suppliesExpenseCashEntryModel;
+    protected $suppliesExpenseCheckEntryModel;
+    protected $suppliesExpenseGcashEntryModel;
+    protected $suppliesExpenseBankSlipModel;
+    protected $suppliesExpenseCashSlipModel;
+    protected $suppliesExpenseCheckSlipModel;
+    protected $suppliesExpenseGcashSlipModel;
+    protected $suppliesExpenseBankSlipAttachmentModel;
+    protected $suppliesExpenseCashSlipAttachmentModel;
+    protected $suppliesExpenseCheckSlipAttachmentModel;
+    protected $suppliesExpenseGcashSlipAttachmentModel;
+    protected $suppliesExpenseAttachmentModel;
+    protected $supplierModel;
+    protected $suppliesPaymentModel;
+    protected $suppliesReceiveModel;
+    protected $vendorModel;
+    protected $branchModel;
+    protected $suppliesExpensePaymentModel;
+    protected $suppliesExpensePaymentDetailModel;
+    protected $projectExpenseModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers

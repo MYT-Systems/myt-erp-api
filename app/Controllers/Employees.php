@@ -8,6 +8,9 @@ use App\Models\Webapp_response;
 
 class Employees extends MYTController
 {
+    protected $branchModel;
+    protected $employeeModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

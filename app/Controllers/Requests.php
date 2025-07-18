@@ -4,6 +4,10 @@ namespace App\Controllers;
 
 class Requests extends MYTController
 {
+    protected $requestModel;
+    protected $requestItemModel;
+    protected $checkInvoiceModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

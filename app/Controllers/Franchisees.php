@@ -9,6 +9,11 @@ use App\Models\Webapp_response;
 class Franchisees extends MYTController
 {
 
+    protected $franchiseeModel;
+    protected $franchiseePaymentModel;
+    protected $branchModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -31,8 +36,8 @@ class Franchisees extends MYTController
             return $response;
         }
 
-        $franchisee_id       = $this->request->getVar('franchisee_id') ? : null;
-        $franchisee          = $franchisee_id ? $this->franchiseeModel->get_details_by_id($franchisee_id) : null;
+        $franchisee_id = $this->request->getVar('franchisee_id') ?: null;
+        $franchisee = $franchisee_id ? $this->franchiseeModel->get_details_by_id($franchisee_id) : null;
         $franchisee_payments = $franchisee_id ? $this->franchiseePaymentModel->get_details_by_franchisee_id($franchisee_id) : null;
 
         if (!$franchisee) {
@@ -43,10 +48,10 @@ class Franchisees extends MYTController
             $remaining_credit = $this->franchiseeModel->get_remaining_credit_by_franchisee_name($franchisee[0]['name']);
             $franchisee[0]['remaining_credit'] = $remaining_credit[0]['remaining_credit'];
             $franchisee[0]['franchisee_payments'] = $franchisee_payments;
-            
+
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $franchisee
+                'data' => $franchisee
             ]);
         }
 
@@ -79,7 +84,7 @@ class Franchisees extends MYTController
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $franchisees
+                'data' => $franchisees
             ]);
         }
 
@@ -109,7 +114,7 @@ class Franchisees extends MYTController
         } else {
             $db->transCommit();
             $response = $this->respond([
-                'status'        => 'success',
+                'status' => 'success',
                 'franchisee_id' => $franchisee_id
             ]);
         }
@@ -134,7 +139,7 @@ class Franchisees extends MYTController
         }
 
         $where = [
-            'id'         => $this->request->getVar('franchisee_id'), 
+            'id' => $this->request->getVar('franchisee_id'),
             'is_deleted' => 0
         ];
 
@@ -170,7 +175,7 @@ class Franchisees extends MYTController
         }
 
         $where = [
-            'id' => $this->request->getVar('franchisee_id'), 
+            'id' => $this->request->getVar('franchisee_id'),
             'is_deleted' => 0
         ];
 
@@ -205,26 +210,26 @@ class Franchisees extends MYTController
             return $response;
         }
 
-        $project_id         = $this->request->getVar('project_id') ?? null;
-        $customer_id        = $this->request->getVar('customer_id') ?? null;
-        $name               = $this->request->getVar('name') ?? null;
-        $type               = $this->request->getVar('type') ?? null;
-        $franchisee_fee     = $this->request->getVar('franchisee_fee') ?? null;
-        $royalty_fee        = $this->request->getVar('royalty_fee') ?? null;
-        $paid_amount        = $this->request->getVar('paid_amount') ?? 0;
-        $payment_status     = $this->request->getVar('payment_status') ?? null;
+        $project_id = $this->request->getVar('project_id') ?? null;
+        $customer_id = $this->request->getVar('customer_id') ?? null;
+        $name = $this->request->getVar('name') ?? null;
+        $type = $this->request->getVar('type') ?? null;
+        $franchisee_fee = $this->request->getVar('franchisee_fee') ?? null;
+        $royalty_fee = $this->request->getVar('royalty_fee') ?? null;
+        $paid_amount = $this->request->getVar('paid_amount') ?? 0;
+        $payment_status = $this->request->getVar('payment_status') ?? null;
         $franchised_on_from = $this->request->getVar('franchised_on_from') ?? null;
-        $franchised_on_to   = $this->request->getVar('franchised_on_to') ?? null;
-        $opening_start      = $this->request->getVar('opening_start') ?? null;
-        $remarks            = $this->request->getVar('remarks') ?? null;
-        $contact_person     = $this->request->getVar('contact_person') ?? null;
-        $contact_number     = $this->request->getVar('contact_number') ?? null;
-        $phone_no           = $this->request->getVar('phone_no') ?? null;
-        $address            = $this->request->getVar('address') ?? null;
-        $email              = $this->request->getVar('email') ?? null;
-        $contract_status    = $this->request->getVar('contract_status') ?? null;
+        $franchised_on_to = $this->request->getVar('franchised_on_to') ?? null;
+        $opening_start = $this->request->getVar('opening_start') ?? null;
+        $remarks = $this->request->getVar('remarks') ?? null;
+        $contact_person = $this->request->getVar('contact_person') ?? null;
+        $contact_number = $this->request->getVar('contact_number') ?? null;
+        $phone_no = $this->request->getVar('phone_no') ?? null;
+        $address = $this->request->getVar('address') ?? null;
+        $email = $this->request->getVar('email') ?? null;
+        $contract_status = $this->request->getVar('contract_status') ?? null;
 
-        if (!$franchisees = $this->franchiseeModel->search($project_id,$customer_id, $name, $type, $franchisee_fee, $royalty_fee, $paid_amount, $payment_status, $franchised_on_from, $franchised_on_to, $opening_start, $remarks, $contact_person, $contact_number, $phone_no, $address, $email, $contract_status)) {
+        if (!$franchisees = $this->franchiseeModel->search($project_id, $customer_id, $name, $type, $franchisee_fee, $royalty_fee, $paid_amount, $payment_status, $franchised_on_from, $franchised_on_to, $opening_start, $remarks, $contact_person, $contact_number, $phone_no, $address, $email, $contract_status)) {
             $response = $this->failNotFound('No franchisee found');
         } else {
             $summary = [
@@ -245,7 +250,7 @@ class Franchisees extends MYTController
 
             $response = $this->respond([
                 'summary' => $summary,
-                'data'   => $franchisees,
+                'data' => $franchisees,
                 'status' => 'success',
             ]);
         }
@@ -265,17 +270,17 @@ class Franchisees extends MYTController
         }
 
         $franchisee_name = $this->request->getVar('franchisee_name') ?? null;
-        $franchisee_id   = $this->request->getVar('franchisee_id') ?? null;
-        $project_id       = $this->request->getVar('project_id') ?? null;
-        $date_from       = $this->request->getVar('date_from') ?? null;
-        $date_to         = $this->request->getVar('date_to') ?? null;
+        $franchisee_id = $this->request->getVar('franchisee_id') ?? null;
+        $project_id = $this->request->getVar('project_id') ?? null;
+        $date_from = $this->request->getVar('date_from') ?? null;
+        $date_to = $this->request->getVar('date_to') ?? null;
 
         if (!$franchisees = $this->franchiseeModel->reports($franchisee_name, $franchisee_id, $project_id, $date_from, $date_to)) {
             $response = $this->failNotFound('No franchisee found');
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $franchisees
+                'data' => $franchisees
             ]);
         }
 
@@ -291,51 +296,51 @@ class Franchisees extends MYTController
      */
     private function _create_franchisee()
     {
-        $franchisee_fee     = $this->request->getVar('franchisee_fee') ?? 0;
+        $franchisee_fee = $this->request->getVar('franchisee_fee') ?? 0;
         $franchisee_package = $this->request->getVar('franchisee_package') ?? 0;
-        $royalty_fee        = $this->request->getVar('royalty_fee') ?? 0;
-        $marketing_fee      = $this->request->getVar('marketing_fee') ?? 0;
-        $other_fee          = $this->request->getVar('other_fee') ?? 0;
-        $securtiy_deposit   = $this->request->getVar('security_deposit') ?? 0;
-        $taxes              = $this->request->getVar('taxes') ?? 0;
-        $grand_total        = $franchisee_fee + $other_fee + $securtiy_deposit + $taxes;
-        
+        $royalty_fee = $this->request->getVar('royalty_fee') ?? 0;
+        $marketing_fee = $this->request->getVar('marketing_fee') ?? 0;
+        $other_fee = $this->request->getVar('other_fee') ?? 0;
+        $securtiy_deposit = $this->request->getVar('security_deposit') ?? 0;
+        $taxes = $this->request->getVar('taxes') ?? 0;
+        $grand_total = $franchisee_fee + $other_fee + $securtiy_deposit + $taxes;
+
         $values = [
-            'project_id'             => $this->request->getVar('project_id'),
-            'customer_id'            => $this->request->getVar('customer_id'),
-            'name'                   => $this->request->getVar('name'),
-            'type'                   => $this->request->getVar('type'),
-            'grand_total'            => $grand_total,
-            'royalty_fee'            => $royalty_fee,
-            'marketing_fee'          => $marketing_fee,
-            'franchisee_fee'         => $franchisee_fee,
-            'franchisee_package'     => $franchisee_package,
-            'paid_amount'            => $this->request->getVar('paid_amount') ?? 0,
-            'balance'                => $grand_total,
-            'payment_status'         => $this->request->getVar('payment_status') ?? 'open_bill',
-            'contract_start'         => $this->request->getVar('contract_start'),
-            'contract_end'           => $this->request->getVar('contract_end'),
-            'franchisee_contact_no'  => $this->request->getVar('franchisee_contact_no'),
-            'franchised_on'          => $this->request->getVar('franchised_on'),
-            'opening_start'          => $this->request->getVar('opening_start'),
-            'remarks'                => $this->request->getVar('remarks'),
-            'contact_person'         => $this->request->getVar('contact_person'),
-            'contact_number'         => $this->request->getVar('contact_number'),
-            'address'                => $this->request->getVar('address'),
-            'email'                  => $this->request->getVar('email'),
-            'phone_no'               => $this->request->getVar('phone_no'),
-            'package_type'           => $this->request->getVar('package_type'),
+            'project_id' => $this->request->getVar('project_id'),
+            'customer_id' => $this->request->getVar('customer_id'),
+            'name' => $this->request->getVar('name'),
+            'type' => $this->request->getVar('type'),
+            'grand_total' => $grand_total,
+            'royalty_fee' => $royalty_fee,
+            'marketing_fee' => $marketing_fee,
+            'franchisee_fee' => $franchisee_fee,
+            'franchisee_package' => $franchisee_package,
+            'paid_amount' => $this->request->getVar('paid_amount') ?? 0,
+            'balance' => $grand_total,
+            'payment_status' => $this->request->getVar('payment_status') ?? 'open_bill',
+            'contract_start' => $this->request->getVar('contract_start'),
+            'contract_end' => $this->request->getVar('contract_end'),
+            'franchisee_contact_no' => $this->request->getVar('franchisee_contact_no'),
+            'franchised_on' => $this->request->getVar('franchised_on'),
+            'opening_start' => $this->request->getVar('opening_start'),
+            'remarks' => $this->request->getVar('remarks'),
+            'contact_person' => $this->request->getVar('contact_person'),
+            'contact_number' => $this->request->getVar('contact_number'),
+            'address' => $this->request->getVar('address'),
+            'email' => $this->request->getVar('email'),
+            'phone_no' => $this->request->getVar('phone_no'),
+            'package_type' => $this->request->getVar('package_type'),
             'beginning_credit_limit' => $this->request->getVar('beginning_credit_limit'),
-            'current_credit_limit'   => $this->request->getVar('beginning_credit_limit'),
-            'security_deposit'       => $securtiy_deposit,
-            'taxes'                  => $taxes,
-            'other_fee'              => $other_fee,
-            'added_by'               => $this->requested_by,
-            'added_on'               => date('Y-m-d H:i:s'),
+            'current_credit_limit' => $this->request->getVar('beginning_credit_limit'),
+            'security_deposit' => $securtiy_deposit,
+            'taxes' => $taxes,
+            'other_fee' => $other_fee,
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$franchisee_id = $this->franchiseeModel->insert($values))
-           return false;
+            return false;
 
         return $franchisee_id;
     }
@@ -345,50 +350,50 @@ class Franchisees extends MYTController
      */
     protected function _attempt_update($franchisee)
     {
-        $franchisee_fee     = $this->request->getVar('franchisee_fee') ?? 0;
+        $franchisee_fee = $this->request->getVar('franchisee_fee') ?? 0;
         $franchisee_package = $this->request->getVar('franchisee_package') ?? 0;
-        $royalty_fee        = $this->request->getVar('royalty_fee') ?? 0;
-        $marketing_fee      = $this->request->getVar('marketing_fee') ?? 0;
-        $other_fee          = $this->request->getVar('other_fee') ?? 0;
-        $securtiy_deposit   = $this->request->getVar('security_deposit') ?? 0;
-        $taxes              = $this->request->getVar('taxes') ?? 0;
-        $grand_total        = $franchisee_fee + $other_fee + $securtiy_deposit + $taxes;
+        $royalty_fee = $this->request->getVar('royalty_fee') ?? 0;
+        $marketing_fee = $this->request->getVar('marketing_fee') ?? 0;
+        $other_fee = $this->request->getVar('other_fee') ?? 0;
+        $securtiy_deposit = $this->request->getVar('security_deposit') ?? 0;
+        $taxes = $this->request->getVar('taxes') ?? 0;
+        $grand_total = $franchisee_fee + $other_fee + $securtiy_deposit + $taxes;
 
         $credit_difference = $this->request->getVar('beginning_credit_limit') - $franchisee['beginning_credit_limit'];
-        $new_current_credit_limit = (float)$franchisee['current_credit_limit'] + $credit_difference;
+        $new_current_credit_limit = (float) $franchisee['current_credit_limit'] + $credit_difference;
 
         $values = [
-            'project_id'              => $this->request->getVar('project_id'),
-            'customer_id'            => $this->request->getVar('customer_id'),
-            'name'                   => $this->request->getVar('name'),
-            'type'                   => $this->request->getVar('type'),
-            'grand_total'            => $grand_total,
-            'royalty_fee'            => $royalty_fee,
-            'marketing_fee'          => $marketing_fee,
-            'franchisee_fee'         => $franchisee_fee,
-            'franchisee_package'     => $franchisee_package,
-            'paid_amount'            => $franchisee['paid_amount'],
-            'balance'                => $grand_total - $franchisee['paid_amount'],
-            'payment_status'         => $grand_total - $franchisee['paid_amount'] > 0 ? 'open_bill' : 'closed_bill',
-            'contract_start'         => $this->request->getVar('contract_start'),
-            'contract_end'           => $this->request->getVar('contract_end'),
-            'franchisee_contact_no'  => $this->request->getVar('franchisee_contact_no'),
-            'franchised_on'          => $this->request->getVar('franchised_on'),
-            'opening_start'          => $this->request->getVar('opening_start'),
-            'remarks'                => $this->request->getVar('remarks'),
-            'contact_person'         => $this->request->getVar('contact_person'),
-            'contact_number'         => $this->request->getVar('contact_number'),
-            'address'                => $this->request->getVar('address'),
-            'email'                  => $this->request->getVar('email'),
-            'phone_no'               => $this->request->getVar('phone_no'),
-            'package_type'           => $this->request->getVar('package_type'),
+            'project_id' => $this->request->getVar('project_id'),
+            'customer_id' => $this->request->getVar('customer_id'),
+            'name' => $this->request->getVar('name'),
+            'type' => $this->request->getVar('type'),
+            'grand_total' => $grand_total,
+            'royalty_fee' => $royalty_fee,
+            'marketing_fee' => $marketing_fee,
+            'franchisee_fee' => $franchisee_fee,
+            'franchisee_package' => $franchisee_package,
+            'paid_amount' => $franchisee['paid_amount'],
+            'balance' => $grand_total - $franchisee['paid_amount'],
+            'payment_status' => $grand_total - $franchisee['paid_amount'] > 0 ? 'open_bill' : 'closed_bill',
+            'contract_start' => $this->request->getVar('contract_start'),
+            'contract_end' => $this->request->getVar('contract_end'),
+            'franchisee_contact_no' => $this->request->getVar('franchisee_contact_no'),
+            'franchised_on' => $this->request->getVar('franchised_on'),
+            'opening_start' => $this->request->getVar('opening_start'),
+            'remarks' => $this->request->getVar('remarks'),
+            'contact_person' => $this->request->getVar('contact_person'),
+            'contact_number' => $this->request->getVar('contact_number'),
+            'address' => $this->request->getVar('address'),
+            'email' => $this->request->getVar('email'),
+            'phone_no' => $this->request->getVar('phone_no'),
+            'package_type' => $this->request->getVar('package_type'),
             'beginning_credit_limit' => $this->request->getVar('beginning_credit_limit'),
-            'current_credit_limit'   => $new_current_credit_limit < 0 ? 0 : $new_current_credit_limit,
-            'security_deposit'       => $securtiy_deposit,
-            'taxes'                  => $taxes,
-            'other_fee'              => $other_fee,
-            'updated_by'             => $this->requested_by,
-            'updated_on'             => date('Y-m-d H:i:s')
+            'current_credit_limit' => $new_current_credit_limit < 0 ? 0 : $new_current_credit_limit,
+            'security_deposit' => $securtiy_deposit,
+            'taxes' => $taxes,
+            'other_fee' => $other_fee,
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->franchiseeModel->update($franchisee['id'], $values))
@@ -397,8 +402,8 @@ class Franchisees extends MYTController
         if ($franchisee['opening_start'] != $this->request->getVar('opening_start')) {
             $values = [
                 'opening_date' => $this->request->getVar('opening_start'),
-                'updated_by'   => $this->requested_by,
-                'updated_on'   => date('Y-m-d H:i:s')
+                'updated_by' => $this->requested_by,
+                'updated_on' => date('Y-m-d H:i:s')
             ];
 
             if (!$this->branchModel->update($franchisee['project_id'], $values))
@@ -430,9 +435,9 @@ class Franchisees extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->franchiseeModel        = model('App\Models\Franchisee');
+        $this->franchiseeModel = model('App\Models\Franchisee');
         $this->franchiseePaymentModel = model('App\Models\Franchisee_payment');
-        $this->branchModel            = model('App\Models\Branch');
-        $this->webappResponseModel    = model('App\Models\Webapp_response');
+        $this->branchModel = model('App\Models\Branch');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

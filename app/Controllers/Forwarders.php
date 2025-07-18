@@ -7,6 +7,8 @@ use App\Models\Webapp_response;
 
 class Forwarders extends MYTController
 {
+    protected $forwarderModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

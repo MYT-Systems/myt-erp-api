@@ -4,6 +4,22 @@ namespace App\Controllers;
 
 class Supplies_receives extends MYTController
 {
+    protected $suppliesReceiveModel;
+    protected $suppliesReceiveItemModel;
+    protected $suppliesExpenseModel;
+    protected $suppliesInvoicePaymentModel;
+    protected $suppliesInvoicePaymentAttachmentModel;
+    protected $suppliesPaymentModel;
+    protected $seItemModel;
+    protected $SECashSlipModel;
+    protected $SECashEntryModel;
+    protected $SECheckSlipModel;
+    protected $SECheckEntryModel;
+    protected $SEBankSlipModel;
+    protected $SEBankEntryModel;
+    protected $suppliesExpensePaymentModel;
+    protected $suppliesExpensePaymentDetailModel;
+    protected $webappResponseModel;
     
     public function __construct()
     {

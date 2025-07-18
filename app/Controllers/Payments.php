@@ -4,6 +4,18 @@ namespace App\Controllers;
 
 class Payments extends MYTController
 {
+    protected $paymentModel;
+    protected $discountModel;
+    protected $orderModel;
+    protected $orderDetailModel;
+    protected $productItemModel;
+    protected $orderProductDetailModel;
+    protected $branchCommissionModel;
+    protected $dailyInventoryModel;
+    protected $diItemModel;
+    protected $itemUnitModel;
+    protected $diItemBreakdownModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

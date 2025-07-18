@@ -4,6 +4,20 @@ namespace App\Controllers;
 
 class Inventory_reports extends MYTController
 {
+    protected $inventoryReportModel;
+    protected $inventoryReportItemModel;
+    protected $adjustmentModel;
+    protected $adjustmentTypeModel;
+    protected $initialInventoryModel;
+    protected $endingInventoryModel;
+    protected $endingInventoryItemModel;
+    protected $itemUnitModel;
+    protected $inventoryModel;
+    protected $transferReceiveItemModel;
+    protected $orderModel;
+    protected $orderDetailIngredModel;
+    protected $webappResponseModel;
+    protected $webappResponseItemModel;
 
     public function __construct()
     {

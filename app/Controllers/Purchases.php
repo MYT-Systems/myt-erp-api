@@ -4,6 +4,17 @@ namespace App\Controllers;
 
 class Purchases extends MYTController
 {
+    protected $purchaseModel;
+    protected $purchaseItemModel;
+    protected $supplierModel;
+    protected $vendorModel;
+    protected $inventoryModel;
+    protected $branchModel;
+    protected $purchasePaymentModel;
+    protected $purchasePaymentDetailModel;
+    protected $receiveModel;
+    protected $suppliesPaymentModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

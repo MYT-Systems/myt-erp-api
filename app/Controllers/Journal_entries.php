@@ -4,6 +4,12 @@ namespace App\Controllers;
 
 class Journal_entries extends MYTController
 {
+
+    protected $journalEntryModel;
+    protected $journalEntryItemModel;
+    protected $itemUnitModel;
+    protected $inventoryModel;
+    protected $webappResponseModel;
     public function __construct()
     {
         // Headers
@@ -26,9 +32,9 @@ class Journal_entries extends MYTController
             return $response;
         }
 
-        $journal_entry_id       = $this->request->getVar('journal_entry_id') ? : null;
-        $journal_entry          = $journal_entry_id ? $this->journalEntryModel->get_details_by_id($journal_entry_id) : null;
-        $journal_entry_items    = $journal_entry_id ? $this->journalEntryItemModel->get_details_by_journal_entry_id($journal_entry_id) : [];
+        $journal_entry_id = $this->request->getVar('journal_entry_id') ?: null;
+        $journal_entry = $journal_entry_id ? $this->journalEntryModel->get_details_by_id($journal_entry_id) : null;
+        $journal_entry_items = $journal_entry_id ? $this->journalEntryItemModel->get_details_by_journal_entry_id($journal_entry_id) : [];
 
         if (!$journal_entry) {
             $response = $this->failNotFound('No journal_entry found');
@@ -36,7 +42,7 @@ class Journal_entries extends MYTController
             $journal_entry[0]['journal_entry_items'] = $journal_entry_items;
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $journal_entry
+                'data' => $journal_entry
             ]);
         }
 
@@ -57,8 +63,8 @@ class Journal_entries extends MYTController
             return $response;
         }
 
-        $date_from          = $this->request->getVar('date_from') ? : null;
-        $date_to            = $this->request->getVar('date_to') ? : null;
+        $date_from = $this->request->getVar('date_from') ?: null;
+        $date_to = $this->request->getVar('date_to') ?: null;
 
         $journal_entries = $this->journalEntryModel->get_all($date_from, $date_to);
 
@@ -67,7 +73,7 @@ class Journal_entries extends MYTController
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $journal_entries
+                'data' => $journal_entries
             ]);
         }
 
@@ -100,7 +106,7 @@ class Journal_entries extends MYTController
         } else {
             $db->transCommit();
             $response = $this->respond([
-                'status'        => 'success',
+                'status' => 'success',
                 'journal_entry_id' => $journal_entry_id
             ]);
         }
@@ -118,14 +124,14 @@ class Journal_entries extends MYTController
     {
         if (($response = $this->_api_verification('journal_entries', 'update')) !== true)
             return $response;
-    
+
         $token = $this->request->getVar('token');
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
 
         $where = [
-            'id'         => $this->request->getVar('journal_entry_id'), 
+            'id' => $this->request->getVar('journal_entry_id'),
             'is_deleted' => 0
         ];
 
@@ -166,7 +172,7 @@ class Journal_entries extends MYTController
         }
 
         $where = [
-            'id' => $this->request->getVar('journal_entry_id'), 
+            'id' => $this->request->getVar('journal_entry_id'),
             'is_deleted' => 0
         ];
 
@@ -198,7 +204,7 @@ class Journal_entries extends MYTController
         }
 
         $where = [
-            'id' => $this->request->getVar('journal_entry_id'), 
+            'id' => $this->request->getVar('journal_entry_id'),
             'is_deleted' => 0
         ];
 
@@ -265,8 +271,8 @@ class Journal_entries extends MYTController
 
             $response = $this->respond([
                 'summary' => $summary,
-                'data'    => $project_invoices,
-                'status'  => 'success',
+                'data' => $project_invoices,
+                'status' => 'success',
             ]);
         }
 
@@ -284,13 +290,13 @@ class Journal_entries extends MYTController
     private function _attempt_create()
     {
         $values = [
-            'date'                  => $this->request->getVar('date'),
-            'remarks'               => $this->request->getVar('remarks'),
-            'total_debit'          => $this->request->getVar('total_debit'),
-            'total_credit'         => $this->request->getVar('total_credit'),
-            'is_posted'            => 0,
-            'added_by'             => $this->requested_by,
-            'added_on'             => date('Y-m-d H:i:s'),
+            'date' => $this->request->getVar('date'),
+            'remarks' => $this->request->getVar('remarks'),
+            'total_debit' => $this->request->getVar('total_debit'),
+            'total_credit' => $this->request->getVar('total_credit'),
+            'is_posted' => 0,
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$journal_entry_id = $this->journalEntryModel->insert($values))
@@ -304,30 +310,30 @@ class Journal_entries extends MYTController
      */
     protected function _attempt_generate_journal_entry_items($journal_entry_id)
     {
-        $project_ids             = $this->request->getVar('project_ids');
-        $expense_type_ids        = $this->request->getVar('expense_type_ids');
-        $debits                  = $this->request->getVar('debits');
-        $credits                 = $this->request->getVar('credits');
-        $remarks                 = $this->request->getVar('item_remarks');
+        $project_ids = $this->request->getVar('project_ids');
+        $expense_type_ids = $this->request->getVar('expense_type_ids');
+        $debits = $this->request->getVar('debits');
+        $credits = $this->request->getVar('credits');
+        $remarks = $this->request->getVar('item_remarks');
 
         foreach ($project_ids as $key => $project_id) {
             $values = [
                 'journal_entry_id' => $journal_entry_id,
-                'project_id'       => $project_id,
-                'expense_type_id'  => $expense_type_ids[$key],
-                'debit'            => $debits[$key],
-                'credit'           => $credits[$key],
-                'remarks'          => $remarks[$key],
-                'added_by'        => $this->requested_by,
-                'added_on'        => date('Y-m-d H:i:s'),
+                'project_id' => $project_id,
+                'expense_type_id' => $expense_type_ids[$key],
+                'debit' => $debits[$key],
+                'credit' => $credits[$key],
+                'remarks' => $remarks[$key],
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s'),
             ];
 
             if (!$this->journalEntryItemModel->insert($values)) {
-                return false; 
+                return false;
             }
         }
 
-        return true; 
+        return true;
     }
 
     /**
@@ -336,16 +342,16 @@ class Journal_entries extends MYTController
     protected function _attempt_update($journal_entry_id)
     {
         $values = [
-            'date'                  => $this->request->getVar('date'),
-            'remarks'               => $this->request->getVar('remarks'),
-            'total_debit'          => $this->request->getVar('total_debit'),
-            'total_credit'         => $this->request->getVar('total_credit'),
-            'updated_by'           => $this->requested_by,
-            'updated_on'           => date('Y-m-d H:i:s')
+            'date' => $this->request->getVar('date'),
+            'remarks' => $this->request->getVar('remarks'),
+            'total_debit' => $this->request->getVar('total_debit'),
+            'total_credit' => $this->request->getVar('total_credit'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->journalEntryModel->update($journal_entry_id, $values)) {
-            return false;            
+            return false;
         }
 
         return true;
@@ -402,7 +408,7 @@ class Journal_entries extends MYTController
         if (!$this->journalEntryItemModel->delete_by_journal_entry_id($journal_entry_id, $this->requested_by)) {
             return false;
         }
-        
+
         $where = ['id' => $journal_entry_id];
         $values = [
             'is_deleted' => 1,
@@ -421,10 +427,10 @@ class Journal_entries extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->journalEntryModel        = model('App\Models\Journal_entry');
-        $this->journalEntryItemModel    = model('App\Models\Journal_entry_item');
-        $this->itemUnitModel            = model('App\Models\Item_unit');
-        $this->inventoryModel           = model('App\Models\Inventory');
-        $this->webappResponseModel      = model('App\Models\Webapp_response');
+        $this->journalEntryModel = model('App\Models\Journal_entry');
+        $this->journalEntryItemModel = model('App\Models\Journal_entry_item');
+        $this->itemUnitModel = model('App\Models\Item_unit');
+        $this->inventoryModel = model('App\Models\Inventory');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

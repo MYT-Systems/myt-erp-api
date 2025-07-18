@@ -4,6 +4,11 @@ namespace App\Controllers;
 
 class Wastage_items extends MYTController
 {
+    protected $inventoryModel;
+    protected $wastageModel;
+    protected $wastageItemModel;
+    protected $webappResponseModel;
+    protected $wastage;
 
     public function __construct()
     {

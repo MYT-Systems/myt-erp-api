@@ -4,6 +4,11 @@ namespace App\Controllers;
 
 class Petty_cash_reports extends MYTController
 {
+    protected $pettyCashModel;
+    protected $pettyCashDetailModel;
+    protected $pettyCashDetailAttachmentModel;
+    protected $pettyCashItemModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

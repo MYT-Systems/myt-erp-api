@@ -5,6 +5,14 @@ namespace App\Controllers;
 class Cash_counts extends MYTController
 {
 
+    protected $cashCountModel;
+    protected $paymentModel;
+    protected $expenseModel;
+    protected $dailySaleModel;
+    protected $orderDetailIngredModel;
+    protected $webappResponseModel;
+    protected $total_cash;
+
     public function __construct()
     {
         // Headers
@@ -27,15 +35,15 @@ class Cash_counts extends MYTController
             return $response;
         }
 
-        $cash_count_id = $this->request->getVar('cash_count_id') ? : null;
-        $cash_count    = $cash_count_id ? $this->cashCountModel->get_details_by_id($cash_count_id) : null;
+        $cash_count_id = $this->request->getVar('cash_count_id') ?: null;
+        $cash_count = $cash_count_id ? $this->cashCountModel->get_details_by_id($cash_count_id) : null;
 
         if (!$cash_count) {
             $response = $this->failNotFound('No cash_count found');
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $cash_count
+                'data' => $cash_count
             ]);
         }
 
@@ -56,10 +64,10 @@ class Cash_counts extends MYTController
             return $response;
         }
 
-        $branch_id = $this->request->getVar('branch_id') ? : null;
-        $date = $this->request->getVar('date') ? : null;
-        $date_from = $this->request->getVar('date_from') ? : null;
-        $date_to = $this->request->getVar('date_to') ? : null;
+        $branch_id = $this->request->getVar('branch_id') ?: null;
+        $date = $this->request->getVar('date') ?: null;
+        $date_from = $this->request->getVar('date_from') ?: null;
+        $date_to = $this->request->getVar('date_to') ?: null;
 
         $total_expense = $this->expenseModel->get_total_expense($branch_id, $date, $date_from, $date_to);
         $cash_sales = $this->paymentModel->get_sales($date, $branch_id, $date_from, $date_to, null, 'cash') ?? 0;
@@ -79,7 +87,7 @@ class Cash_counts extends MYTController
         $where['type'] = 'change_funds';
         $change_funds_cash_counts = $this->cashCountModel->search($branch_id, null, null, null, null, null, $date_from, $date_to, 'change_funds', null);
 
-        if (!$deposit_cash_counts OR !$change_funds_cash_counts) {
+        if (!$deposit_cash_counts or !$change_funds_cash_counts) {
             $response = $this->failNotFound('No cash count reports found');
         } else {
             if ($daily_sales) {
@@ -92,16 +100,34 @@ class Cash_counts extends MYTController
 
             foreach ($deposit_cash_counts as $index => $deposit_cash_count) {
                 $deposit_quantities[] = [
-                    $deposit_cash_count['bill_1000'], $deposit_cash_count['bill_500'], $deposit_cash_count['bill_200'], $deposit_cash_count['bill_100'], $deposit_cash_count['bill_50'], $deposit_cash_count['bill_20'], $deposit_cash_count['coin_10'], $deposit_cash_count['coin_5'], $deposit_cash_count['coin_1'], $deposit_cash_count['cent_25']
+                    $deposit_cash_count['bill_1000'],
+                    $deposit_cash_count['bill_500'],
+                    $deposit_cash_count['bill_200'],
+                    $deposit_cash_count['bill_100'],
+                    $deposit_cash_count['bill_50'],
+                    $deposit_cash_count['bill_20'],
+                    $deposit_cash_count['coin_10'],
+                    $deposit_cash_count['coin_5'],
+                    $deposit_cash_count['coin_1'],
+                    $deposit_cash_count['cent_25']
                 ];
 
                 $change_funds_quantities[] = [
-                    $change_funds_cash_counts[$index]['bill_1000'], $change_funds_cash_counts[$index]['bill_500'], $change_funds_cash_counts[$index]['bill_200'], $change_funds_cash_counts[$index]['bill_100'], $change_funds_cash_counts[$index]['bill_50'], $change_funds_cash_counts[$index]['bill_20'], $change_funds_cash_counts[$index]['coin_10'], $change_funds_cash_counts[$index]['coin_5'], $change_funds_cash_counts[$index]['coin_1'], $change_funds_cash_counts[$index]['cent_25']
+                    $change_funds_cash_counts[$index]['bill_1000'],
+                    $change_funds_cash_counts[$index]['bill_500'],
+                    $change_funds_cash_counts[$index]['bill_200'],
+                    $change_funds_cash_counts[$index]['bill_100'],
+                    $change_funds_cash_counts[$index]['bill_50'],
+                    $change_funds_cash_counts[$index]['bill_20'],
+                    $change_funds_cash_counts[$index]['coin_10'],
+                    $change_funds_cash_counts[$index]['coin_5'],
+                    $change_funds_cash_counts[$index]['coin_1'],
+                    $change_funds_cash_counts[$index]['cent_25']
                 ];
             }
 
             $cash_variance = 0;
-            if ($cash_sales !== false AND $total_expense !== false) {
+            if ($cash_sales !== false and $total_expense !== false) {
                 foreach ($deposit_cash_counts as $deposit_cash_count) {
                     $current_cash_variance = ($deposit_cash_count['total_count']) - ($cash_sales - $total_expense);
                     $cash_variance += $current_cash_variance;
@@ -145,7 +171,7 @@ class Cash_counts extends MYTController
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $cash_counts
+                'data' => $cash_counts
             ]);
         }
 
@@ -176,10 +202,10 @@ class Cash_counts extends MYTController
         ];
 
         /* 
-        ** DEFINITIONS:
-        ** dep_ = deposit
-        ** chf_ = change funds
-        **/ 
+         ** DEFINITIONS:
+         ** dep_ = deposit
+         ** chf_ = change funds
+         **/
         if ($this->cashCountModel->select('', $where)) {
             $response = $this->fail(['response' => 'Cash count already exist.']);
         } elseif (!$cash_count_deposit_id = $this->_attempt_create_cash_breakdown('dep_')) {
@@ -191,9 +217,9 @@ class Cash_counts extends MYTController
         } else {
             $db->transCommit();
             $response = $this->respond([
-                'response'                   => 'Cash count created successfully.',
-                'status'                     => 'success',
-                'cash_count_deposit_id'      => $cash_count_deposit_id,
+                'response' => 'Cash count created successfully.',
+                'status' => 'success',
+                'cash_count_deposit_id' => $cash_count_deposit_id,
                 'cash_count_change_funds_id' => $cash_count_change_funds_id
             ]);
         }
@@ -217,7 +243,7 @@ class Cash_counts extends MYTController
         }
 
         $where = [
-            'id' => $this->request->getVar('cash_count_id'), 
+            'id' => $this->request->getVar('cash_count_id'),
             'is_deleted' => 0
         ];
 
@@ -281,16 +307,16 @@ class Cash_counts extends MYTController
             return $response;
         }
 
-        $branch_id         = $this->request->getVar('branch_id');
-        $branch_name       = $this->request->getVar('branch_name');
-        $sales_report_id   = $this->request->getVar('sales_report_id');
-        $is_reviewed       = $this->request->getVar('is_reviewed');
-        $prepared_by       = $this->request->getVar('prepared_by');
-        $approved_by       = $this->request->getVar('approved_by');
-        $count_date_from   = $this->request->getVar('count_date_from');
-        $count_date_to     = $this->request->getVar('count_date_to');
-        $type              = $this->request->getVar('type');
-        $group_cash_counts = $this->request->getVar('group_cash_counts') ? : false;
+        $branch_id = $this->request->getVar('branch_id');
+        $branch_name = $this->request->getVar('branch_name');
+        $sales_report_id = $this->request->getVar('sales_report_id');
+        $is_reviewed = $this->request->getVar('is_reviewed');
+        $prepared_by = $this->request->getVar('prepared_by');
+        $approved_by = $this->request->getVar('approved_by');
+        $count_date_from = $this->request->getVar('count_date_from');
+        $count_date_to = $this->request->getVar('count_date_to');
+        $type = $this->request->getVar('type');
+        $group_cash_counts = $this->request->getVar('group_cash_counts') ?: false;
 
 
         if (!$cash_counts = $this->cashCountModel->search($branch_id, $branch_name, $sales_report_id, $is_reviewed, $prepared_by, $approved_by, $count_date_from, $count_date_to, $type, $group_cash_counts)) {
@@ -356,53 +382,53 @@ class Cash_counts extends MYTController
      */
     protected function _attempt_create_cash_breakdown($type)
     {
-        $bill_1000     = $this->request->getVar($type.'bill_1000') ? : 0;
-        $bill_500      = $this->request->getVar($type.'bill_500') ? : 0;
-        $bill_200      = $this->request->getVar($type.'bill_200') ? : 0;
-        $bill_100      = $this->request->getVar($type.'bill_100') ? : 0;
-        $bill_50       = $this->request->getVar($type.'bill_50') ? : 0;
-        $bill_20       = $this->request->getVar($type.'bill_20') ? : 0;
-        $coin_20       = $this->request->getVar($type.'coin_20') ? : 0;
-        $coin_10       = $this->request->getVar($type.'coin_10') ? : 0;
-        $coin_5        = $this->request->getVar($type.'coin_5') ? : 0;
-        $coin_1        = $this->request->getVar($type.'coin_1') ? : 0;
-        $cent_25       = $this->request->getVar($type.'cent_25') ? : 0;
-        $cent_10       = $this->request->getVar($type.'cent_10') ? : 0;
-        $cent_5        = $this->request->getVar($type.'cent_5') ? : 0;
-        $cent_1        = $this->request->getVar($type.'cent_1') ? : 0;
-        $total_cash    = ($bill_1000 * 1000 + $bill_500 * 500 + $bill_200 * 200 + $bill_100 * 100 + 
-                          $bill_50 * 50 + $bill_20 * 20 + $coin_20 * 20 + $coin_10 * 10 + $coin_5 * 5 + $coin_1 * 1 + 
-                          $cent_25 * 0.25 + $cent_10 * 0.10 + $cent_5 * 0.05 + $cent_1 * 0.01);
+        $bill_1000 = $this->request->getVar($type . 'bill_1000') ?: 0;
+        $bill_500 = $this->request->getVar($type . 'bill_500') ?: 0;
+        $bill_200 = $this->request->getVar($type . 'bill_200') ?: 0;
+        $bill_100 = $this->request->getVar($type . 'bill_100') ?: 0;
+        $bill_50 = $this->request->getVar($type . 'bill_50') ?: 0;
+        $bill_20 = $this->request->getVar($type . 'bill_20') ?: 0;
+        $coin_20 = $this->request->getVar($type . 'coin_20') ?: 0;
+        $coin_10 = $this->request->getVar($type . 'coin_10') ?: 0;
+        $coin_5 = $this->request->getVar($type . 'coin_5') ?: 0;
+        $coin_1 = $this->request->getVar($type . 'coin_1') ?: 0;
+        $cent_25 = $this->request->getVar($type . 'cent_25') ?: 0;
+        $cent_10 = $this->request->getVar($type . 'cent_10') ?: 0;
+        $cent_5 = $this->request->getVar($type . 'cent_5') ?: 0;
+        $cent_1 = $this->request->getVar($type . 'cent_1') ?: 0;
+        $total_cash = ($bill_1000 * 1000 + $bill_500 * 500 + $bill_200 * 200 + $bill_100 * 100 +
+            $bill_50 * 50 + $bill_20 * 20 + $coin_20 * 20 + $coin_10 * 10 + $coin_5 * 5 + $coin_1 * 1 +
+            $cent_25 * 0.25 + $cent_10 * 0.10 + $cent_5 * 0.05 + $cent_1 * 0.01);
 
         $values = [
-            'branch_id'     => $this->request->getVar('branch_id'),
-            'count_date'    => date('Y-m-d'),
-            'bill_1000'     => $bill_1000,
-            'bill_500'      => $bill_500,
-            'bill_200'      => $bill_200,
-            'bill_100'      => $bill_100,
-            'bill_50'       => $bill_50,
-            'bill_20'       => $bill_20,
-            'coin_20'       => $coin_20,
-            'coin_10'       => $coin_10,
-            'coin_5'        => $coin_5,
-            'coin_1'        => $coin_1,
-            'cent_25'       => $cent_25,
-            'cent_10'       => $cent_10,
-            'cent_5'        => $cent_5,
-            'cent_1'        => $cent_1,
-            'total_count'   => $total_cash,
-            'type'          => $type == 'dep_' ? 'deposit' : 'change_funds',
-            'added_by'      => $this->requested_by,
-            'added_on'      => date('Y-m-d H:i:s'),
+            'branch_id' => $this->request->getVar('branch_id'),
+            'count_date' => date('Y-m-d'),
+            'bill_1000' => $bill_1000,
+            'bill_500' => $bill_500,
+            'bill_200' => $bill_200,
+            'bill_100' => $bill_100,
+            'bill_50' => $bill_50,
+            'bill_20' => $bill_20,
+            'coin_20' => $coin_20,
+            'coin_10' => $coin_10,
+            'coin_5' => $coin_5,
+            'coin_1' => $coin_1,
+            'cent_25' => $cent_25,
+            'cent_10' => $cent_10,
+            'cent_5' => $cent_5,
+            'cent_1' => $cent_1,
+            'total_count' => $total_cash,
+            'type' => $type == 'dep_' ? 'deposit' : 'change_funds',
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
-        
+
         if (!$cash_count_id = $this->cashCountModel->insert($values))
             return false;
 
         if ($type == 'dep_')
             $this->total_cash = $total_cash;
-        
+
         return $cash_count_id;
     }
 
@@ -413,10 +439,10 @@ class Cash_counts extends MYTController
     {
         $values = [
             'transaction_type_id' => $this->request->getVar('transaction_type_id'),
-            'branch_id'           => $this->request->getVar('branch_id'),
-            'commission'          => $this->request->getVar('commission'),
-            'updated_by'          => $this->requested_by,
-            'updated_on'          => date('Y-m-d H:i:s')
+            'branch_id' => $this->request->getVar('branch_id'),
+            'commission' => $this->request->getVar('commission'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->cashCountModel->update($cash_count_id, $values))
@@ -481,12 +507,12 @@ class Cash_counts extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->cashCountModel         = model('App\Models\Cash_count');
-        $this->paymentModel           = model('App\Models\Payment');
-        $this->expenseModel           = model('App\Models\Expense');
-        $this->dailySaleModel         = model('App\Models\Daily_sale');
+        $this->cashCountModel = model('App\Models\Cash_count');
+        $this->paymentModel = model('App\Models\Payment');
+        $this->expenseModel = model('App\Models\Expense');
+        $this->dailySaleModel = model('App\Models\Daily_sale');
         $this->orderDetailIngredModel = model('App\Models\Order_detail_ingredient');
-        $this->webappResponseModel    = model('App\Models\Webapp_response');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
 
         // TO BE USED FOR attempt create sale function
         $this->total_cash = 0;

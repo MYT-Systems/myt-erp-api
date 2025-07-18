@@ -4,6 +4,14 @@ namespace App\Controllers;
 
 class Payrolls extends MYTController
 {
+    protected $attendanceEntryModel;
+    protected $dsDeductionModel;
+    protected $payrollModel;
+    protected $employeeModel;
+    protected $cashAdvanceModel;
+    protected $cashAdvancePaymentModel;
+    protected $wastageItemModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

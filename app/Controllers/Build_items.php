@@ -10,6 +10,11 @@ use App\Models\Webapp_response;
 class Build_items extends MYTController
 {
 
+    protected $buildItemModel;
+    protected $buildItemDetailModel;
+    protected $inventoryModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -32,14 +37,14 @@ class Build_items extends MYTController
             return $response;
         }
 
-        $build_item_id      = $this->request->getVar('build_item_id') ? : null;
-        $build_item         = $build_item_id ? $this->buildItemModel->get_details_by_id($build_item_id) : null;
+        $build_item_id = $this->request->getVar('build_item_id') ?: null;
+        $build_item = $build_item_id ? $this->buildItemModel->get_details_by_id($build_item_id) : null;
         $build_item_details = $build_item_id ? $this->buildItemDetailModel->get_details_by_build_item_id($build_item_id) : null;
 
         if (!$build_item) {
             $response = $this->failNotFound('No build item found');
         } else {
-            $build_item[0]['build_item_details']  = $build_item_details;
+            $build_item[0]['build_item_details'] = $build_item_details;
 
             $response = $this->respond([
                 'status' => 'success',
@@ -75,7 +80,7 @@ class Build_items extends MYTController
             $final_data = [];
             $all_items_total_qty = 0;
             $raw_materials = [];
-            
+
             foreach ($build_items as $build_item) {
                 if (!array_key_exists($build_item['item_id'], $final_data)) {
                     $final_data[$build_item['item_id']] = [
@@ -88,7 +93,7 @@ class Build_items extends MYTController
                 }
 
                 $all_items_total_qty += $build_item['qty'];
-                
+
                 $final_data[$build_item['item_id']]['raw_materials'][] = [
                     'name' => $build_item['raw_material_name'],
                     'qty' => $build_item['raw_material_qty'],
@@ -128,13 +133,13 @@ class Build_items extends MYTController
         if (!$build_items) {
             $response = $this->failNotFound('No build item found');
         } else {
-            foreach ($build_items as $key => $build_item) {         
+            foreach ($build_items as $key => $build_item) {
                 $build_items[$key]['build_item_details'] = $this->buildItemDetailModel->get_details_by_build_item_id($build_item['id']);
             }
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $build_items
+                'data' => $build_items
             ]);
         }
 
@@ -167,8 +172,8 @@ class Build_items extends MYTController
         } else {
             $db->transCommit();
             $response = $this->respond([
-                'response'   => 'build_item created successfully.',
-                'status'     => 'success',
+                'response' => 'build_item created successfully.',
+                'status' => 'success',
                 'build_item_id' => $build_item_id
             ]);
         }
@@ -192,7 +197,7 @@ class Build_items extends MYTController
         }
 
         $build_item_id = $this->request->getVar('build_item_id');
-        $where      = ['id' => $build_item_id, 'is_deleted' => 0];
+        $where = ['id' => $build_item_id, 'is_deleted' => 0];
 
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -261,24 +266,24 @@ class Build_items extends MYTController
             return $response;
         }
 
-        $from_branch_id      = $this->request->getVar('from_branch_id') ?? null;
-        $to_branch_id        = $this->request->getVar('to_branch_id') ?? null;
-        $item_id             = $this->request->getVar('item_id') ?? null;
-        $qty                 = $this->request->getVar('qty') ?? null;
-        $item_unit_id        = $this->request->getVar('item_unit_id') ?? null;
-        $production_date     = $this->request->getVar('production_date') ?? null;
-        $production_slip_no  = $this->request->getVar('production_slip_no') ?? null;
-        $expiration_date     = $this->request->getVar('expiration_date') ?? null;
-        $added_on_from       = $this->request->getVar('added_on_from') ?? null;
-        $added_on_to         = $this->request->getVar('added_on_to') ?? null;
-        $yield               = $this->request->getVar('yield') ?? null;
-        $batch               = $this->request->getVar('batch') ?? null;
-        $name                = $this->request->getVar('name') ?? null;
+        $from_branch_id = $this->request->getVar('from_branch_id') ?? null;
+        $to_branch_id = $this->request->getVar('to_branch_id') ?? null;
+        $item_id = $this->request->getVar('item_id') ?? null;
+        $qty = $this->request->getVar('qty') ?? null;
+        $item_unit_id = $this->request->getVar('item_unit_id') ?? null;
+        $production_date = $this->request->getVar('production_date') ?? null;
+        $production_slip_no = $this->request->getVar('production_slip_no') ?? null;
+        $expiration_date = $this->request->getVar('expiration_date') ?? null;
+        $added_on_from = $this->request->getVar('added_on_from') ?? null;
+        $added_on_to = $this->request->getVar('added_on_to') ?? null;
+        $yield = $this->request->getVar('yield') ?? null;
+        $batch = $this->request->getVar('batch') ?? null;
+        $name = $this->request->getVar('name') ?? null;
 
         if (!$build_items = $this->buildItemModel->search($from_branch_id, $to_branch_id, $item_id, $qty, $item_unit_id, $production_date, $production_slip_no, $expiration_date, $added_on_from, $added_on_to, $yield, $batch, $name)) {
             $response = $this->failNotFound('No build item found');
         } else {
-            foreach ($build_items as $key => $build_item) {         
+            foreach ($build_items as $key => $build_item) {
                 $build_items[$key]['build_item_details'] = $this->buildItemDetailModel->get_details_by_build_item_id($build_item['id']);
             }
             $response = $this->respond([
@@ -324,13 +329,13 @@ class Build_items extends MYTController
     {
         if (($response = $this->_api_verification('build_item', 'get_all_invoice_payments')) !== true)
             return $response;
-    
+
         $token = $this->request->getVar('token');
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
-        
-        $build_item_id       = $this->request->getVar('build_item_id') ? : null;
+
+        $build_item_id = $this->request->getVar('build_item_id') ?: null;
         $invoice_payments = $build_item_id ? $this->suppliesPaymentModel->get_all_payment_by_build_item($build_item_id) : null;
 
         if (!$invoice_payments) {
@@ -338,8 +343,8 @@ class Build_items extends MYTController
         } else {
             $response = $this->respond([
                 'build_item_id' => $build_item_id,
-                'data'       => $invoice_payments,
-                'status'     => 'success'
+                'data' => $invoice_payments,
+                'status' => 'success'
             ]);
         }
 
@@ -361,20 +366,20 @@ class Build_items extends MYTController
 
             $values = [
                 'current_qty' => $inventory['current_qty'] + $this->request->getVar('qty'),
-                'updated_by'  => $this->requested_by,
-                'updated_on'  => date('Y-m-d H:i:s'),
+                'updated_by' => $this->requested_by,
+                'updated_on' => date('Y-m-d H:i:s'),
             ];
 
             $this->inventoryModel->update($inventory['id'], $values);
         } else {
             $values = [
-                'item_id'       => $item_id,
-                'branch_id'     => $to_branch_id,
-                'item_unit_id'  => $item_unit_id,
+                'item_id' => $item_id,
+                'branch_id' => $to_branch_id,
+                'item_unit_id' => $item_unit_id,
                 'beginning_qty' => $this->request->getVar('qty'),
-                'current_qty'   => $this->request->getVar('qty'),
-                'added_by'      => $this->requested_by,
-                'added_on'      => date('Y-m-d H:i:s'),
+                'current_qty' => $this->request->getVar('qty'),
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s'),
             ];
 
             $this->inventoryModel->insert($values);
@@ -392,8 +397,8 @@ class Build_items extends MYTController
             $inventory = $inventory[0];
             $values = [
                 'current_qty' => $inventory['current_qty'] - $build_item['qty'],
-                'updated_by'  => $this->requested_by,
-                'updated_on'  => date('Y-m-d H:i:s'),
+                'updated_by' => $this->requested_by,
+                'updated_on' => date('Y-m-d H:i:s'),
             ];
 
             if (!$this->inventoryModel->update($inventory['id'], $values)) {
@@ -411,23 +416,23 @@ class Build_items extends MYTController
     private function _attempt_create()
     {
         $from_branch_id = $this->request->getVar('from_branch_id');
-        $to_branch_id   = $this->request->getVar('to_branch_id');
-        $item_id        = $this->request->getVar('item_id');
-        $item_unit_id   = $this->request->getVar('item_unit_id');
+        $to_branch_id = $this->request->getVar('to_branch_id');
+        $item_id = $this->request->getVar('item_id');
+        $item_unit_id = $this->request->getVar('item_unit_id');
 
         $values = [
-            'from_branch_id'     => $this->request->getVar('from_branch_id'),
-            'to_branch_id'       => $this->request->getVar('to_branch_id'),
-            'item_id'            => $this->request->getVar('item_id'),
-            'qty'                => $this->request->getVar('qty'),
-            'item_unit_id'       => $this->request->getVar('item_unit_id'),
-            'production_date'    => $this->request->getVar('production_date'),
+            'from_branch_id' => $this->request->getVar('from_branch_id'),
+            'to_branch_id' => $this->request->getVar('to_branch_id'),
+            'item_id' => $this->request->getVar('item_id'),
+            'qty' => $this->request->getVar('qty'),
+            'item_unit_id' => $this->request->getVar('item_unit_id'),
+            'production_date' => $this->request->getVar('production_date'),
             'production_slip_no' => $this->request->getVar('production_slip_no'),
-            'expiration_date'    => $this->request->getVar('expiration_date'),
-            'yield'              => $this->request->getVar('yield'),
-            'batch'              => $this->request->getVar('batch'),
-            'added_by'           => $this->requested_by,
-            'added_on'           => date('Y-m-d H:i:s'),
+            'expiration_date' => $this->request->getVar('expiration_date'),
+            'yield' => $this->request->getVar('yield'),
+            'batch' => $this->request->getVar('batch'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$build_item_id = $this->buildItemModel->insert($values)) {
@@ -448,22 +453,22 @@ class Build_items extends MYTController
      */
     private function _attempt_generate_build_item_details($build_item_id, $db = null)
     {
-        $item_ids       = $this->request->getVar('item_ids');
-        $quantities     = $this->request->getVar('quantities');
-        $item_unit_ids  = $this->request->getVar('item_unit_ids');
-        $units          = $this->request->getVar('units');
+        $item_ids = $this->request->getVar('item_ids');
+        $quantities = $this->request->getVar('quantities');
+        $item_unit_ids = $this->request->getVar('item_unit_ids');
+        $units = $this->request->getVar('units');
         $from_branch_id = $this->request->getVar('from_branch_id');
 
         $values = [
             'build_item_id' => $build_item_id,
-            'added_by'      => $this->requested_by,
-            'added_on'      => date('Y-m-d H:i:s'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         foreach ($item_ids as $key => $item_id) {
-            $values['item_id']      = $item_ids[$key];
+            $values['item_id'] = $item_ids[$key];
             $values['item_unit_id'] = $item_unit_ids[$key];
-            $values['qty']          = $quantities[$key];
+            $values['qty'] = $quantities[$key];
 
             if (!$this->buildItemDetailModel->insert_on_duplicate($values, $this->requested_by, $db)) {
                 return false;
@@ -474,8 +479,8 @@ class Build_items extends MYTController
 
                 $new_values = [
                     'current_qty' => $inventory['current_qty'] - $values['qty'],
-                    'updated_by'  => $this->requested_by,
-                    'updated_on'  => date('Y-m-d H:i:s'),
+                    'updated_by' => $this->requested_by,
+                    'updated_on' => date('Y-m-d H:i:s'),
                 ];
 
                 $this->inventoryModel->update($inventory['id'], $new_values);
@@ -503,23 +508,23 @@ class Build_items extends MYTController
         }
 
         $values = [
-            'from_branch_id'     => $this->request->getVar('from_branch_id'),
-            'to_branch_id'       => $this->request->getVar('to_branch_id'),
-            'item_id'            => $item_id,
-            'qty'                => $this->request->getVar('qty'),
-            'item_unit_id'       => $item_unit_id,
-            'production_date'    => $this->request->getVar('production_date'),
+            'from_branch_id' => $this->request->getVar('from_branch_id'),
+            'to_branch_id' => $this->request->getVar('to_branch_id'),
+            'item_id' => $item_id,
+            'qty' => $this->request->getVar('qty'),
+            'item_unit_id' => $item_unit_id,
+            'production_date' => $this->request->getVar('production_date'),
             'production_slip_no' => $this->request->getVar('production_slip_no'),
-            'expiration_date'    => $this->request->getVar('expiration_date'),
-            'yield'              => $this->request->getVar('yield'),
-            'batch'              => $this->request->getVar('batch'),
-            'updated_by'         => $this->requested_by,
-            'updated_on'         => date('Y-m-d H:i:s'),
+            'expiration_date' => $this->request->getVar('expiration_date'),
+            'yield' => $this->request->getVar('yield'),
+            'batch' => $this->request->getVar('batch'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$this->buildItemModel->update($build_item['id'], $values))
             return false;
-        
+
         if (!$this->_update_inventory($item_id, $to_branch_id, $item_unit_id)) {
             var_dump("Error updating inventory.");
             return false;
@@ -538,7 +543,7 @@ class Build_items extends MYTController
             var_dump("Error deleting build item details");
             return false;
         }
-        
+
         return $this->_attempt_generate_build_item_details($build_item['id'], $db);
     }
 
@@ -550,13 +555,13 @@ class Build_items extends MYTController
         if (!$this->_restore_build_item($build_item)) {
             return false;
         }
-           
+
         if (!$this->_revert_build_item_details($build_item, $db))
             return false;
 
         if (!$this->buildItemDetailModel->delete_by_build_item_id($build_item['id'], $this->requested_by, $db))
             return false;
-            
+
         $values = [
             'is_deleted' => 1,
             'updated_by' => $this->requested_by,
@@ -577,7 +582,7 @@ class Build_items extends MYTController
     {
         // Get the build item items first and decrease the inventory
         $build_item_details = $this->buildItemDetailModel->get_details_by_build_item_id($build_item['id']);
-        $branch_id          = $build_item['from_branch_id'];
+        $branch_id = $build_item['from_branch_id'];
 
         // Decrease the inventory based on the build item items
         foreach ($build_item_details as $build_item_detail) {
@@ -589,10 +594,10 @@ class Build_items extends MYTController
             $inventory = $inventory[0];
             $new_values = [
                 'current_qty' => $inventory['current_qty'] + $build_item_detail['qty'],
-                'updated_by'  => $this->requested_by,
-                'updated_on'  => date('Y-m-d H:i:s'),
+                'updated_by' => $this->requested_by,
+                'updated_on' => date('Y-m-d H:i:s'),
             ];
-            
+
             if (!$this->inventoryModel->update($inventory['id'], $new_values)) {
                 var_dump("inventory not updated");
                 return false;
@@ -601,15 +606,15 @@ class Build_items extends MYTController
 
         return true;
     }
-    
+
     /**
      * Load all essential models and helpers
      */
     protected function _load_essentials()
     {
-        $this->buildItemModel       = new Build_item();
+        $this->buildItemModel = new Build_item();
         $this->buildItemDetailModel = new Build_item_detail();
-        $this->inventoryModel       = new Inventory();
-        $this->webappResponseModel  = new Webapp_response();
+        $this->inventoryModel = new Inventory();
+        $this->webappResponseModel = new Webapp_response();
     }
 }

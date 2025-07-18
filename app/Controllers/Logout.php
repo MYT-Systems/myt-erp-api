@@ -11,8 +11,15 @@ use App\Models\Webapp_response;
 
 class Logout extends MYTController
 {
+    protected $attendanceModel;
+    protected $attendanceEntryModel;
+    protected $employeeModel;
+    protected $userModel;
+    protected $branchModel;
+    protected $userBranchModel;
+    protected $webappResponseModel;
 
-    function __construct()
+    public function __construct()
     {
         $this->api_key = $_SERVER['HTTP_API_KEY'];
         $this->user_key = $_SERVER['HTTP_USER_KEY'];

@@ -10,6 +10,11 @@ use App\Models\Webapp_response;
 class Supplier_prices extends MYTController
 {
 
+    protected $supplierPriceModel;
+    protected $supplierModel;
+    protected $itemModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers

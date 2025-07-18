@@ -4,6 +4,15 @@ namespace App\Controllers;
 
 class Transfers extends MYTController
 {
+    protected $version;
+    protected $transferModel;
+    protected $requestModel;
+    protected $transferItemModel;
+    protected $transferReceiveItemModel;
+    protected $checkInvoiceModel;
+    protected $inventoryModel;
+    protected $itemUnitModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

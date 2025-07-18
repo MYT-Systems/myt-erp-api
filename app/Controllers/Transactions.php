@@ -8,7 +8,13 @@ use App\Models\Webapp_response;
 
 class Transactions extends MYTController
 {
-    
+    protected $franchiseTransactionModel;
+    protected $branchModel;
+    protected $franchiseePaymentModel;
+    protected $franchiseeSalePaymentModel;
+    protected $fsBillingPaymentModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers for API

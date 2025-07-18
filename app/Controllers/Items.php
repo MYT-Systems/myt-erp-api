@@ -4,6 +4,10 @@ namespace App\Controllers;
 
 class Items extends MYTController
 {
+    protected $itemModel;
+    protected $itemUnitModel;
+    protected $franchiseSaleItemPrice;
+    protected $webappResponseModel;
 
     public function __construct()
     {

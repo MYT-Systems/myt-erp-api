@@ -7,6 +7,8 @@ use App\Models\Webapp_response;
 
 class Transaction_types extends MYTController
 {
+    protected $transactionTypeModel;
+    protected $webappResponseModel;
     
     public function __construct()
     {

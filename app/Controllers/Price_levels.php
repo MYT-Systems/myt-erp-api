@@ -9,6 +9,10 @@ use App\Models\Webapp_response;
 
 class Price_levels extends MYTController
 {
+    protected $priceLevelModel;
+    protected $priceLevelTypeModel;
+    protected $priceLevelTypeDetailModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

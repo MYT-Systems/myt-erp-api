@@ -8,6 +8,9 @@ use App\Models\Webapp_response;
 
 class Store_deposits extends MYTController
 {
+    protected $storeDepositModel;
+    protected $storeDepositAttachmentModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

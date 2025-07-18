@@ -9,6 +9,10 @@ use App\Models\Webapp_response;
 
 class Cash_payments extends MYTController
 {
+    protected $cashEntryModel;
+    protected $cashSlipModel;
+    protected $receiveModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

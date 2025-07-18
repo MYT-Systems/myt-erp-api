@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 class Cash_advances extends MYTController
 {
+    protected $cashAdvanceModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

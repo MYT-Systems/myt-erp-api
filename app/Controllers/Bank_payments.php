@@ -4,6 +4,10 @@ namespace App\Controllers;
 
 class Bank_payments extends MYTController
 {
+    protected $bankEntryModel;
+    protected $bankSlipModel;
+    protected $receiveModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

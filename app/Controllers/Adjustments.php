@@ -5,6 +5,11 @@ namespace App\Controllers;
 class Adjustments extends MYTController
 {
 
+        protected $adjustmentModel;
+        protected $adjustmentTypeModel;
+        protected $inventoryModel;
+        protected $webappResponseModel;
+    
     public function __construct()
     {
         // Headers

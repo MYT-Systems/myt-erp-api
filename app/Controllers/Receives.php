@@ -4,6 +4,22 @@ namespace App\Controllers;
 
 class Receives extends MYTController
 {
+    protected $receiveModel;
+    protected $receiveItemModel;
+    protected $purchaseModel;
+    protected $purchaseItemModel;
+    protected $inventoryModel;
+    protected $itemUnitModel;
+    protected $suppliesPaymentModel;
+    protected $cashSlipModel;
+    protected $cashEntryModel;
+    protected $checkSlipModel;
+    protected $checkEntryModel;
+    protected $bankSlipModel;
+    protected $bankEntryModel;
+    protected $purchasePaymentModel;
+    protected $purchasePaymentDetailModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

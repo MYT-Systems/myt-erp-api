@@ -8,6 +8,9 @@ use App\Models\Webapp_response;
 
 class Banks extends MYTController
 {
+    protected $bankModel;
+    protected $checkTemplateModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

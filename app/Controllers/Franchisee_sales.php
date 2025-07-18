@@ -5,6 +5,14 @@ namespace App\Controllers;
 class Franchisee_sales extends MYTController
 {
 
+    protected $franchiseeSaleModel;
+    protected $franchiseeSaleItemModel;
+    protected $franchiseeSalePaymentModel;
+    protected $franchiseeModel;
+    protected $itemUnitModel;
+    protected $inventoryModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
@@ -27,19 +35,19 @@ class Franchisee_sales extends MYTController
             return $response;
         }
 
-        $franchisee_sale_id       = $this->request->getVar('franchisee_sale_id') ? : null;
-        $franchisee_sale          = $franchisee_sale_id ? $this->franchiseeSaleModel->get_details_by_id($franchisee_sale_id) : null;
+        $franchisee_sale_id = $this->request->getVar('franchisee_sale_id') ?: null;
+        $franchisee_sale = $franchisee_sale_id ? $this->franchiseeSaleModel->get_details_by_id($franchisee_sale_id) : null;
         $franchisee_sale_payments = $franchisee_sale_id ? $this->franchiseeSalePaymentModel->get_details_by_franchisee_sales_id($franchisee_sale_id) : null;
-        $franchisee_sale_items    = $franchisee_sale_id ? $this->franchiseeSaleItemModel->get_details_by_franchisee_sales_id($franchisee_sale_id) : null;
-        
+        $franchisee_sale_items = $franchisee_sale_id ? $this->franchiseeSaleItemModel->get_details_by_franchisee_sales_id($franchisee_sale_id) : null;
+
         if (!$franchisee_sale) {
             $response = $this->failNotFound('No franchisee_sale found');
         } else {
             $franchisee_sale[0]['franchisee_sale_payments'] = $franchisee_sale_payments;
-            $franchisee_sale[0]['franchisee_sale_items']    = $franchisee_sale_items;
+            $franchisee_sale[0]['franchisee_sale_items'] = $franchisee_sale_items;
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $franchisee_sale
+                'data' => $franchisee_sale
             ]);
         }
 
@@ -74,7 +82,7 @@ class Franchisee_sales extends MYTController
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $franchisee_sales
+                'data' => $franchisee_sales
             ]);
         }
 
@@ -107,7 +115,7 @@ class Franchisee_sales extends MYTController
         } else {
             $db->transCommit();
             $response = $this->respond([
-                'status'        => 'success',
+                'status' => 'success',
                 'franchisee_sale_id' => $franchisee_sale_id
             ]);
         }
@@ -132,7 +140,7 @@ class Franchisee_sales extends MYTController
         }
 
         $where = [
-            'id'         => $this->request->getVar('franchisee_sale_id'), 
+            'id' => $this->request->getVar('franchisee_sale_id'),
             'is_deleted' => 0
         ];
 
@@ -156,20 +164,21 @@ class Franchisee_sales extends MYTController
         $franchisee_sale = $franchisee_sale ? $this->franchiseeSaleModel->get_details_by_id($franchisee_sale['id'])[0] : null;
         if ($franchisee_sale && $this->request->getVar('payment_type') && $payment_id = $this->_attempt_add_payment($franchisee_sale)) {
             $response = $this->respond([
-                'status'             => 'success',
+                'status' => 'success',
                 'franchisee_sale_id' => $franchisee_sale['id'],
-                'payment_id'         => $payment_id
+                'payment_id' => $payment_id
             ]);
         }
 
         // Record the credit limit since there is no payment method but the fs_status is processing
         // Only record if the original status is not processing
         // Since it will be redundant when the user updtates it to processing
-        if ($franchisee_sale 
-            && $franchisee_sale['fs_status'] == 'quoted' 
-            && !$this->request->getVar('payment_type') 
-            && $this->request->getVar('fs_status') == 'processing') 
-        {
+        if (
+            $franchisee_sale
+            && $franchisee_sale['fs_status'] == 'quoted'
+            && !$this->request->getVar('payment_type')
+            && $this->request->getVar('fs_status') == 'processing'
+        ) {
             // Check if credit limit is not exceeded
             $franchisee = $this->franchiseeModel->get_details_by_id($franchisee_sale['franchisee_id'])[0];
             $remaining_credit = $this->franchiseeModel->get_remaining_credit_by_franchisee_name($franchisee['name']);
@@ -179,7 +188,7 @@ class Franchisee_sales extends MYTController
             }
 
             $values = [
-                'fs_status'  => 'processing',
+                'fs_status' => 'processing',
                 'updated_by' => $this->requested_by,
                 'updated_on' => date('Y-m-d H:i:s')
             ];
@@ -192,7 +201,7 @@ class Franchisee_sales extends MYTController
                 var_dump("update franchisee sale failed");
             } else {
                 $db->transCommit();
-            } 
+            }
         }
 
         if ($franchisee_sale['fs_status'] == 'invoiced' && !$this->_record_inventory($franchisee_sale)) {
@@ -220,7 +229,7 @@ class Franchisee_sales extends MYTController
         }
 
         $where = [
-            'id' => $this->request->getVar('franchisee_sale_id'), 
+            'id' => $this->request->getVar('franchisee_sale_id'),
             'is_deleted' => 0
         ];
 
@@ -255,29 +264,29 @@ class Franchisee_sales extends MYTController
             return $response;
         }
 
-        $franchise_sale_id       = $this->request->getVar('franchisee_sale_id');
-        $franchisee_id           = $this->request->getVar('franchisee_id') ?? null;
-        $sales_date_from         = $this->request->getVar('sales_date_from') ?? null;
-        $sales_date_to           = $this->request->getVar('sales_date_to') ?? null;
-        $delivery_date_from      = $this->request->getVar('delivery_date_from') ?? null;
-        $delivery_date_to        = $this->request->getVar('delivery_date_to') ?? null;
+        $franchise_sale_id = $this->request->getVar('franchisee_sale_id');
+        $franchisee_id = $this->request->getVar('franchisee_id') ?? null;
+        $sales_date_from = $this->request->getVar('sales_date_from') ?? null;
+        $sales_date_to = $this->request->getVar('sales_date_to') ?? null;
+        $delivery_date_from = $this->request->getVar('delivery_date_from') ?? null;
+        $delivery_date_to = $this->request->getVar('delivery_date_to') ?? null;
         $order_request_date_from = $this->request->getVar('order_request_date_from') ?? null;
-        $order_request_date_to   = $this->request->getVar('order_request_date_to') ?? null;
-        $seller_branch_id        = $this->request->getVar('seller_branch_id') ?? null;
-        $buyer_branch_id         = $this->request->getVar('buyer_branch_id') ?? null;
-        $sales_invoice_no        = $this->request->getVar('sales_invoice_no') ?? null;
-        $dr_no                   = $this->request->getVar('dr_no') ?? null;
-        $charge_invoice_no       = $this->request->getVar('charge_invoice_no') ?? null;
-        $collections_invoice_no  = $this->request->getVar('collections_invoice_no') ?? null;
-        $address                 = $this->request->getVar('address') ?? null;
-        $remarks                 = $this->request->getVar('remarks') ?? null;
-        $sales_staff             = $this->request->getVar('sales_staff') ?? null;
-        $payment_status          = $this->request->getVar('payment_status') ?? null;
-        $status                  = $this->request->getVar('fs_status') ?? null;
-        $fully_paid_on           = $this->request->getVar('fully_paid_on') ?? null;
-        $franchisee_name         = $this->request->getVar('franchisee_name') ?? null;
-        $anything                = $this->request->getVar('anything') ?? null;
-        $id                      = $this->request->getVar('id') ?? null;
+        $order_request_date_to = $this->request->getVar('order_request_date_to') ?? null;
+        $seller_branch_id = $this->request->getVar('seller_branch_id') ?? null;
+        $buyer_branch_id = $this->request->getVar('buyer_branch_id') ?? null;
+        $sales_invoice_no = $this->request->getVar('sales_invoice_no') ?? null;
+        $dr_no = $this->request->getVar('dr_no') ?? null;
+        $charge_invoice_no = $this->request->getVar('charge_invoice_no') ?? null;
+        $collections_invoice_no = $this->request->getVar('collections_invoice_no') ?? null;
+        $address = $this->request->getVar('address') ?? null;
+        $remarks = $this->request->getVar('remarks') ?? null;
+        $sales_staff = $this->request->getVar('sales_staff') ?? null;
+        $payment_status = $this->request->getVar('payment_status') ?? null;
+        $status = $this->request->getVar('fs_status') ?? null;
+        $fully_paid_on = $this->request->getVar('fully_paid_on') ?? null;
+        $franchisee_name = $this->request->getVar('franchisee_name') ?? null;
+        $anything = $this->request->getVar('anything') ?? null;
+        $id = $this->request->getVar('id') ?? null;
 
         if (!$franchisee_sales = $this->franchiseeSaleModel->search($franchise_sale_id, $franchisee_id, $franchisee_name, $sales_date_from, $sales_date_to, $delivery_date_from, $delivery_date_to, $order_request_date_from, $order_request_date_to, $seller_branch_id, $buyer_branch_id, $sales_invoice_no, $dr_no, $charge_invoice_no, $collections_invoice_no, $address, $remarks, $sales_staff, $payment_status, $status, $fully_paid_on, $anything, $id)) {
             $response = $this->failNotFound('No franchisee_sale found');
@@ -298,8 +307,8 @@ class Franchisee_sales extends MYTController
 
             $response = $this->respond([
                 'summary' => $summary,
-                'data'    => $franchisee_sales,
-                'status'  => 'success',
+                'data' => $franchisee_sales,
+                'status' => 'success',
             ]);
         }
 
@@ -321,7 +330,7 @@ class Franchisee_sales extends MYTController
         }
 
         $franchisee_sale_id = $this->request->getVar('franchisee_sale_id');
-        $status             = $this->request->getVar('status');
+        $status = $this->request->getVar('status');
 
         if (!$franchisee_sale = $this->franchiseeSaleModel->get_details_by_id($franchisee_sale_id)) {
             $response = $this->failNotFound('franchisee_sale not found');
@@ -338,7 +347,7 @@ class Franchisee_sales extends MYTController
     /**
      * 
      */
-      /**
+    /**
      * Close overpaid franchisee_sale
      */
     public function close_overpaid_franchisee_sale()
@@ -376,34 +385,34 @@ class Franchisee_sales extends MYTController
     private function _attempt_create()
     {
         $values = [
-            'franchisee_id'         => $this->request->getVar('franchisee_id'),
-            'sales_date'            => $this->request->getVar('sales_date'),
-            'delivery_date'         => $this->request->getVar('delivery_date'),
-            'delivery_fee'          => $this->request->getVar('delivery_fee'),
-            'service_fee'           => $this->request->getVar('service_fee'),
-            'franchise_order_no'    => $this->request->getVar('franchise_order_no'),
-            'transfer_slip_no'      => $this->request->getVar('transfer_slip_no'),
-            'order_request_date'    => $this->request->getVar('order_request_date'),
-            'seller_branch_id'      => $this->request->getVar('seller_branch_id'),
-            'buyer_branch_id'       => $this->request->getVar('buyer_branch_id'),
-            'sales_invoice_no'      => $this->request->getVar('sales_invoice_no'),
-            'dr_no'                 => $this->request->getVar('dr_no'),
-            'ship_via'              => $this->request->getVar('ship_via'),
-            'charge_invoice_no'     => $this->request->getVar('charge_invoice_no'),
+            'franchisee_id' => $this->request->getVar('franchisee_id'),
+            'sales_date' => $this->request->getVar('sales_date'),
+            'delivery_date' => $this->request->getVar('delivery_date'),
+            'delivery_fee' => $this->request->getVar('delivery_fee'),
+            'service_fee' => $this->request->getVar('service_fee'),
+            'franchise_order_no' => $this->request->getVar('franchise_order_no'),
+            'transfer_slip_no' => $this->request->getVar('transfer_slip_no'),
+            'order_request_date' => $this->request->getVar('order_request_date'),
+            'seller_branch_id' => $this->request->getVar('seller_branch_id'),
+            'buyer_branch_id' => $this->request->getVar('buyer_branch_id'),
+            'sales_invoice_no' => $this->request->getVar('sales_invoice_no'),
+            'dr_no' => $this->request->getVar('dr_no'),
+            'ship_via' => $this->request->getVar('ship_via'),
+            'charge_invoice_no' => $this->request->getVar('charge_invoice_no'),
             'collection_invoice_no' => $this->request->getVar('collection_invoice_no'),
-            'address'               => $this->request->getVar('address'),
-            'remarks'               => $this->request->getVar('remarks'),
-            'sales_staff'           => $this->request->getVar('sales_staff'),
-            'grand_total'           => $this->request->getVar('grand_total'),
-            'balance'               => 0,
-            'paid_amount'           => 0,
-            'payment_status'        => 'processing',
-            'added_by'              => $this->requested_by,
-            'added_on'              => date('Y-m-d H:i:s'),
+            'address' => $this->request->getVar('address'),
+            'remarks' => $this->request->getVar('remarks'),
+            'sales_staff' => $this->request->getVar('sales_staff'),
+            'grand_total' => $this->request->getVar('grand_total'),
+            'balance' => 0,
+            'paid_amount' => 0,
+            'payment_status' => 'processing',
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$franchisee_sale_id = $this->franchiseeSaleModel->insert($values))
-           return false;
+            return false;
 
         return $franchisee_sale_id;
     }
@@ -413,7 +422,7 @@ class Franchisee_sales extends MYTController
      */
     protected function _attempt_generate_franchisee_sale_items($franchisee_sale_id, $db)
     {
-        $item_ids   = $this->request->getVar('item_ids') ?? [];
+        $item_ids = $this->request->getVar('item_ids') ?? [];
         // Check if there are duplicate item_ids
         if (count($item_ids) !== count(array_unique($item_ids))) {
             $this->errorMessage = 'Duplicate item_ids found.';
@@ -421,19 +430,19 @@ class Franchisee_sales extends MYTController
         }
 
         $item_names = $this->request->getVar('item_names') ?? [];
-        $units      = $this->request->getVar('units') ?? [];
-        $prices     = $this->request->getVar('prices') ?? [];
+        $units = $this->request->getVar('units') ?? [];
+        $prices = $this->request->getVar('prices') ?? [];
         $quantities = $this->request->getVar('quantities') ?? [];
-        $discounts  = $this->request->getVar('discounts') ?? [];
+        $discounts = $this->request->getVar('discounts') ?? [];
 
         $values = [
             'franchisee_sale_id' => $franchisee_sale_id,
-            'added_by'           => $this->requested_by,
-            'added_on'           => date('Y-m-d H:i:s'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         $seller_branch_id = $this->request->getVar('seller_branch_id');
-        $buyer_branch_id  = $this->request->getVar('buyer_branch_id');
+        $buyer_branch_id = $this->request->getVar('buyer_branch_id');
         $grand_total = 0;
         foreach ($item_ids as $key => $item_id) {
             $subtotal = $prices[$key] * $quantities[$key];
@@ -455,15 +464,15 @@ class Franchisee_sales extends MYTController
             } else {
                 $values['item_name'] = null;
             }
-        
-            $values['item_id']      = $item_id;
+
+            $values['item_id'] = $item_id;
             $values['item_unit_id'] = $item_unit_id;
-            $values['unit']         = $units[$key];
-            $values['price']        = $prices[$key];
-            $values['qty']          = $quantities[$key];
-            $values['discount']     = $discounts[$key];
-            $values['subtotal']     = $subtotal;
-            $values['status']       = 'processed';
+            $values['unit'] = $units[$key];
+            $values['price'] = $prices[$key];
+            $values['qty'] = $quantities[$key];
+            $values['discount'] = $discounts[$key];
+            $values['subtotal'] = $subtotal;
+            $values['status'] = 'processed';
 
             $grand_total += $values['subtotal'];
 
@@ -473,13 +482,13 @@ class Franchisee_sales extends MYTController
             }
         }
 
-        $grand_total = $grand_total + (float)$this->request->getVar('service_fee') + (float)$this->request->getVar('delivery_fee');
+        $grand_total = $grand_total + (float) $this->request->getVar('service_fee') + (float) $this->request->getVar('delivery_fee');
         $values = [
             'grand_total' => $grand_total,
-            'updated_by'  => $this->requested_by,
-            'updated_on'  => date('Y-m-d H:i:s'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s'),
         ];
-        
+
         if ($franchise_sale = $this->franchiseeSaleModel->get_details_by_id($franchisee_sale_id)) {
             $values['balance'] = $grand_total - $franchise_sale[0]['paid_amount'];
         } else {
@@ -507,27 +516,27 @@ class Franchisee_sales extends MYTController
     protected function _attempt_update($franchisee_sale_id)
     {
         $values = [
-            'franchisee_id'         => $this->request->getVar('franchisee_id'),
-            'sales_date'            => $this->request->getVar('sales_date'),
-            'delivery_date'         => $this->request->getVar('delivery_date'),
-            'delivery_fee'          => $this->request->getVar('delivery_fee'),
-            'service_fee'           => $this->request->getVar('service_fee'),
-            'franchise_order_no'    => $this->request->getVar('franchise_order_no'),
-            'transfer_slip_no'      => $this->request->getVar('transfer_slip_no'),
-            'order_request_date'    => $this->request->getVar('order_request_date'),
-            'seller_branch_id'      => $this->request->getVar('seller_branch_id'),
-            'buyer_branch_id'       => $this->request->getVar('buyer_branch_id'),
-            'sales_invoice_no'      => $this->request->getVar('sales_invoice_no'),
-            'dr_no'                 => $this->request->getVar('dr_no'),
-            'ship_via'              => $this->request->getVar('ship_via'),
-            'charge_invoice_no'     => $this->request->getVar('charge_invoice_no'),
+            'franchisee_id' => $this->request->getVar('franchisee_id'),
+            'sales_date' => $this->request->getVar('sales_date'),
+            'delivery_date' => $this->request->getVar('delivery_date'),
+            'delivery_fee' => $this->request->getVar('delivery_fee'),
+            'service_fee' => $this->request->getVar('service_fee'),
+            'franchise_order_no' => $this->request->getVar('franchise_order_no'),
+            'transfer_slip_no' => $this->request->getVar('transfer_slip_no'),
+            'order_request_date' => $this->request->getVar('order_request_date'),
+            'seller_branch_id' => $this->request->getVar('seller_branch_id'),
+            'buyer_branch_id' => $this->request->getVar('buyer_branch_id'),
+            'sales_invoice_no' => $this->request->getVar('sales_invoice_no'),
+            'dr_no' => $this->request->getVar('dr_no'),
+            'ship_via' => $this->request->getVar('ship_via'),
+            'charge_invoice_no' => $this->request->getVar('charge_invoice_no'),
             'collection_invoice_no' => $this->request->getVar('collection_invoice_no'),
-            'address'               => $this->request->getVar('address'),
-            'remarks'               => $this->request->getVar('remarks'),
-            'sales_staff'           => $this->request->getVar('sales_staff'),
-            'grand_total'           => $this->request->getVar('grand_total'),
-            'updated_by'            => $this->requested_by,
-            'updated_on'            => date('Y-m-d H:i:s')
+            'address' => $this->request->getVar('address'),
+            'remarks' => $this->request->getVar('remarks'),
+            'sales_staff' => $this->request->getVar('sales_staff'),
+            'grand_total' => $this->request->getVar('grand_total'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->franchiseeSaleModel->update($franchisee_sale_id, $values))
@@ -549,8 +558,8 @@ class Franchisee_sales extends MYTController
                 if ($seller_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $seller_branch_id, $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $seller_inventory[0]['current_qty'] + $franchisee_sale_item['qty'],
-                        'updated_by'  => $this->requested_by,
-                        'updated_on'  => date('Y-m-d H:i:s'),
+                        'updated_by' => $this->requested_by,
+                        'updated_on' => date('Y-m-d H:i:s'),
                     ];
 
                     if (!$this->inventoryModel->update($seller_inventory[0]['id'], $new_values)) {
@@ -562,8 +571,8 @@ class Franchisee_sales extends MYTController
                 if ($buyer_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $buyer_branch_id, $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $buyer_inventory[0]['current_qty'] - $franchisee_sale_item['qty'],
-                        'updated_by'  => $this->requested_by,
-                        'updated_on'  => date('Y-m-d H:i:s'),
+                        'updated_by' => $this->requested_by,
+                        'updated_on' => date('Y-m-d H:i:s'),
                     ];
 
                     if (!$this->inventoryModel->update($buyer_inventory[0]['id'], $new_values)) {
@@ -572,19 +581,19 @@ class Franchisee_sales extends MYTController
                     }
                 }
             }
-         }
+        }
 
         return true;
     }
-    
+
     /**
      * Attempt generate franchisee sales items
      */
     protected function _attempt_update_franchisee_sale_items($franchisee_sale, $db)
     {
         $seller_branch_id = $this->request->getVar('seller_branch_id');
-        $buyer_branch_id  = $this->request->getVar('buyer_branch_id');
-        $old_grand_total  = $franchisee_sale['grand_total'];
+        $buyer_branch_id = $this->request->getVar('buyer_branch_id');
+        $old_grand_total = $franchisee_sale['grand_total'];
 
         if ($franchisee_sale['fs_status'] == 'invoiced' && !$this->_revert_franchisee_item($franchisee_sale['id'], $seller_branch_id, $buyer_branch_id)) {
             var_dump("failed to revert and delete");
@@ -592,7 +601,7 @@ class Franchisee_sales extends MYTController
         }
 
         if (!$this->franchiseeSaleItemModel->delete_by_franchisee_sale_id($franchisee_sale['id'], $this->requested_by, $db)) {
-            var_dump("failed to delete franchisee sale item model");      
+            var_dump("failed to delete franchisee sale item model");
             return false;
         }
 
@@ -629,7 +638,7 @@ class Franchisee_sales extends MYTController
     protected function _attempt_delete($franchisee_sale, $db)
     {
         $seller_branch_id = $franchisee_sale['seller_branch_id'];
-        $buyer_branch_id  = $franchisee_sale['buyer_branch_id'];
+        $buyer_branch_id = $franchisee_sale['buyer_branch_id'];
 
         if ($franchisee_sale['fs_status'] == 'invoiced' && !$this->_revert_franchisee_item($franchisee_sale['id'], $seller_branch_id, $buyer_branch_id)) {
             var_dump("failed to revert and delete");
@@ -637,8 +646,10 @@ class Franchisee_sales extends MYTController
         } elseif (!$this->franchiseeSaleItemModel->delete_by_franchisee_sale_id($franchisee_sale['id'], $this->requested_by, $db)) {
             var_dump("failed to delete franchisee sale item model");
             return false;
-        } elseif (($franchisee_sale['fs_status'] == 'invoiced' || $franchisee_sale['fs_status'] == 'processing') && 
-                !$this->_restore_credit_limit($franchisee_sale)) {
+        } elseif (
+            ($franchisee_sale['fs_status'] == 'invoiced' || $franchisee_sale['fs_status'] == 'processing') &&
+            !$this->_restore_credit_limit($franchisee_sale)
+        ) {
             var_dump("failed to restore credit limit");
             return false;
         }
@@ -669,8 +680,8 @@ class Franchisee_sales extends MYTController
         $franchisee = $franchisee[0];
         $new_values = [
             'current_credit_limit' => $franchisee['current_credit_limit'] + $franchisee_sale['grand_total'],
-            'updated_by'   => $this->requested_by,
-            'updated_on'   => date('Y-m-d H:i:s'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$this->franchiseeModel->update($franchisee['id'], $new_values)) {
@@ -688,33 +699,33 @@ class Franchisee_sales extends MYTController
     protected function _attempt_add_payment($franchisee_sale)
     {
         $db = \Config\Database::connect();
-        
+
         $values = [
-            'franchisee_id'      => $this->request->getVar('franchisee_id'),
+            'franchisee_id' => $this->request->getVar('franchisee_id'),
             'franchisee_sale_id' => $franchisee_sale['id'],
-            'payment_type'       => $this->request->getVar('payment_type'),
-            'payment_date'       => $this->request->getVar('payment_date'),
-            'remarks'            => $this->request->getVar('payment_remarks'),
-            'from_bank_id'       => $this->request->getVar('from_bank_id'),
-            'to_bank_name'       => $this->request->getVar('to_bank_name'),
-            'to_bank_id'         => $this->request->getVar('to_bank_id'),
-            'cheque_number'      => $this->request->getVar('cheque_number'),
-            'cheque_date'        => $this->request->getVar('cheque_date'),
-            'reference_number'   => $this->request->getVar('reference_number'),
+            'payment_type' => $this->request->getVar('payment_type'),
+            'payment_date' => $this->request->getVar('payment_date'),
+            'remarks' => $this->request->getVar('payment_remarks'),
+            'from_bank_id' => $this->request->getVar('from_bank_id'),
+            'to_bank_name' => $this->request->getVar('to_bank_name'),
+            'to_bank_id' => $this->request->getVar('to_bank_id'),
+            'cheque_number' => $this->request->getVar('cheque_number'),
+            'cheque_date' => $this->request->getVar('cheque_date'),
+            'reference_number' => $this->request->getVar('reference_number'),
             'transaction_number' => $this->request->getVar('transaction_number'),
-            'payment_description'=> $this->request->getVar('payment_description'),
-            'invoice_no'         => $this->request->getVar('invoice_no'),
-            'term_day'           => $this->request->getVar('term_day'),
-            'delivery_address'   => $this->request->getVar('delivery_address'),
-            'delivery_date'      => $this->request->getVar('delivery_date'),
-            'paid_amount'        => $this->request->getVar('paid_amount'),
-            'grand_total'        => $this->request->getVar('grand_total'),
-            'subtotal'           => $this->request->getVar('subtotal'),
-            'service_fee'        => $this->request->getVar('payment_service_fee'),
-            'delivery_fee'       => $this->request->getVar('payment_delivery_fee'),
-            'withholding_tax'    => $this->request->getVar('withholding_tax'),
-            'added_by'           => $this->requested_by,
-            'added_on'           => date('Y-m-d H:i:s'),
+            'payment_description' => $this->request->getVar('payment_description'),
+            'invoice_no' => $this->request->getVar('invoice_no'),
+            'term_day' => $this->request->getVar('term_day'),
+            'delivery_address' => $this->request->getVar('delivery_address'),
+            'delivery_date' => $this->request->getVar('delivery_date'),
+            'paid_amount' => $this->request->getVar('paid_amount'),
+            'grand_total' => $this->request->getVar('grand_total'),
+            'subtotal' => $this->request->getVar('subtotal'),
+            'service_fee' => $this->request->getVar('payment_service_fee'),
+            'delivery_fee' => $this->request->getVar('payment_delivery_fee'),
+            'withholding_tax' => $this->request->getVar('withholding_tax'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         // Check if the franchisee can create the order request based on the credit limit and paid amount
@@ -725,10 +736,10 @@ class Franchisee_sales extends MYTController
         $grand_total = $values['grand_total'];
 
         // Check if the franchisee can create the order request based on the credit limit and paid amount
-        if (((float)$current_credit_limit + (float)$paid_amount) < (float)$grand_total && (float)$paid_amount != (float)$grand_total) {
+        if (((float) $current_credit_limit + (float) $paid_amount) < (float) $grand_total && (float) $paid_amount != (float) $grand_total) {
             $db->close();
             var_dump("Exceed credit limit, grand total: $grand_total, paid amount: $paid_amount, current credit limit: $current_credit_limit");
-            var_dump("Need to pay: " . ((float)$grand_total - ((float)$current_credit_limit + (float)$paid_amount)));
+            var_dump("Need to pay: " . ((float) $grand_total - ((float) $current_credit_limit + (float) $paid_amount)));
             return false;
         }
 
@@ -738,7 +749,7 @@ class Franchisee_sales extends MYTController
             var_dump("Failed to create franchisee sale payment.");
             return false;
         }
-    
+
         // check if franchisee sale fs status is invoiced or processing
         // don't record anymore since it's already recorded during item update
         if ($franchisee_sale['fs_status'] != 'invoiced' && $franchisee_sale['fs_status'] != 'processing') {
@@ -749,7 +760,7 @@ class Franchisee_sales extends MYTController
                 return false;
             }
         }
-        
+
         // Record the payment
         if (!$this->_record_sale_payment($franchisee_sale, $values)) {
             $db->transRollback();
@@ -773,24 +784,25 @@ class Franchisee_sales extends MYTController
 
         $db->transCommit();
         $db->close();
-        
+
         return $franchisee_sale_payment_id;
     }
 
     /**
      * Record Frachisee Sale Payment
      */
-    protected function _record_sale_payment($franchisee_sale, $values) {
+    protected function _record_sale_payment($franchisee_sale, $values)
+    {
         $update_values = [
-            'balance'     => $franchisee_sale['balance'] - $values['paid_amount'],
+            'balance' => $franchisee_sale['balance'] - $values['paid_amount'],
             'paid_amount' => $franchisee_sale['paid_amount'] + $values['paid_amount'],
-            'updated_by'  => $this->requested_by,   
-            'updated_on'  => date('Y-m-d H:i:s'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s'),
         ];
 
         if ($update_values['balance'] <= 0) {
             $update_values['payment_status'] = 'closed_bill';
-            $update_values['fully_paid_on']  = date('Y-m-d H:i:s');
+            $update_values['fully_paid_on'] = date('Y-m-d H:i:s');
         } else {
             $update_values['payment_status'] = 'open_bill';
         }
@@ -798,7 +810,7 @@ class Franchisee_sales extends MYTController
         if (!$this->franchiseeSaleModel->update($franchisee_sale['id'], $update_values))
             return false;
 
-        if (!$this->_record_credit_limit($franchisee_sale['franchisee_id'], (float)$values['paid_amount'] * -1)) {
+        if (!$this->_record_credit_limit($franchisee_sale['franchisee_id'], (float) $values['paid_amount'] * -1)) {
             var_dump("Failed to increase credit limit.");
             return false;
         }
@@ -815,8 +827,8 @@ class Franchisee_sales extends MYTController
 
         $values = [
             'franchisee_sale_id' => $franchisee_sale['id'],
-            'added_by'           => $this->requested_by,
-            'added_on'           => date('Y-m-d H:i:s'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         switch ($status) {
@@ -832,7 +844,7 @@ class Franchisee_sales extends MYTController
                 if ($franchisee_sale['fs_status'] == 'invoiced') {
 
                     $seller_branch_id = $franchisee_sale['seller_branch_id'];
-                    $buyer_branch_id  = $franchisee_sale['buyer_branch_id'];
+                    $buyer_branch_id = $franchisee_sale['buyer_branch_id'];
 
                     if (!$this->_revert_franchisee_item($franchisee_sale['id'], $seller_branch_id, $buyer_branch_id)) {
                         var_dump("failed to revert and delete");
@@ -870,53 +882,53 @@ class Franchisee_sales extends MYTController
                 if ($seller_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['seller_branch_id'], $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $seller_inventory[0]['current_qty'] - $franchisee_sale_item['qty'],
-                        'updated_by'  => $this->requested_by,
-                        'updated_on'  => date('Y-m-d H:i:s'),
+                        'updated_by' => $this->requested_by,
+                        'updated_on' => date('Y-m-d H:i:s'),
                     ];
-    
+
                     if (!$this->inventoryModel->update($seller_inventory[0]['id'], $new_values)) {
                         var_dump($this->inventoryModel->errors());
                         return false;
                     }
                 } else {
                     $new_values = [
-                        'item_id'       => $franchisee_sale_item['item_id'],
-                        'branch_id'     => $franchisee_sale['seller_branch_id'],
-                        'item_unit_id'  => $item_unit[0]['id'],
+                        'item_id' => $franchisee_sale_item['item_id'],
+                        'branch_id' => $franchisee_sale['seller_branch_id'],
+                        'item_unit_id' => $item_unit[0]['id'],
                         'beginning_qty' => 0,
-                        'current_qty'   => (float)$franchisee_sale_item['qty'] * -1,
-                        'added_by'      => $this->requested_by,
-                        'added_on'      => date('Y-m-d H:i:s'),
+                        'current_qty' => (float) $franchisee_sale_item['qty'] * -1,
+                        'added_by' => $this->requested_by,
+                        'added_on' => date('Y-m-d H:i:s'),
                     ];
-    
+
                     if (!$this->inventoryModel->insert($new_values)) {
                         var_dump($this->inventoryModel->errors());
                         return false;
                     }
                 }
-    
+
                 if ($buyer_inventory = $this->inventoryModel->get_inventory_detail($franchisee_sale_item['item_id'], $franchisee_sale['buyer_branch_id'], $item_unit[0]['id'])) {
                     $new_values = [
                         'current_qty' => $buyer_inventory[0]['current_qty'] + $franchisee_sale_item['qty'],
-                        'updated_by'  => $this->requested_by,
-                        'updated_on'  => date('Y-m-d H:i:s'),
+                        'updated_by' => $this->requested_by,
+                        'updated_on' => date('Y-m-d H:i:s'),
                     ];
-    
+
                     if (!$this->inventoryModel->update($buyer_inventory[0]['id'], $new_values)) {
                         var_dump($this->inventoryModel->errors());
                         return false;
                     }
                 } else {
                     $new_values = [
-                        'item_id'       => $franchisee_sale_item['item_id'],
-                        'branch_id'     => $franchisee_sale['buyer_branch_id'],
-                        'item_unit_id'  => $item_unit[0]['id'],
+                        'item_id' => $franchisee_sale_item['item_id'],
+                        'branch_id' => $franchisee_sale['buyer_branch_id'],
+                        'item_unit_id' => $item_unit[0]['id'],
                         'beginning_qty' => 0,
-                        'current_qty'   => $franchisee_sale_item['qty'],
-                        'added_by'      => $this->requested_by,
-                        'added_on'      => date('Y-m-d H:i:s'),
+                        'current_qty' => $franchisee_sale_item['qty'],
+                        'added_by' => $this->requested_by,
+                        'added_on' => date('Y-m-d H:i:s'),
                     ];
-    
+
                     if (!$this->inventoryModel->insert($new_values)) {
                         var_dump($this->inventoryModel->errors());
                         return false;
@@ -936,13 +948,13 @@ class Franchisee_sales extends MYTController
         // var_dump("Grand total: " . $grand_total);
         if (!$franchisee = $this->franchiseeModel->get_details_by_id($franchisee_id))
             return false;
-        
+
         $franchisee = $franchisee[0];
 
         $values = [
             'current_credit_limit' => $franchisee['current_credit_limit'] - $grand_total,
-            'updated_by'           => $this->requested_by,
-            'updated_on'           => date('Y-m-d H:i:s')
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->franchiseeModel->update($franchisee_id, $values))
@@ -954,10 +966,11 @@ class Franchisee_sales extends MYTController
     /**
      * Attempt close overpaid franchisee sales
      */
-    private function _attempt_close_overpaid_franchisee_sale($franchisee_sale) {
+    private function _attempt_close_overpaid_franchisee_sale($franchisee_sale)
+    {
         $value = [
-            'is_closed'  => 1,
-            'remarks'    => $franchisee_sale['remarks'] . ' - ' . $this->request->getVar('remarks'),
+            'is_closed' => 1,
+            'remarks' => $franchisee_sale['remarks'] . ' - ' . $this->request->getVar('remarks'),
             'updated_by' => $this->requested_by,
             'updated_on' => date('Y-m-d H:i:s')
         ];
@@ -977,12 +990,12 @@ class Franchisee_sales extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->franchiseeSaleModel        = model('App\Models\Franchisee_sale');
-        $this->franchiseeSaleItemModel    = model('App\Models\Franchisee_sale_item');
+        $this->franchiseeSaleModel = model('App\Models\Franchisee_sale');
+        $this->franchiseeSaleItemModel = model('App\Models\Franchisee_sale_item');
         $this->franchiseeSalePaymentModel = model('App\Models\Franchisee_sale_payment');
-        $this->franchiseeModel            = model('App\Models\Franchisee');
-        $this->itemUnitModel              = model('App\Models\Item_unit');
-        $this->inventoryModel             = model('App\Models\Inventory');
-        $this->webappResponseModel        = model('App\Models\Webapp_response');
+        $this->franchiseeModel = model('App\Models\Franchisee');
+        $this->itemUnitModel = model('App\Models\Item_unit');
+        $this->inventoryModel = model('App\Models\Inventory');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
     }
 }

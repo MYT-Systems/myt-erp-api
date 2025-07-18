@@ -4,6 +4,18 @@ namespace App\Controllers;
 
 class Project_change_requests extends MYTController
 {
+    protected $projectInvoiceModel;
+    protected $projectInvoiceItemModel;
+    protected $projectInvoicePaymentModel;
+    protected $projectInvoiceAttachmentModel;
+    protected $projectChangeRequestModel;
+    protected $projectChangeRequestItemModel;
+    protected $projectOneTimeFeeModel;
+    protected $projectRecurringCostModel;
+    protected $projectModel;
+    protected $itemUnitModel;
+    protected $inventoryModel;
+    protected $webappResponseModel;
 
     public function __construct()
     {

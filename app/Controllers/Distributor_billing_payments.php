@@ -5,10 +5,15 @@ namespace App\Controllers;
 class Distributor_billing_payments extends MYTController
 {
 
+    protected $distributorModel;
+    protected $distributorBillingPaymentModel;
+    protected $distributorBillingPaymentEntryModel;
+    protected $webappResponseModel;
+
     public function __construct()
     {
         // Headers
-        $this->api_key  = $_SERVER['HTTP_API_KEY'];
+        $this->api_key = $_SERVER['HTTP_API_KEY'];
         $this->user_key = $_SERVER['HTTP_USER_KEY'];
 
         $this->_load_essentials();
@@ -20,7 +25,7 @@ class Distributor_billing_payments extends MYTController
     public function get_distributor_billing_payment()
     {
 
-        if (($response = $this->_api_verification('distributor_billing_payments', 'get_distributor_billing_payment')) !== true) 
+        if (($response = $this->_api_verification('distributor_billing_payments', 'get_distributor_billing_payment')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -28,8 +33,8 @@ class Distributor_billing_payments extends MYTController
             return $response;
         }
 
-        $distributor_billing_payment_id    = $this->request->getVar('distributor_billing_payment_id') ? : null;
-        $distributor_billing_payment       = $distributor_billing_payment_id ? $this->distributorBillingPaymentModel->get_details_by_id($distributor_billing_payment_id) : null;
+        $distributor_billing_payment_id = $this->request->getVar('distributor_billing_payment_id') ?: null;
+        $distributor_billing_payment = $distributor_billing_payment_id ? $this->distributorBillingPaymentModel->get_details_by_id($distributor_billing_payment_id) : null;
         $distributor_billing_payment_entries = $distributor_billing_payment_id ? $this->distributorBillingPaymentEntryModel->get_details_by_distributor_billing_payment_id($distributor_billing_payment_id) : null;
         if (!$distributor_billing_payment) {
             $response = $this->failNotFound('No distributor_billing_payment found');
@@ -51,7 +56,7 @@ class Distributor_billing_payments extends MYTController
      */
     public function filter_distributor_billing_payment_status()
     {
-        if (($response = $this->_api_verification('distributor_billing_payments', 'filter_distributor_billing_payment_status')) !== true) 
+        if (($response = $this->_api_verification('distributor_billing_payments', 'filter_distributor_billing_payment_status')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -59,7 +64,7 @@ class Distributor_billing_payments extends MYTController
             return $response;
         }
 
-        $status    = $this->request->getVar('status') ? : null;
+        $status = $this->request->getVar('status') ?: null;
         $distributor_billing_payment = $status ? $this->distributorBillingPaymentModel->filter_distributor_billing_payment_status($status) : null;
 
         if (!$distributor_billing_payment) {
@@ -80,7 +85,7 @@ class Distributor_billing_payments extends MYTController
      */
     public function filter_order_status()
     {
-        if (($response = $this->_api_verification('distributor_billing_payments', 'filter_order_status')) !== true) 
+        if (($response = $this->_api_verification('distributor_billing_payments', 'filter_order_status')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -88,7 +93,7 @@ class Distributor_billing_payments extends MYTController
             return $response;
         }
 
-        $status    = $this->request->getVar('status') ? : null;
+        $status = $this->request->getVar('status') ?: null;
         $distributor_billing_payment = $status ? $this->distributorBillingPaymentModel->filter_order_status($status) : null;
 
         if (!$distributor_billing_payment) {
@@ -96,7 +101,7 @@ class Distributor_billing_payments extends MYTController
         } else {
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $distributor_billing_payment
+                'data' => $distributor_billing_payment
             ]);
         }
 
@@ -109,7 +114,7 @@ class Distributor_billing_payments extends MYTController
      */
     public function get_all_distributor_billing_payment()
     {
-        if (($response = $this->_api_verification('distributor_billing_payments', 'get_all_distributor_billing_payment')) !== true) 
+        if (($response = $this->_api_verification('distributor_billing_payments', 'get_all_distributor_billing_payment')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -128,7 +133,7 @@ class Distributor_billing_payments extends MYTController
 
             $response = $this->respond([
                 'status' => 'success',
-                'data'   => $distributor_billing_payments
+                'data' => $distributor_billing_payments
             ]);
         }
 
@@ -141,7 +146,7 @@ class Distributor_billing_payments extends MYTController
      */
     public function create()
     {
-        if (($response = $this->_api_verification('distributor_billing_payments', 'create')) !== true) 
+        if (($response = $this->_api_verification('distributor_billing_payments', 'create')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -162,7 +167,7 @@ class Distributor_billing_payments extends MYTController
             $db->transCommit();
             $response = $this->respond([
                 'distributor_billing_payment_id' => $distributor_billing_payment_id,
-                'response'    => 'distributor_billing_payment created successfully'
+                'response' => 'distributor_billing_payment created successfully'
             ]);
         }
 
@@ -176,7 +181,7 @@ class Distributor_billing_payments extends MYTController
      */
     public function generate_distributor_billing_payment()
     {
-        if (($response = $this->_api_verification('distributor_billing_payments', 'create')) !== true) 
+        if (($response = $this->_api_verification('distributor_billing_payments', 'create')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -196,7 +201,7 @@ class Distributor_billing_payments extends MYTController
         $response = $this->respond([
             'distributor' => $distributor,
             'distributor_billing_payment_entries' => $distributor_billing_payment_entries,
-            'response'    => 'distributor billing generated successfully'
+            'response' => 'distributor billing generated successfully'
         ]);
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
@@ -208,20 +213,20 @@ class Distributor_billing_payments extends MYTController
      */
     public function update($id = null)
     {
-        if (($response = $this->_api_verification('distributor_billing_payments', 'update')) !== true) 
+        if (($response = $this->_api_verification('distributor_billing_payments', 'update')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
-            
+
         $distributor_billing_payment_id = $this->request->getVar('distributor_billing_payment_id');
-        $where       = ['id' => $distributor_billing_payment_id, 'is_deleted' => 0];
+        $where = ['id' => $distributor_billing_payment_id, 'is_deleted' => 0];
 
         $db = \Config\Database::connect();
         $db->transBegin();
-        
+
         if (!$distributor_billing_payment = $this->distributorBillingPaymentModel->select('', $where, 1)) {
             $response = $this->failNotFound('distributor_billing_payment not found');
         } elseif (!$this->_attempt_update($distributor_billing_payment)) {
@@ -230,17 +235,17 @@ class Distributor_billing_payments extends MYTController
         } elseif (!$this->_attempt_update_distributor_billing_payment_entries($distributor_billing_payment, $db)) {
             $db->transRollback();
             $response = $this->respond([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'Failed to generate PO items'
             ]);
         } else {
             $db->transCommit();
             $response = $this->respond([
                 'distributor_billing_payment_id' => $distributor_billing_payment_id,
-                'response'    => 'distributor_billing_payment updated successfully'
+                'response' => 'distributor_billing_payment updated successfully'
             ]);
         }
-        
+
         $db->close();
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
@@ -251,14 +256,14 @@ class Distributor_billing_payments extends MYTController
      */
     public function delete($id = null)
     {
-        if (($response = $this->_api_verification('distributor_billing_payments', 'delete')) !== true) 
+        if (($response = $this->_api_verification('distributor_billing_payments', 'delete')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
         }
-        
+
         $distributor_billing_payment_id = $this->request->getVar('distributor_billing_payment_id');
 
         $where = ['id' => $distributor_billing_payment_id, 'is_deleted' => 0];
@@ -280,7 +285,7 @@ class Distributor_billing_payments extends MYTController
      */
     public function search()
     {
-        if (($response = $this->_api_verification('distributor_billing_payments', 'search')) !== true) 
+        if (($response = $this->_api_verification('distributor_billing_payments', 'search')) !== true)
             return $response;
 
         $token = $this->request->getVar('token');
@@ -288,7 +293,7 @@ class Distributor_billing_payments extends MYTController
             return $response;
         }
 
-        $name          = $this->request->getVar('name') ? : null;
+        $name = $this->request->getVar('name') ?: null;
 
         if (!$distributor_billing_payments = $this->distributorBillingPaymentModel->search($name, $limit_by, $anything)) {
             $response = $this->failNotFound('No distributor_billing_payment found');
@@ -313,14 +318,14 @@ class Distributor_billing_payments extends MYTController
     private function _attempt_create()
     {
         $values = [
-            'billing_id'        => $this->request->getVar('billing_id'),
-            'payment_type'      => $this->request->getVar('payment_type'),
-            'reference_no'      => $this->request->getVar('reference_no'),
-            'remarks'           => $this->request->getVar('remarks'),
-            'payment_date'      => $this->request->getVar('payment_date'),
-            'grand_total'       => $this->request->getVar('grand_total'),
-            'added_by'          => $this->requested_by,
-            'added_on'          => date('Y-m-d H:i:s'),
+            'billing_id' => $this->request->getVar('billing_id'),
+            'payment_type' => $this->request->getVar('payment_type'),
+            'reference_no' => $this->request->getVar('reference_no'),
+            'remarks' => $this->request->getVar('remarks'),
+            'payment_date' => $this->request->getVar('payment_date'),
+            'grand_total' => $this->request->getVar('grand_total'),
+            'added_by' => $this->requested_by,
+            'added_on' => date('Y-m-d H:i:s'),
         ];
 
         if (!$distributor_billing_payment_id = $this->distributorBillingPaymentModel->insert($values)) {
@@ -336,19 +341,19 @@ class Distributor_billing_payments extends MYTController
     protected function _attempt_update($distributor_billing_payment)
     {
         $values = [
-            'billing_id'        => $this->request->getVar('billing_id'),
-            'payment_type'      => $this->request->getVar('payment_type'),
-            'reference_no'      => $this->request->getVar('reference_no'),
-            'remarks'           => $this->request->getVar('remarks'),
-            'payment_date'      => $this->request->getVar('payment_date'),
-            'grand_total'       => $this->request->getVar('grand_total'),
-            'updated_by'       => $this->requested_by,
-            'updated_on'       => date('Y-m-d H:i:s')
+            'billing_id' => $this->request->getVar('billing_id'),
+            'payment_type' => $this->request->getVar('payment_type'),
+            'reference_no' => $this->request->getVar('reference_no'),
+            'remarks' => $this->request->getVar('remarks'),
+            'payment_date' => $this->request->getVar('payment_date'),
+            'grand_total' => $this->request->getVar('grand_total'),
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
         ];
 
         if (!$this->distributorBillingPaymentModel->update($distributor_billing_payment['id'], $values))
             return false;
-    
+
         return true;
     }
 
@@ -371,7 +376,7 @@ class Distributor_billing_payments extends MYTController
             $db->transRollback();
             $db->close();
             return false;
-        } 
+        }
 
         $db->transCommit();
         $db->close();
@@ -384,16 +389,16 @@ class Distributor_billing_payments extends MYTController
      */
     protected function _attempt_generate_distributor_billing_payment_entries($distributor_billing_payment_id, $db)
     {
-        $distributor_billing_entry_ids   = $this->request->getVar('distributor_billing_entry_ids');
+        $distributor_billing_entry_ids = $this->request->getVar('distributor_billing_entry_ids');
         $paid_amounts = $this->request->getVar('paid_amounts');
 
         foreach ($distributor_billing_entry_ids as $key => $distributor_billing_entry_id) {
             $data = [
                 'distributor_billing_payment_id' => $distributor_billing_payment_id,
                 'distributor_billing_entry_id' => $distributor_billing_entry_id,
-                'paid_amount'     => $paid_amounts[$key],
-                'added_by'    => $this->requested_by,
-                'added_on'    => date('Y-m-d H:i:s')
+                'paid_amount' => $paid_amounts[$key],
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s')
             ];
 
 
@@ -406,8 +411,8 @@ class Distributor_billing_payments extends MYTController
     }
 
     /*
-    * Attempt update PO items
-    */
+     * Attempt update PO items
+     */
     protected function _attempt_update_distributor_billing_payment_entries($distributor_billing_payment, $db)
     {
         // // delete all items first
@@ -415,16 +420,16 @@ class Distributor_billing_payments extends MYTController
             return false;
         }
 
-        $distributor_billing_entry_ids   = $this->request->getVar('distributor_billing_entry_ids');
+        $distributor_billing_entry_ids = $this->request->getVar('distributor_billing_entry_ids');
         $paid_amounts = $this->request->getVar('paid_amounts');
 
         foreach ($distributor_billing_entry_ids as $key => $distributor_billing_entry_id) {
             $data = [
-                'distributor_billing_payment_id'    => $distributor_billing_payment_id,
-                'distributor_billing_entry_id'      => $distributor_billing_entry_id,
-                'paid_amount'                       => $paid_amounts[$key],
-                'added_by'                          => $this->requested_by,
-                'added_on'                          => date('Y-m-d H:i:s')
+                'distributor_billing_payment_id' => $distributor_billing_payment_id,
+                'distributor_billing_entry_id' => $distributor_billing_entry_id,
+                'paid_amount' => $paid_amounts[$key],
+                'added_by' => $this->requested_by,
+                'added_on' => date('Y-m-d H:i:s')
             ];
 
 
@@ -442,10 +447,10 @@ class Distributor_billing_payments extends MYTController
     protected function _load_essentials()
     {
 
-        $this->distributorModel               = model('App\Models\Distributor');
-        $this->distributorBillingPaymentModel               = model('App\Models\Distributor_billing_payment');
-        $this->distributorBillingPaymentEntryModel           = model('App\Models\Distributor_billing_payment_entry');
-        $this->webappResponseModel         = model('App\Models\Webapp_response');
-        
+        $this->distributorModel = model('App\Models\Distributor');
+        $this->distributorBillingPaymentModel = model('App\Models\Distributor_billing_payment');
+        $this->distributorBillingPaymentEntryModel = model('App\Models\Distributor_billing_payment_entry');
+        $this->webappResponseModel = model('App\Models\Webapp_response');
+
     }
 }

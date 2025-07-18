@@ -8,6 +8,24 @@ use App\Models\Webapp_response;
 
 class Project_expenses extends MYTController
 {
+    protected $projectExpenseAttachmentModel;
+    protected $suppliesExpenseBankEntryModel;
+    protected $suppliesExpenseCashEntryModel;
+    protected $suppliesExpenseCheckEntryModel;
+    protected $suppliesExpenseGcashEntryModel;
+    protected $suppliesExpenseBankSlipModel;
+    protected $suppliesExpenseCashSlipModel;
+    protected $suppliesExpenseCheckSlipModel;
+    protected $suppliesExpenseGcashSlipModel;
+    protected $suppliesExpenseBankSlipAttachmentModel;
+    protected $suppliesExpenseCashSlipAttachmentModel;
+    protected $suppliesExpenseCheckSlipAttachmentModel;
+    protected $suppliesExpenseGcashSlipAttachmentModel;
+    protected $requesterNameModel;
+    protected $requesterModel;
+    protected $projectExpenseModel;
+    protected $partnerModel;
+    protected $webappResponseModel;
     
     public function __construct()
     {
