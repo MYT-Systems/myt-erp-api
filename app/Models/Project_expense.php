@@ -101,12 +101,14 @@ EOT;
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT project_expense.*, 
+    expense_type.name AS expense_type_name,
     project.name,
     partner.name AS partner_name, 
     distributor.name AS distributor_name,
     supplier.trade_name AS supplier_name,
     CONCAT(adder.first_name, ' ', adder.last_name) AS added_by_name
 FROM project_expense
+LEFT JOIN expense_type ON expense_type_id = project_expense.expense_type_id
 LEFT JOIN project ON project.id = project_expense.project_id
 LEFT JOIN distributor ON distributor.id = project.distributor_id
 LEFT JOIN supplier ON supplier.id = project_expense.supplier_id
