@@ -71,6 +71,59 @@ class Dashboard extends MYTController
     }
 
     /**
+     * Proxy for fetching payment images to avoid CORS issues
+     */
+    public function get_file()
+    {
+        // Get the image URL from query parameters
+        $imageUrl = $this->request->getGet('url');
+        
+        if (empty($imageUrl)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => 'Image URL is required'
+            ]);
+        }
+
+        // Validate the URL belongs to your domain (security measure)
+        $allowedDomain = 'accounting-api.myt-enterprise.com';
+        if (parse_url($imageUrl, PHP_URL_HOST) !== $allowedDomain) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status' => 'error',
+                'message' => 'Unauthorized image source'
+            ]);
+        }
+
+        // Initialize HTTP client
+        $client = \Config\Services::curlrequest();
+        
+        try {
+            // Fetch the image
+            $response = $client->get($imageUrl, [
+                'headers' => [
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+                ]
+            ]);
+
+            // Get the image content and content type
+            $imageContent = $response->getBody();
+            $contentType = $response->getHeader('Content-Type');
+
+            // Return the image directly
+            return $this->response
+                ->setStatusCode(200)
+                ->setContentType($contentType)
+                ->setBody($imageContent);
+
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to fetch image: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Load all essential models and helpers
      */
     protected function _load_essentials()
