@@ -716,7 +716,7 @@ class Reports extends MYTController
     
             foreach ($invoice_details as $invoice) {
                 foreach ($aging_columns as $column) {
-                    if (strpos($value[$column], "INV. {$invoice['invoice_no']}") !== false) {
+                    if (isset($value[$column]) && is_string($value[$column]) && strpos($value[$column], "INV. {$invoice['invoice_no']}") !== false) {
                         $value['invoice_details'][] = $invoice;
                         break;
                     }
@@ -902,10 +902,10 @@ class Reports extends MYTController
         $date_to = date('Y-m-t', strtotime($date_to));
 
         $data = [];
-        $data['sales'] = number_format($this->reportModel->get_sales($date_from, $date_to), 2, '.', "");
-        $data['expenses'] = number_format($this->reportModel->get_expenses($date_from, $date_to), 2, '.', "");
-        $data['net_sales'] = number_format($data['sales'] - $data['expenses'], 2, '.', "");
-        $data['receivables'] = number_format($this->reportModel->get_receivables($date_from, $date_to), 2, '.', "");
+        $data['sales'] = number_format((float)$this->reportModel->get_sales($date_from, $date_to), 2, '.', "");
+        $data['expenses'] = number_format((float)$this->reportModel->get_expenses($date_from, $date_to), 2, '.', "");
+        $data['net_sales'] = number_format((float)$data['sales'] - $data['expenses'], 2, '.', "");
+        $data['receivables'] = number_format((float)$this->reportModel->get_receivables($date_from, $date_to), 2, '.', "");
         $data['pending_invoice'] = count($this->projectInvoiceModel->select('', ['status' => 'pending', 'is_deleted' => 0])?:[]);
         $data['open_invoice'] = count($this->projectInvoiceModel->select('', ['payment_status' => 'open_bill', 'is_deleted' => 0])?:[]);
         $data['petty_cash'] = count($this->pettyCashDetailModel->select('', ['is_deleted' => 0, 'status' => 'request'])?:[]);
