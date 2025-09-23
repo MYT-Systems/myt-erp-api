@@ -555,6 +555,14 @@ SELECT
                         AND project_invoice_payment.is_deleted = 0
                         AND project_invoice_payment.payment_date >= ? 
                     ), 0)
+                    + 
+                    IFNULL((
+                        SELECT SUM(bt.amount)
+                        FROM bank_transfer bt
+                        WHERE bt.bank_to_id = bank.id
+                          AND bt.is_deleted = 0
+                          AND bt.transaction_date >= ?
+                    ), 0)
                     -
                     IFNULL(( 
                         SELECT SUM(se_bank_slip.amount)
@@ -565,6 +573,14 @@ SELECT
                         AND se_bank_entry.is_deleted = 0
                         AND se_bank_slip.payment_date >= ?
                     ), 0)
+                    - 
+                    IFNULL((
+                        SELECT SUM(bt.amount)
+                        FROM bank_transfer bt
+                        WHERE bt.bank_from_id = bank.id
+                          AND bt.is_deleted = 0
+                          AND bt.transaction_date >= ?
+                    ), 0)
                 )
             )
     END AS previous_balance
@@ -573,7 +589,7 @@ WHERE bank.is_deleted = 0
 AND bank.id = ?;
 EOT;
 
-        $query = $database->query($sql, [$date_from, $date_from, $date_from, $date_from, $bank_id]);
+        $query = $database->query($sql, [$date_from, $date_from, $date_from, $date_from, $date_from, $date_from, $bank_id]);
         return $query ? $query->getRowArray() : false;
     }
 
@@ -650,6 +666,36 @@ SELECT * FROM (
     WHERE petty_cash.is_deleted = 0
     AND petty_cash_detail.is_deleted = 0
     AND petty_cash_detail.type = 'out'
+
+    UNION ALL 
+
+    SELECT 
+        'Debit' AS type,
+        bank_transfer.id AS id,
+        CONCAT('BANK TRANSFER NO. ', bank_transfer.id) AS reference_no,
+        bank_transfer.transaction_date AS date,
+        bank_transfer.amount AS paid_amount,
+        bank_from.name AS bank_name,
+        bank_transfer.bank_from_id AS bank_id
+    FROM bank_transfer
+    LEFT JOIN bank AS bank_from ON bank_from.id = bank_transfer.bank_from_id
+    WHERE bank_transfer.is_deleted = 0
+    AND bank_from.is_deleted = 0
+
+    UNION ALL 
+
+    SELECT 
+        'Credit' AS type,
+        bank_transfer.id AS  id,
+        CONCAT('BANK TRANSFER NO. ', bank_transfer.id) AS reference_no,
+        bank_transfer.transaction_date AS date,
+        bank_transfer.amount AS paid_amount,
+        bank_to.name AS bank_name,
+        bank_transfer.bank_to_id AS bank_id
+    FROM bank_transfer
+    LEFT JOIN bank AS bank_to ON bank_to.id = bank_transfer.bank_to_id
+    WHERE bank_transfer.is_deleted = 0
+    AND bank_to.is_deleted = 0
 
 ) AS temp
 WHERE 1 = 1
