@@ -557,11 +557,11 @@ SELECT
                     ), 0)
                     + 
                     IFNULL((
-                        SELECT SUM(bt.amount)
-                        FROM bank_transfer bt
-                        WHERE bt.bank_to_id = bank.id
-                          AND bt.is_deleted = 0
-                          AND bt.transaction_date >= ?
+                        SELECT SUM(bank_transfer.amount)
+                        FROM bank_transfer
+                        WHERE bank_transfer.bank_to_id = bank.id
+                          AND bank_transfer.is_deleted = 0
+                          AND bank_transfer.transaction_date >= ?
                     ), 0)
                     -
                     IFNULL(( 
@@ -575,11 +575,11 @@ SELECT
                     ), 0)
                     - 
                     IFNULL((
-                        SELECT SUM(bt.amount)
-                        FROM bank_transfer bt
-                        WHERE bt.bank_from_id = bank.id
-                          AND bt.is_deleted = 0
-                          AND bt.transaction_date >= ?
+                        SELECT SUM(bank_transfer.amount)
+                        FROM bank_transfer
+                        WHERE bank_transfer.bank_from_id = bank.id
+                          AND bank_transfer.is_deleted = 0
+                          AND bank_transfer.transaction_date >= ?
                     ), 0)
                 )
             )
