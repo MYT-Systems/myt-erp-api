@@ -1006,8 +1006,10 @@ class Project_invoices extends MYTController
                 }
                 break;
             case 'cancelled_invoice':
+                $reason = $this->request->getVar('reason');
                 $values['status'] = 'cancelled_invoice';
                 $values['payment_status'] = 'cancelled_invoice';
+                $values['reason'] = $reason;
                 break;
 
             case 'bad_debt':
