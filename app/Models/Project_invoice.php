@@ -202,6 +202,10 @@ EOT;
         if ($payment_status === 'overpaid') {
             $sql .= ' AND project_invoice.paid_amount > project_invoice.grand_total';
             $sql .= ' AND (project_invoice.is_closed = 0 OR project_invoice.is_closed IS NULL)';
+        } elseif ($payment_status === 'cancelled_invoice') {
+            $sql .= ' AND project_invoice.status = "cancelled_invoice"';
+        } elseif ($payment_status === 'bad_debt') {
+            $sql .= ' AND project_invoice.status = "bad_debt"';
         } elseif ($payment_status) {
             $sql .= ' AND project_invoice.payment_status = ?';
             $binds[] = $payment_status;
