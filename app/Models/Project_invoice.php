@@ -32,6 +32,7 @@ class Project_invoice extends MYTModel
         'discount',
         'fully_paid_on',
         'is_closed',
+        'reason',
         'added_by',
         'added_on',
         'updated_by',
@@ -161,6 +162,7 @@ SELECT
         )
     ) AS payment_status,
     project.grand_total AS project_amount,
+    project_invoice.reason,
     (
         SELECT MAX(payment_date) 
         FROM project_invoice_payment 
