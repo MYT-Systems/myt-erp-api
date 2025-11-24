@@ -1005,6 +1005,19 @@ class Project_invoices extends MYTController
                     // }
                 }
                 break;
+            case 'cancelled_invoice':
+                $values['status'] = 'cancelled_invoice';
+                $values['payment_status'] = 'cancelled_invoice';
+                break;
+
+            case 'bad_debt':
+                $values['status'] = 'bad_debt';
+                $values['payment_status'] = 'bad_debt';
+                break;
+            case 'open_bill':
+                $values['status'] = 'open_bill';
+                $values['payment_status'] = 'open_bill';
+                break;
             default:
                 return false;
         }
