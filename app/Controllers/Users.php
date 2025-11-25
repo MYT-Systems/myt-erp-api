@@ -14,6 +14,7 @@ class Users extends MYTController
     protected $userModel;
     protected $userAssignmentModel;
     protected $webappResponseModel;
+    protected $pin;
 
     public function __construct()
     {
