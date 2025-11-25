@@ -946,6 +946,7 @@ FROM (
   WHERE 
     project_invoice.is_deleted = 0
     AND project.is_deleted = 0
+    AND project_invoice.status NOT IN ('cancelled_invoice', 'bad_debt')
     AND project_invoice.grand_total > project_invoice.paid_amount
   GROUP BY customer.id, project_invoice.id
 ) AS data
@@ -1016,6 +1017,7 @@ LEFT JOIN
 WHERE 
     project_invoice.is_deleted = 0
     AND project.is_deleted = 0
+    AND project_invoice.status NOT IN ('cancelled_invoice', 'bad_debt')
 EOT;
 
         $binds = [];
