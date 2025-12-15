@@ -1157,6 +1157,7 @@ class Reports extends MYTController
         $dec_total_expenses = 0;
         
         $expenses = $this->reportModel->get_expenses_report(null, null, $year);
+        $excluded_expense_type_ids = [73, 74];
         $grouped_expenses = [];
 
         if (!empty($expenses)) {
@@ -1188,6 +1189,10 @@ class Reports extends MYTController
             }
 
             foreach ($grouped_expenses as $expense_type => $totals) {
+
+            $is_excluded = in_array((int)$totals['expense_type_id'], $excluded_expense_type_ids);
+
+            if (!$is_excluded) {
                 $total_expenses += $totals['expense_total'];
                 $jan_total_expenses += $totals['jan'];
                 $feb_total_expenses += $totals['feb'];
@@ -1201,6 +1206,7 @@ class Reports extends MYTController
                 $oct_total_expenses += $totals['oct'];
                 $nov_total_expenses += $totals['nov'];
                 $dec_total_expenses += $totals['dec'];
+            }
 
                 $expenses_children[] = [
                     'id' => $totals['expense_type_id'], // Optional: could use expense_type or null since it's grouped
@@ -1235,6 +1241,8 @@ class Reports extends MYTController
             }
             return ($a_priority < $b_priority) ? -1 : 1;
         });
+
+        $excluded_expense_type_ids = [73, 74];
 
         // Project Expenses
         $proj_expenses_children = [];
@@ -1312,6 +1320,7 @@ class Reports extends MYTController
                     'total_amount' => $total_child
                 ];
 
+                if (!in_array((int)$account_type['id'], $excluded_expense_type_ids)) {
                 $total_proj_expenses += $total_child;
                 $jan_total_proj_expenses += $jan_total_child;
                 $feb_total_proj_expenses += $feb_total_child;
@@ -1325,6 +1334,7 @@ class Reports extends MYTController
                 $oct_total_proj_expenses += $oct_total_child;
                 $nov_total_proj_expenses += $nov_total_child;
                 $dec_total_proj_expenses += $dec_total_child;
+                }
             }
         }
         
