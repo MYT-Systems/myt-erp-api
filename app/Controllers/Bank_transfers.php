@@ -7,7 +7,7 @@ use App\Models\Webapp_response;
 use App\Models\Bank;
 
 class Bank_transfers extends MYTController {
-    protected $bank_transferModel;
+    protected $bankTransferModel;
     protected $webappResponseModel;
     protected $bankModel;
 
