@@ -384,4 +384,37 @@ EOT;
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
     }
+
+    /**
+     * Get sales breakdown by company for financial report
+     */
+    public function get_sales_breakdown_by_company($year = null)
+    {
+        $database = \Config\Database::connect();
+        
+        $sql = <<<EOT
+SELECT 
+    company,
+    paid_amount,
+    MONTH(fully_paid_on) as month,
+    YEAR(fully_paid_on) as year
+FROM project_invoice
+WHERE status = 'closed_bill'
+    AND fully_paid_on IS NOT NULL
+    AND paid_amount > 0
+    AND is_deleted = 0
+EOT;
+
+        $binds = [];
+        
+        if ($year) {
+            $sql .= ' AND YEAR(fully_paid_on) = ?';
+            $binds[] = $year;
+        }
+        
+        $sql .= ' ORDER BY company ASC, month ASC';
+        
+        $query = $database->query($sql, $binds);
+        return $query ? $query->getResultArray() : false;
+    }
 }

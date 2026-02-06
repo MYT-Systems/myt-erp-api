@@ -1104,6 +1104,9 @@ class Reports extends MYTController
         // $date_to   = $this->request->getVar('date_to') ?? null;
         $year   = $this->request->getVar('year') ?? null;
         
+        // ========================================
+        // SALES SECTION - WITH COMPANY BREAKDOWN
+        // ========================================
         $jan_total_sales = 0;
         $feb_total_sales = 0;
         $mar_total_sales = 0;
@@ -1117,25 +1120,48 @@ class Reports extends MYTController
         $nov_total_sales = 0;
         $dec_total_sales = 0;
 
-        $sales = $this->reportModel->get_sales_report(null, null, $year) ?? [];
-        if (!empty($sales)) {
-            foreach ($sales as $i => $sale) {
-                $jan_total_sales += (float)$sale['jan'];
-                $feb_total_sales += (float)$sale['feb'];
-                $mar_total_sales += (float)$sale['mar'];
-                $apr_total_sales += (float)$sale['apr'];
-                $may_total_sales += (float)$sale['may'];
-                $jun_total_sales += (float)$sale['jun'];
-                $jul_total_sales += (float)$sale['jul'];
-                $aug_total_sales += (float)$sale['aug'];
-                $sep_total_sales += (float)$sale['sep'];
-                $oct_total_sales += (float)$sale['oct'];
-                $nov_total_sales += (float)$sale['nov'];
-                $dec_total_sales += (float)$sale['dec'];
+        // Get sales breakdown by company
+        $sales_breakdown = [];
+        $company_sales = $this->projectInvoiceModel->get_sales_breakdown_by_company($year);
+
+        if (!empty($company_sales)) {
+            foreach ($company_sales as $sale) {
+                $company = $sale['company'];
+                $paid_amount = (float)$sale['paid_amount'];
+                $month = (int)$sale['month'];
+                
+                if (!isset($sales_breakdown[$company])) {
+                    $sales_breakdown[$company] = [
+                        'name' => $company,
+                        'jan' => 0, 'feb' => 0, 'mar' => 0, 'apr' => 0,
+                        'may' => 0, 'jun' => 0, 'jul' => 0, 'aug' => 0,
+                        'sep' => 0, 'oct' => 0, 'nov' => 0, 'dec' => 0,
+                        'total_amount' => 0
+                    ];
+                }
+                
+                switch ($month) {
+                    case 1: $sales_breakdown[$company]['jan'] += $paid_amount; $jan_total_sales += $paid_amount; break;
+                    case 2: $sales_breakdown[$company]['feb'] += $paid_amount; $feb_total_sales += $paid_amount; break;
+                    case 3: $sales_breakdown[$company]['mar'] += $paid_amount; $mar_total_sales += $paid_amount; break;
+                    case 4: $sales_breakdown[$company]['apr'] += $paid_amount; $apr_total_sales += $paid_amount; break;
+                    case 5: $sales_breakdown[$company]['may'] += $paid_amount; $may_total_sales += $paid_amount; break;
+                    case 6: $sales_breakdown[$company]['jun'] += $paid_amount; $jun_total_sales += $paid_amount; break;
+                    case 7: $sales_breakdown[$company]['jul'] += $paid_amount; $jul_total_sales += $paid_amount; break;
+                    case 8: $sales_breakdown[$company]['aug'] += $paid_amount; $aug_total_sales += $paid_amount; break;
+                    case 9: $sales_breakdown[$company]['sep'] += $paid_amount; $sep_total_sales += $paid_amount; break;
+                    case 10: $sales_breakdown[$company]['oct'] += $paid_amount; $oct_total_sales += $paid_amount; break;
+                    case 11: $sales_breakdown[$company]['nov'] += $paid_amount; $nov_total_sales += $paid_amount; break;
+                    case 12: $sales_breakdown[$company]['dec'] += $paid_amount; $dec_total_sales += $paid_amount; break;
+                }
+                
+                $sales_breakdown[$company]['total_amount'] += $paid_amount;
             }
         }
-        
-        // Calculate the total sales for the year
+
+        ksort($sales_breakdown);
+        $sales_children = array_values($sales_breakdown);
+
         $total_sales = $jan_total_sales + $feb_total_sales + $mar_total_sales + 
                        $apr_total_sales + $may_total_sales + $jun_total_sales + 
                        $jul_total_sales + $aug_total_sales + $sep_total_sales + 
@@ -1343,6 +1369,7 @@ class Reports extends MYTController
             'account_types'   => [
                 [
                     'name' => 'sales',
+                    'children' => $sales_children,
                     'jan' => $jan_total_sales,
                     'feb' => $feb_total_sales,
                     'mar' => $mar_total_sales,
