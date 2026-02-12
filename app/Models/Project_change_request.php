@@ -22,6 +22,7 @@ class Project_change_request extends MYTModel
         'balance',
         'paid_amount',
         'discount',
+        'status',
         'added_by',
         'added_on',
         'updated_by',
@@ -104,9 +105,18 @@ EOT;
         $database = \Config\Database::connect();
         
         $sql = <<<EOT
-SELECT project.*, 
-       project_change_request.*, 
-       customer.name AS customer_name
+SELECT 
+    project_change_request.id,
+    project_change_request.project_id,
+    project_change_request.request_no,
+    project_change_request.request_date,
+    project_change_request.status,
+    project_change_request.grand_total,
+    project_change_request.remarks,
+    project.name AS project_name,
+    project.address,
+    project.company,
+    customer.name AS customer_name
 FROM project_change_request
 LEFT JOIN project ON project.id = project_change_request.project_id
 LEFT JOIN customer ON customer.id = project.customer_id

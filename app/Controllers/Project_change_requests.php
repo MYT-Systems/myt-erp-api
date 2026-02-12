@@ -254,6 +254,67 @@ class Project_change_requests extends MYTController
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
     }
+    /**
+ * Update project change request status (pending, invoice_generated or waived)
+ */
+public function update_status()
+{
+    // API verification
+    if (($response = $this->_api_verification('project_change_requests', 'update_status')) !== true)
+        return $response;
+
+    // Verify token
+    $token = $this->request->getVar('token');
+    if (($response = $this->_verify_requester($token)) !== true) {
+        return $response;
+    }
+
+    // Get parameters from request
+    $change_request_id = $this->request->getVar('change_request_id');
+    $status = $this->request->getVar('status'); // 'pending' , 'invoice_generated' or 'waived'
+
+    // Validate status value
+    if (!in_array($status, ['pending', 'invoice_generated', 'waived'])) {
+        $response = $this->fail('Invalid status. Must be "pending", "invoice_generated", or "waived".');
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    // Check if project change request exists
+    $where = [
+        'id' => $change_request_id,
+        'is_deleted' => 0
+    ];
+
+    if (!$project_change_request = $this->projectChangeRequestModel->select('', $where, 1)) {
+        $response = $this->failNotFound('Project change request not found');
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    // Update status
+    $values = [
+        'status' => $status,
+        'updated_by' => $this->requested_by,
+        'updated_on' => date('Y-m-d H:i:s')
+    ];
+
+    if (!$this->projectChangeRequestModel->update($change_request_id, $values)) {
+        $response = $this->fail('Failed to update status');
+    } else {
+        $response = $this->respond([
+            'status' => 'success',
+            'message' => 'Status updated successfully',
+            'data' => [
+                'change_request_id' => $change_request_id,
+                'new_status' => $status
+            ]
+        ]);
+    }
+
+    $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+    return $response;
+}
     
     // --------------------------------------------------------------------
     // Private methods
