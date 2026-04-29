@@ -133,10 +133,11 @@ class Supplies_expenses extends MYTController
         $supplies_expenses = $this->suppliesExpenseModel->get_all_supplies_expense($supplier_id);
         if ($supplies_expenses) {
             foreach ($supplies_expenses as $key => $supplies_expense) {
-                $supplies_expense_items = $this->suppliesExpenseItemModel->get_details_by_supplies_expense_id($supplies_expense['id']);
-                $supplies_expense_attachment = $this->suppliesExpenseAttachmentModel->get_details_by_supplies_expense_id($supplies_expense['id']);
-                $supplies_expenses[$key]['se_items'] = $supplies_expense_items;
-                $supplies_expenses[$key]['attachment'] = $supplies_expense_attachment;
+                 // These queries are not needed for the PO dropdown in FormPaySupplier.js
+                // $supplies_expense_items = $this->suppliesExpenseItemModel->get_details_by_supplies_expense_id($supplies_expense['id']);
+                // $supplies_expense_attachment = $this->suppliesExpenseAttachmentModel->get_details_by_supplies_expense_id($supplies_expense['id']);
+                // $supplies_expenses[$key]['se_items'] = $supplies_expense_items;
+                // $supplies_expenses[$key]['attachment'] = $supplies_expense_attachment;
                 $supplies_expenses[$key]['type'] = 'supplies_expense';
                 $supplies_expenses[$key]['balance'] = $supplies_expense['grand_total'];
             }
