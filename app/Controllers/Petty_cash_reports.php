@@ -8,6 +8,7 @@ class Petty_cash_reports extends MYTController
     protected $pettyCashDetailModel;
     protected $pettyCashDetailAttachmentModel;
     protected $pettyCashItemModel;
+    protected $bankModel;
     protected $webappResponseModel;
 
     public function __construct()
@@ -534,9 +535,14 @@ class Petty_cash_reports extends MYTController
             return false;
         }
 
-        // Update the current petty cash in the petty cash table
         if (!$this->_update_current_petty_cash($petty_cash_id, $values['amount'], $values['type'])) {
             $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+
+        // cash in, deduct the amount fron the source bank
+        if ($values['type'] == 'in'
+            && !$this->_adjust_bank_balance($values['from'], - (float)$values['amount'])) {
             return false;
         }
 
@@ -751,6 +757,33 @@ class Petty_cash_reports extends MYTController
         
         return true;
     }
+    
+    // helper function, adjust bank balance
+    private function _adjust_bank_balance($bank_id, $delta){
+        if(empty($bank_id)){
+            return true;
+        }
+
+        if(!$bank=$this->bankModel->get_details_by_id($bank_id)){
+            $this->errorMessage = 'Invalid bank selected for petty cash transaction';
+            return false;
+        }
+
+        $bank = $bank[0];
+
+        $new_values = [
+            'current_bal' => (float)$bank['current_bal'] + (float)$delta,
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s'),
+        ];
+
+        if(!$this->bankModel->update($bank_id, $new_values)){
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+
+        return true;
+    }
 
     /**
      * Load all essential models and helpers
@@ -762,6 +795,7 @@ class Petty_cash_reports extends MYTController
         $this->pettyCashDetailAttachmentModel = model('App\Models\Petty_cash_detail_attachment');
         $this->pettyCashItemModel   = model('App\Models\Petty_cash_item');
         $this->webappResponseModel  = model('App\Models\Webapp_response');
+        $this->bankModel            = model('App\Models\Bank');
     }
 
     
