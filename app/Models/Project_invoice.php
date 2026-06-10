@@ -393,26 +393,27 @@ EOT;
         $database = \Config\Database::connect();
         
         $sql = <<<EOT
-SELECT 
-    company,
-    paid_amount,
-    MONTH(fully_paid_on) as month,
-    YEAR(fully_paid_on) as year
-FROM project_invoice
-WHERE status = 'closed_bill'
-    AND fully_paid_on IS NOT NULL
-    AND paid_amount > 0
-    AND is_deleted = 0
-EOT;
+    SELECT 
+        project_invoice.company,
+        project_invoice_payment.paid_amount,
+        MONTH(project_invoice_payment.deposit_date) as month,
+        YEAR(project_invoice_payment.deposit_date) as year
+    FROM project_invoice_payment
+    LEFT JOIN project_invoice ON project_invoice.id = project_invoice_payment.project_invoice_id
+    WHERE project_invoice_payment.is_deleted = 0
+        AND project_invoice.is_deleted = 0
+        AND project_invoice_payment.paid_amount > 0
+        AND project_invoice_payment.deposit_date IS NOT NULL
+    EOT;
 
         $binds = [];
         
         if ($year) {
-            $sql .= ' AND YEAR(fully_paid_on) = ?';
+            $sql .= ' AND YEAR(project_invoice_payment.deposit_date) = ?';
             $binds[] = $year;
         }
         
-        $sql .= ' ORDER BY company ASC, month ASC';
+        $sql .= ' ORDER BY project_invoice.company ASC, month ASC';
         
         $query = $database->query($sql, $binds);
         return $query ? $query->getResultArray() : false;
