@@ -512,11 +512,15 @@ class Petty_cash_reports extends MYTController
     private function _attempt_create_petty_cash_detail($petty_cash_id)
     {
         $type = $this->request->getVar('type');
-        $status = ($type == 'out') ? : 'approved';
+        // replaced: '?:' returns boolean true for 'out' instead of a status; now 'out'=pending, 'in'=approved
+        // $status = ($type == 'out') ? : 'approved';
+        $status = ($type == 'out') ? 'pending' : 'approved';
 
         $values = [
             'petty_cash_id' => $petty_cash_id,
-            'approved'      => $status,
+            // replaced: 'approved' is not a petty_cash_detail column, so it was dropped and status stayed null
+            // 'approved'      => $status,
+            'status'        => $status,
             'out_type'      => $this->request->getVar('out_type'),
             'type'          => $this->request->getVar('type'),
             'from'          => $this->request->getVar('from'),

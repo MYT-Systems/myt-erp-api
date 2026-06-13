@@ -553,7 +553,8 @@ SELECT
                         FROM project_invoice_payment
                         WHERE project_invoice_payment.to_bank_id = bank.id
                         AND project_invoice_payment.is_deleted = 0
-                        AND project_invoice_payment.payment_date >= ? 
+                        -- old: filtered by payment_date; changed to deposit_date to match the transaction list date column
+                        AND project_invoice_payment.deposit_date >= ?
                     ), 0)
                     + 
                     IFNULL((
@@ -581,6 +582,18 @@ SELECT
                           AND bank_transfer.is_deleted = 0
                           AND bank_transfer.transaction_date >= ?
                     ), 0)
+                    -- added reverse petty cash-ins (money out of the bank), else closing is short by them
+                    -
+                    IFNULL((
+                        SELECT SUM(petty_cash_detail.amount)
+                        FROM petty_cash_detail
+                        LEFT JOIN petty_cash ON petty_cash.id = petty_cash_detail.petty_cash_id
+                        WHERE petty_cash_detail.`from` = bank.id
+                            AND petty_cash_detail.is_deleted = 0
+                            AND petty_cash.is_deleted = 0
+                            AND petty_cash_detail.type = 'in'
+                            AND petty_cash_detail.date >= ?
+                    ), 0)
                 )
             )
     END AS previous_balance
@@ -589,7 +602,7 @@ WHERE bank.is_deleted = 0
 AND bank.id = ?;
 EOT;
 
-        $query = $database->query($sql, [$date_from, $date_from, $date_from, $date_from, $date_from, $date_from, $bank_id]);
+        $query = $database->query($sql, [$date_from, $date_from, $date_from, $date_from, $date_from, $date_from, $date_from, $bank_id]);
         return $query ? $query->getRowArray() : false;
     }
 
@@ -650,15 +663,17 @@ SELECT * FROM (
     AND petty_cash_detail.is_deleted = 0
     AND petty_cash_detail.type = 'in'
 
+    -- removed petty cash-out branch: a cash-out is fund->expense, never enters a bank, so counting it as credit inflated closing
+    /*
     UNION ALL
 
-    SELECT 
+    SELECT
         'Credit' AS type,
         petty_cash_detail.id AS id,
         CONCAT('PETTY CASH NO. ', petty_cash_detail.id) AS reference_no,
         petty_cash_detail.date AS date,
         petty_cash_detail.amount AS paid_amount,
-        bank.name AS bank_name, 
+        bank.name AS bank_name,
         bank.id AS bank_id
     FROM petty_cash_detail
     LEFT JOIN petty_cash ON petty_cash.id = petty_cash_detail.petty_cash_id
@@ -666,6 +681,7 @@ SELECT * FROM (
     WHERE petty_cash.is_deleted = 0
     AND petty_cash_detail.is_deleted = 0
     AND petty_cash_detail.type = 'out'
+    */
 
     UNION ALL 
 
