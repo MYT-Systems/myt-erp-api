@@ -28,6 +28,10 @@ class Cron extends MYTController
     protected $expenseItemModel;
     protected $expenseAttachmentModel;
 
+    protected $projectModel;
+    protected $projectInvoiceModel;
+    protected $projectInvoiceItemModel;
+
     protected $requested_by = 0;
     protected $orders_payload = null;
     protected $db = null;
@@ -58,9 +62,109 @@ class Cron extends MYTController
         $this->expenseItemModel        = model('App\Models\Expense_item');
         $this->expenseAttachmentModel  = model('App\Models\Expense_attachment');
 
+        $this->projectModel            = model('App\Models\Project');
+        $this->projectInvoiceModel     = model('App\Models\Project_invoice');
+        $this->projectInvoiceItemModel = model('App\Models\Project_invoice_item');
+
         $this->requested_by = 0;
         $this->orders_payload = null;
         $this->db = null;
+    }
+
+    /**
+     * Cron endpoint: generate pending invoices for all recurring bills due today
+     */
+    public function generate_pending_recurring_invoices()
+    {
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        if (!$this->_attempt_generate_pending_invoices(null, $db)) {
+            $db->transRollback();
+            return $this->respond(['status' => 'error', 'message' => $this->errorMessage], 500);
+        }
+
+        $db->transCommit();
+        return $this->respond(['status' => 'success']);
+    }
+
+    /**
+     * Generate PENDING project invoices for recurring bills that are due.
+     * Reuses Project::get_projects_to_bill() for schedule/window/cap/dedup logic.
+     */
+    protected function _attempt_generate_pending_invoices($project_id = null, $db = null)
+    {
+        $db = $db ?: \Config\Database::connect();
+
+        $due = $this->projectModel->get_projects_to_bill($project_id) ?: [];
+
+        $by_project = [];
+        foreach ($due as $row) {
+            if (($row['billing_type'] ?? null) !== 'recurring') {
+                continue;
+            }
+            $by_project[$row['project_id']][] = $row;
+        }
+
+        $billing_date = date('Y-m-d');
+
+        $last = $this->projectInvoiceModel->get_last_invoice_no_by_year();
+        $last_number = ($last && isset($last['invoice_no']))
+            ? (int) substr($last['invoice_no'], 5)
+            : 0;
+
+        foreach ($by_project as $pid => $rows) {
+            $project = $this->projectModel->get_details_by_id($pid);
+            $project = $project ? $project[0] : [];
+
+            $grand_total = array_sum(array_map(fn($r) => (float) $r['price'], $rows));
+
+            $last_number++;
+            $invoice_no = date('Y') . '-' . str_pad($last_number, 4, '0', STR_PAD_LEFT);
+
+            $invoice_values = [
+                'project_id'     => $pid,
+                'invoice_date'   => $billing_date,
+                'invoice_no'     => $invoice_no,
+                'project_date'   => $rows[0]['project_date'] ?? ($project['project_date'] ?? null),
+                'due_date'       => $billing_date,
+                'company'        => $project['company'] ?? null,
+                'address'        => $project['address'] ?? null,
+                'subtotal'       => $grand_total,
+                'grand_total'    => $grand_total,
+                'balance'        => $grand_total,
+                'paid_amount'    => 0,
+                'payment_status' => 'pending',
+                'status'         => 'pending',
+                'added_by'       => $this->requested_by,
+                'added_on'       => date('Y-m-d H:i:s'),
+            ];
+
+            if (!$invoice_id = $this->projectInvoiceModel->insert($invoice_values)) {
+                $this->errorMessage = $db->error()['message'];
+                return false;
+            }
+
+            foreach ($rows as $r) {
+                $price = (float) $r['price'];
+                $item_values = [
+                    'project_invoice_id' => $invoice_id,
+                    'item_id'            => $r['item_id'],
+                    'item_name'          => $r['description'],
+                    'item_balance'       => $price,
+                    'price'              => $price,
+                    'billed_amount'      => $price,
+                    'added_by'           => $this->requested_by,
+                    'added_on'           => date('Y-m-d H:i:s'),
+                ];
+                if (!$this->projectInvoiceItemModel->insert($item_values)) {
+                    $this->errorMessage = $db->error()['message'];
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /**

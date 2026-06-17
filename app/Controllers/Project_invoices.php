@@ -1019,6 +1019,14 @@ class Project_invoices extends MYTController
             case 'open_bill':
                 $values['status'] = 'open_bill';
                 $values['payment_status'] = 'open_bill';
+
+                if (empty($project_invoice['invoice_no'])) {
+                    $last = $this->projectInvoiceModel->get_last_invoice_no_by_year();
+                    $last_number = ($last && isset($last['invoice_no']))
+                        ? (int) substr($last['invoice_no'], 5)
+                        : 0;
+                    $values['invoice_no'] = date('Y') . '-' . str_pad($last_number + 1, 4, '0', STR_PAD_LEFT);
+                }
                 break;
             default:
                 return false;

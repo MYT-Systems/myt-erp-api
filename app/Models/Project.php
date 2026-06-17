@@ -84,13 +84,21 @@ SELECT * FROM (
         AND project_invoice.is_deleted = 0
     )
     AND (
-        CASE 
+        CASE
             WHEN project_recurring_cost.type = 'yearly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period YEAR)
             WHEN project_recurring_cost.type = 'monthly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period MONTH)
             WHEN project_recurring_cost.type = 'weekly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period WEEK)
             WHEN project_recurring_cost.type = 'daily' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period DAY)
         END
-    ) <= DATE_ADD(?, INTERVAL 15 DAY)
+    ) <= LAST_DAY(?)
+    AND (
+        CASE
+            WHEN project_recurring_cost.type = 'yearly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period YEAR)
+            WHEN project_recurring_cost.type = 'monthly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period MONTH)
+            WHEN project_recurring_cost.type = 'weekly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period WEEK)
+            WHEN project_recurring_cost.type = 'daily' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period DAY)
+        END
+    ) >= DATE_FORMAT(?, '%Y-%m-01')
     GROUP BY project_recurring_cost.id
     HAVING times_billed < project_recurring_cost.period
 
@@ -159,7 +167,7 @@ SELECT * FROM (
 ) AS combined
 EOT;
 
-        $binds = [$billing_date, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date];
+        $binds = [$billing_date, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date];
 
         if ($project_id) {
             $sql .= " WHERE project_id = ? ";
