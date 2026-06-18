@@ -72,14 +72,16 @@ class Cron extends MYTController
     }
 
     /**
-     * Cron endpoint: generate pending invoices for all recurring bills due today
+     * Cron endpoint: generate pending invoices for all recurring bills due in the billing month
      */
-    public function generate_pending_recurring_invoices()
+    public function generate_pending_recurring_invoices($billing_date = null)
     {
+        $billing_date = $billing_date ?: date('Y-m-d');
+
         $db = \Config\Database::connect();
         $db->transBegin();
 
-        if (!$this->_attempt_generate_pending_invoices(null, $db)) {
+        if (!$this->_attempt_generate_pending_invoices(null, $db, $billing_date)) {
             $db->transRollback();
             return $this->respond(['status' => 'error', 'message' => $this->errorMessage], 500);
         }
@@ -92,11 +94,12 @@ class Cron extends MYTController
      * Generate PENDING project invoices for recurring bills that are due.
      * Reuses Project::get_projects_to_bill() for schedule/window/cap/dedup logic.
      */
-    protected function _attempt_generate_pending_invoices($project_id = null, $db = null)
+    protected function _attempt_generate_pending_invoices($project_id = null, $db = null, $billing_date = null)
     {
-        $db = $db ?: \Config\Database::connect();
+        $db           = $db ?: \Config\Database::connect();
+        $billing_date = $billing_date ?: date('Y-m-d');
 
-        $due = $this->projectModel->get_projects_to_bill($project_id) ?: [];
+        $due = $this->projectModel->get_projects_to_bill($project_id, $billing_date) ?: [];
 
         $by_project = [];
         foreach ($due as $row) {
@@ -105,8 +108,6 @@ class Cron extends MYTController
             }
             $by_project[$row['project_id']][] = $row;
         }
-
-        $billing_date = date('Y-m-d');
 
         $last = $this->projectInvoiceModel->get_last_invoice_no_by_year();
         $last_number = ($last && isset($last['invoice_no']))
@@ -120,14 +121,14 @@ class Cron extends MYTController
             $grand_total = array_sum(array_map(fn($r) => (float) $r['price'], $rows));
 
             $last_number++;
-            $invoice_no = date('Y') . '-' . str_pad($last_number, 4, '0', STR_PAD_LEFT);
+            $invoice_no = date('Y', strtotime($billing_date)) . '-' . str_pad($last_number, 4, '0', STR_PAD_LEFT);
 
             $invoice_values = [
                 'project_id'     => $pid,
                 'invoice_date'   => $billing_date,
                 'invoice_no'     => $invoice_no,
                 'project_date'   => $rows[0]['project_date'] ?? ($project['project_date'] ?? null),
-                'due_date'       => $billing_date,
+                'due_date'       => date('Y-m-t', strtotime($billing_date)),
                 'company'        => $project['company'] ?? null,
                 'address'        => $project['address'] ?? null,
                 'subtotal'       => $grand_total,
@@ -216,7 +217,7 @@ class Cron extends MYTController
         $time_in = new \DateTime($time_in);
         $time_out = new \DateTime($time_out);
         $diff = $time_in->diff($time_out);
-        
+
         return $diff->h * 60 + $diff->i;
     }
 
@@ -260,7 +261,7 @@ class Cron extends MYTController
                 default:
                     $response = null;
                     break;
-                    
+
             }
         }
     }
@@ -278,7 +279,7 @@ class Cron extends MYTController
         $unsaved_expenses = [];
 
         $this->db = \Config\Database::connect();
-        
+
         foreach ($expenses['expenses'] as $expense) {
             $expense = json_decode($expense);
             $expense = (array) $expense;
@@ -299,13 +300,13 @@ class Cron extends MYTController
 
         if ($unsaved_expenses) {
             $write_response = $this->_write_json('expenses', $unsaved_expenses);
-            
+
             $old_file_path = FCPATH . 'public/expenses/' . $filename;
             unlink($old_file_path);
-        
+
             return false;
         }
-        
+
         $old_file_path = FCPATH . 'public/expenses/' . $filename;
         unlink($old_file_path);
 
@@ -385,7 +386,7 @@ class Cron extends MYTController
                 $this->errorMessage = $this->db->error()['message'];
                 return false;
             }
-        
+
         }
 
         $values = [
@@ -414,7 +415,7 @@ class Cron extends MYTController
 
         foreach ($orders as $order) {
             if (!is_object($order)) {
-                $order = json_decode($order);    
+                $order = json_decode($order);
             }
             $this->orders_payload = (array) $order;
 
@@ -443,13 +444,13 @@ class Cron extends MYTController
 
         if ($unsaved_orders) {
             $write_response = $this->_write_json('bulk_order', $unsaved_orders);
-            
+
             $old_file_path = FCPATH . 'public/bulk_order/' . $filename;
             unlink($old_file_path);
-        
+
             return false;
         }
-        
+
         $old_file_path = FCPATH . 'public/bulk_order/' . $filename;
         unlink($old_file_path);
 
@@ -484,7 +485,7 @@ class Cron extends MYTController
             'gift_cert_code'   => $this->_get_orders_payload_value('gift_cert_code'),
             'transaction_type' => $transaction_type['name'],
             'added_by'         => $this->requested_by,
-            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ?
                                     $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
         ];
 
@@ -523,7 +524,7 @@ class Cron extends MYTController
                 'qty'        => $quantity,
                 'subtotal'   => (float)$price * (float)$quantity,
                 'remarks'    => $remarks ? $remarks[$key] : null,
-                'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+                'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ?
                                     $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
                 'added_by'   => $this->requested_by,
             ];
@@ -558,7 +559,7 @@ class Cron extends MYTController
             $this->errorMessage = $this->db->error()['message'] . '<br>' . $this->db->getLastQuery();
             return false;
         }
-        
+
         $addon_requirements = [];
 
         foreach ($product_ingredients as $ingredient) {
@@ -658,7 +659,7 @@ class Cron extends MYTController
             'item_id' => $item_id,
             'qty' => $qty,
             'unit' => $unit,
-            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ?
                                     $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
             'added_by' => $this->requested_by
         ];
@@ -683,9 +684,9 @@ class Cron extends MYTController
 
         $price_level_type_id = $this->_get_orders_payload_value('price_level_type_id');
         $price_level_id      = $this->_get_orders_payload_value('price_level_id');
-        
+
         foreach ($addon_ids as $key => $addon_id) {
-            if (!$addon_id) continue; // Skip if addon_id is empty
+            if (!$addon_id) continue;
             $price = $this->priceLevelModel->get_price($addon_id, $price_level_type_id, $price_level_id);
             $price = $price ? $price[0]['price'] : 0;
             $quantity = $addon_qtys[$key] ?? 0;
@@ -696,7 +697,7 @@ class Cron extends MYTController
                 'price'           => $price,
                 'qty'             => $quantity,
                 'subtotal'        => (float)$price * (float)$quantity,
-                'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+                'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ?
                                     $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
                 'added_by'        => $this->requested_by,
             ];
@@ -706,7 +707,7 @@ class Cron extends MYTController
                 return false;
             } elseif (!$this->_subtract_inventory($order_detail_id, $addon_id, $quantity, $branch_id)) {
                 return false;
-            } 
+            }
         }
 
         return true;
@@ -724,7 +725,7 @@ class Cron extends MYTController
         $subtotal = (float)$this->_get_orders_payload_value('subtotal', 0);
         $paid_amount = (float)$this->_get_orders_payload_value('paid_amount');
         $transaction_type = $this->_get_orders_payload_value('transaction_type');
-        
+
         $commission = $this->priceLevelModel->get_commission($price_level_type_id, $this->db);
         $commission = $commission ? $commission[0]['commission_rate'] : 0;
 
@@ -736,7 +737,7 @@ class Cron extends MYTController
             if ($discount = $this->discountModel->search($branch_id, null, null, null, 'valid', null, null, true)) {
                 $discount = $discount ? $discount[0] : null;
                 $merchant_discount_id = $discount ? $discount['id'] : null;
-    
+
                 if ($discount['type'] == 'percentage') {
                     $total_discount = $grand_total * $discount['mm_discount_share'];
                     $merchant_discount_share = $grand_total * $discount['delivery_discount_share'];
@@ -744,7 +745,7 @@ class Cron extends MYTController
                     $total_discount = $discount['mm_discount_share'];
                     $merchant_discount_share = $discount['delivery_discount_share'];
                 }
-                
+
                 $subtotal = $grand_total;
                 $grand_total -= ($total_discount + $merchant_discount_share);
                 $paid_amount = $grand_total;
@@ -775,7 +776,7 @@ class Cron extends MYTController
             'proof'               => $this->_get_orders_payload_value('proof'),
             'or_no'               => $this->_get_orders_payload_value('or_no'),
             'added_by'            => $this->requested_by,
-            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ?
                                     $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
         ];
 
@@ -784,7 +785,7 @@ class Cron extends MYTController
         if (!$payment_id = $this->paymentModel->insert($values)) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
-        } elseif ($this->request->getFile('file') AND 
+        } elseif ($this->request->getFile('file') AND
                 !$this->_attempt_upload_file_base64($this->paymentAttachmentModel, ['payment_id' => $payment_id, 'type' => $is_gift_cert ? 'gift_cert' : 'payment'])) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
@@ -829,11 +830,11 @@ class Cron extends MYTController
                     $product = "";
 
                     if ($discount_index < count($discount_ids) AND $discount_ids[$discount_index] != "") {
-    
+
                         $where = ['id' => $product_id, 'is_deleted' => 0];
                         $product_details = $this->productModel->select('', $where, 1);
                         $discount_price = $quantities[$index] <= 1 ? $discount_prices[$index] : round($discount_prices[$index] / $quantities[$index], 2);
-            
+
                         $values = [
                             'payment_id' => $payment_id,
                             'discount_id' => $discount_ids[$discount_index],
@@ -848,7 +849,7 @@ class Cron extends MYTController
                             'added_by' => $this->requested_by,
                             'added_on' => date("Y-m-d H:i:s")
                         ];
-            
+
                         if (!$this->discountPaymentModel->insert($values)) {
                             $this->errorMessage = $this->db->error()['message'];
                             return false;
@@ -860,7 +861,7 @@ class Cron extends MYTController
             }
 
         }
-        
+
         return true;
     }
 
@@ -871,7 +872,7 @@ class Cron extends MYTController
             $final_value = array_key_exists($parameter, $this->orders_payload) ? $this->orders_payload[$parameter] : $default_value;
         else
             $final_value = $this->request->getVar($parameter) ? : $default_value;
-        
+
         return $final_value;
     }
 
@@ -882,7 +883,7 @@ class Cron extends MYTController
             $final_value = array_key_exists($parameter, $data) ? $data[$parameter] : $default_value;
         else
             $final_value = $this->request->getVar($parameter) ? : $default_value;
-        
+
         return $final_value;
     }
 }
