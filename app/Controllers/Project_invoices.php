@@ -502,23 +502,24 @@ class Project_invoices extends MYTController
             'subtotal'              => $this->request->getVar('subtotal'),
             'vat_twelve'            => $this->request->getVar('vat_twelve'),
             'vat_net'               => $this->request->getVar('vat_net'),
-            'wht'                   => $this->request->getVar('wht'),
-            'is_wht'                => $this->request->getVar('is_wht'),
+            'wht'                   => (float)$this->request->getVar('wht'),
+            'is_wht'                => (int)$this->request->getVar('is_wht'),
             'wht_percent'           => $this->request->getVar('wht_percent'),
-            'service_fee'           => $this->request->getVar('service_fee'),
-            'delivery_fee'          => $this->request->getVar('delivery_fee'),
-            'grand_total'           => $this->request->getVar('grand_total'),
+            'service_fee'           => (float)$this->request->getVar('service_fee'),
+            'delivery_fee'          => (float)$this->request->getVar('delivery_fee'),
+            'grand_total'           => (float)$this->request->getVar('grand_total'),
             'vat_type'              => $this->request->getVar('vat_type'),
             'balance'               => 0,
             'paid_amount'           => 0,
             'payment_status'        => 'pending',
-            'discount'              => $this->request->getVar('discount'),
+            'status'                => 'pending',
+            'discount'              => (float)$this->request->getVar('discount'),
             'added_by'              => $this->requested_by,
             'added_on'              => date('Y-m-d H:i:s'),
         ];
 
         if (!$project_invoice_id = $this->projectInvoiceModel->insert($values))
-           return false;
+            return false;
 
         return $project_invoice_id;
     }
