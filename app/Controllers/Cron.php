@@ -32,6 +32,9 @@ class Cron extends MYTController
     protected $projectInvoiceModel;
     protected $projectInvoiceItemModel;
 
+    protected $suppliesExpenseModel;
+    protected $supplierRecurringPoModel;
+
     protected $requested_by = 0;
     protected $orders_payload = null;
     protected $db = null;
@@ -65,6 +68,9 @@ class Cron extends MYTController
         $this->projectModel            = model('App\Models\Project');
         $this->projectInvoiceModel     = model('App\Models\Project_invoice');
         $this->projectInvoiceItemModel = model('App\Models\Project_invoice_item');
+
+        $this->suppliesExpenseModel    = model('App\Models\Supplies_expense');
+        $this->supplierRecurringPoModel = model('App\Models\Supplier_recurring_po');
 
         $this->requested_by = 0;
         $this->orders_payload = null;
@@ -165,6 +171,57 @@ class Cron extends MYTController
             }
         }
 
+        return true;
+    }
+
+    /**
+     * Generate supplies expenses (for_approval) from unoccupied supplier_recurring_po templates.
+     * Called by RecurringInvoiceFilter alongside project invoice generation.
+     */
+    public function generate_recurring_supplier_po($billing_date = null)
+    {
+        $billing_date = $billing_date ?: date('Y-m-d');
+
+        // Reset is_occupied for templates whose SE was generated in a previous billing month
+        $this->supplierRecurringPoModel->reset_previous_period($billing_date);
+
+        $templates = $this->supplierRecurringPoModel->get_unoccupied();
+        if (!$templates) return true;
+
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        foreach ($templates as $tpl) {
+            $se_values = [
+                'supplier_id'           => $tpl['supplier_id'],
+                'supplies_expense_date' => $billing_date,
+                'due_date'              => date('Y-m-t', strtotime($billing_date)),
+                'grand_total'           => $tpl['amount'],
+                'balance'               => $tpl['amount'],
+                'remarks'               => 'Auto-generated recurring PO (' . $tpl['type'] . ')',
+                'status'                => 'for_approval',
+                'prepared_by'           => 0,
+                'added_by'              => 0,
+                'added_on'              => date('Y-m-d H:i:s'),
+            ];
+
+            if (!$se_id = $this->suppliesExpenseModel->insert($se_values)) {
+                $db->transRollback();
+                return false;
+            }
+
+            if (!$this->supplierRecurringPoModel->update($tpl['id'], [
+                'is_occupied'       => 1,
+                'purchase_order_id' => $se_id,
+                'updated_by'        => 0,
+                'updated_on'        => date('Y-m-d H:i:s'),
+            ])) {
+                $db->transRollback();
+                return false;
+            }
+        }
+
+        $db->transCommit();
         return true;
     }
 

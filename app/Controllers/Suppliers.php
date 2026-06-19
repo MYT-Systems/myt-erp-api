@@ -9,6 +9,7 @@ class Suppliers extends MYTController
 {
     protected $supplierAttachmentModel;
     protected $supplierModel;
+    protected $supplierRecurringPoModel;
     protected $webappResponseModel;
 
     public function __construct()
@@ -97,9 +98,12 @@ class Suppliers extends MYTController
             $db->transRollback();
             $response = $this->failServerError('Failed to create supplier: ' . ($this->errorMessage ?? 'Unknown error'));
         } else {
-            if (($this->request->getFile('file') || $this->request->getFileMultiple('file'))
+            if (!$this->_attempt_save_recurring_fees($supplier_id)) {
+                $db->transRollback();
+                $response = $this->failServerError('Failed to save recurring fees');
+            } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file'))
                 && !$this->_attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id])) {
-                
+
                 $db->transRollback();
                 $response = $this->respond(['response' => 'Supplier file upload failed']);
             } else {
@@ -166,6 +170,9 @@ class Suppliers extends MYTController
         elseif (!$this->_attempt_update($supplier_id)) {
             $db->transRollback();
             $response = $this->fail('Server error');
+        } elseif (!$this->_attempt_save_recurring_fees($supplier_id)) {
+            $db->transRollback();
+            $response = $this->fail('Failed to save recurring fees');
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'supplier updated successfully']);
@@ -242,7 +249,8 @@ class Suppliers extends MYTController
             $response = $this->failNotFound('No supplier found');
         } else {
             foreach ($suppliers as $key => $supplier) {
-                $suppliers[$key]['attachments'] = $this->supplierAttachmentModel->get_details_by_supplier_id($supplier['id']);
+                $suppliers[$key]['attachments']     = $this->supplierAttachmentModel->get_details_by_supplier_id($supplier['id']);
+                $suppliers[$key]['recurring_fees']  = $this->supplierRecurringPoModel->get_details_by_supplier_id($supplier['id']) ?: [];
             }
             $response = $this->respond([
                 'response' => 'suppliers found',
@@ -368,6 +376,39 @@ class Suppliers extends MYTController
     }
 
     /**
+     * Delete existing recurring fees for supplier then re-insert from request
+     */
+    private function _attempt_save_recurring_fees($supplier_id)
+    {
+        $fee_types   = $this->request->getVar('fee_types')   ?? [];
+        $fee_periods = $this->request->getVar('fee_periods') ?? [];
+        $fee_amounts = $this->request->getVar('fee_amounts') ?? [];
+        $fee_totals  = $this->request->getVar('fee_totals')  ?? [];
+
+        if (!$this->supplierRecurringPoModel->delete_by_supplier_id($supplier_id, $this->requested_by))
+            return false;
+
+        if (empty($fee_types))
+            return true;
+
+        $rows = [];
+        foreach ($fee_types as $i => $type) {
+            $rows[] = [
+                'supplier_id' => $supplier_id,
+                'type'        => $type,
+                'period'      => $fee_periods[$i] ?? null,
+                'amount'      => $fee_amounts[$i] ?? null,
+                'total'       => $fee_totals[$i]  ?? null,
+                'is_occupied' => 0,
+                'added_by'    => $this->requested_by,
+                'added_on'    => date('Y-m-d H:i:s'),
+            ];
+        }
+
+        return $this->supplierRecurringPoModel->insertBatch($rows);
+    }
+
+    /**
      * Attempt delete
      */
     protected function _attempt_delete($supplier_id)
@@ -399,8 +440,9 @@ class Suppliers extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->supplierAttachmentModel = model('App\Models\Supplier_attachment');
-        $this->supplierModel       = new Supplier();
-        $this->webappResponseModel = new Webapp_response();
+        $this->supplierAttachmentModel  = model('App\Models\Supplier_attachment');
+        $this->supplierRecurringPoModel = model('App\Models\Supplier_recurring_po');
+        $this->supplierModel            = new Supplier();
+        $this->webappResponseModel      = new Webapp_response();
     }
 }
