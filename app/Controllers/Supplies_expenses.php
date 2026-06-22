@@ -500,15 +500,16 @@ class Supplies_expenses extends MYTController
             $current_total = (float)$quantity * (float)$price;
             $grand_total += $current_total;
             $values = [
-                'se_id'     => $supplies_expense_id,
-                'name'      => $name,
-                'qty'       => $quantity,
-                'unit'      => $units[$key],
-                'price'     => $price,
-                'remarks'   => $item_remarks[$key],
-                'total'     => $current_total,
-                'added_by'  => $this->requested_by,
-                'added_on'  => date('Y-m-d H:i:s')
+                'se_id'        => $supplies_expense_id,
+                'name'         => $name,
+                'qty'          => $quantity,
+                'unit'         => $units[$key],
+                'price'        => $price,
+                'remarks'      => $item_remarks[$key],
+                'total'        => $current_total,
+                'received_qty' => 0,
+                'added_by'     => $this->requested_by,
+                'added_on'     => date('Y-m-d H:i:s')
             ];
 
             if (!$this->suppliesExpenseItemModel->insert($values))
