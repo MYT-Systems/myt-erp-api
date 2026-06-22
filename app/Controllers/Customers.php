@@ -289,6 +289,7 @@ class Customers extends MYTController
             'lead'                      => $this->request->getVar('lead'),
             'credit_limit'              => $this->request->getVar('credit_limit'),
             'terms'                     => $this->request->getVar('terms'),
+            'remarks'                   => $this->request->getVar('remarks'),
             'added_by'                  => $this->requested_by,
             'added_on'                  => date('Y-m-d H:i:s'),
         ];
@@ -318,6 +319,7 @@ class Customers extends MYTController
             'credit_limit'              => $this->request->getVar('credit_limit'),
             'terms'                     => $this->request->getVar('terms'),
             'lead'                      => $this->request->getVar('lead'),
+            'remarks'                   => $this->request->getVar('remarks'),
             'updated_by'                => $this->requested_by,
             'updated_on'                => date('Y-m-d H:i:s')
         ];

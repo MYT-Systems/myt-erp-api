@@ -17,6 +17,7 @@ class Customer extends MYTModel
         'lead',
         'credit_limit',
         'terms',
+        'remarks',
         'added_by',
         'added_on',
         'updated_by',
