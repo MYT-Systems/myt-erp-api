@@ -35,7 +35,7 @@ class Database extends Config
         'hostname' => 'localhost',
         'username' => 'root',
         'password' => '',
-        'database' => 'myt_erp_update',
+        'database' => 'myt_erp',
          'DBDriver' => 'MySQLi',
         'DBPrefix' => '',
         'pConnect' => false,
