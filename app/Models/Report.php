@@ -629,10 +629,8 @@ SELECT
     - IFNULL((
         SELECT SUM(se_bank_slip.amount)
         FROM se_bank_slip
-        LEFT JOIN se_bank_entry ON se_bank_entry.se_bank_slip_id = se_bank_slip.id
         WHERE se_bank_slip.bank_from = bank.id
         AND se_bank_slip.is_deleted = 0
-        AND se_bank_entry.is_deleted = 0
         AND se_bank_slip.payment_date < ?
     ), 0)
     - IFNULL((
@@ -686,20 +684,17 @@ SELECT * FROM (
 
     UNION ALL
 
-    SELECT 
+    SELECT
         'Debit' AS type,
-        supplies_expense.id as id,
-        CONCAT('PURCHASE ORDER NO. ', se_bank_entry.se_id) AS reference_no,
+        se_bank_slip.id AS id,
+        CONCAT('BANK PAYMENT NO. ', se_bank_slip.id) AS reference_no,
         se_bank_slip.payment_date AS date,
         se_bank_slip.amount AS paid_amount,
         bank.name AS bank_name,
         se_bank_slip.bank_from AS bank_id
     FROM se_bank_slip
     LEFT JOIN bank ON bank.id = se_bank_slip.bank_from
-    LEFT JOIN se_bank_entry ON se_bank_entry.se_bank_slip_id = se_bank_slip.id
-    LEFT JOIN supplies_expense ON supplies_expense.id = se_bank_entry.se_id
     WHERE se_bank_slip.is_deleted = 0
-    AND se_bank_entry.is_deleted = 0
     AND bank.is_deleted = 0
 
     UNION ALL

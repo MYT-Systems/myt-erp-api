@@ -701,6 +701,21 @@ class Se_bank_payments extends MYTController
      */
     protected function _attempt_update_entry($se_bank_slip_id)
     {
+        // Restore the old slip amount to the bank before re-generating entries
+        if ($old_slip = $this->bankSlipModel->get_details_by_id($se_bank_slip_id)) {
+            $old_slip = $old_slip[0];
+            if ($bank = $this->bankModel->get_details_by_id($old_slip['bank_from'])) {
+                $restore = [
+                    'current_bal' => (float)$bank[0]['current_bal'] + (float)$old_slip['amount'],
+                    'updated_by'  => $this->requested_by,
+                    'updated_on'  => date('Y-m-d H:i:s'),
+                ];
+                if (!$this->bankModel->update($old_slip['bank_from'], $restore)) {
+                    return false;
+                }
+            }
+        }
+
         $this->bankEntryModel->delete_by_slip_id($se_bank_slip_id, $this->requested_by);
         if (!$this->_attempt_generate_entry($se_bank_slip_id)) {
             return false;
@@ -758,6 +773,18 @@ class Se_bank_payments extends MYTController
 
     protected function _attempt_delete_slip($se_bank_slip)
     {
+        // Restore the deducted amount back to the bank
+        if ($bank = $this->bankModel->get_details_by_id($se_bank_slip['bank_from'])) {
+            $restore = [
+                'current_bal' => (float)$bank[0]['current_bal'] + (float)$se_bank_slip['amount'],
+                'updated_by'  => $this->requested_by,
+                'updated_on'  => date('Y-m-d H:i:s'),
+            ];
+            if (!$this->bankModel->update($se_bank_slip['bank_from'], $restore)) {
+                return false;
+            }
+        }
+
         $values = [
             'is_deleted' => 1,
             'updated_by' => $this->requested_by,

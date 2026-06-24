@@ -753,12 +753,18 @@ class Petty_cash_reports extends MYTController
             return false;
         }
 
-        // Update the current petty cash in the petty cash table 
+        // Update the current petty cash in the petty cash table
         // Reversing the amount to restore the current petty cashitem_remarks[]
         if ($petty_cash_detail['status'] == 'approved' AND !$this->_update_current_petty_cash($petty_cash_detail['petty_cash_id'], (float)$petty_cash_detail['amount'] * -1, $petty_cash_detail['type'])) {
             return false;
         }
-        
+
+        // Restore bank balance for cash-in (money was taken from bank on create, so add it back on delete)
+        if ($petty_cash_detail['type'] == 'in'
+            && !$this->_adjust_bank_balance($petty_cash_detail['from'], (float)$petty_cash_detail['amount'])) {
+            return false;
+        }
+
         return true;
     }
     
