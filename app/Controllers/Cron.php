@@ -89,11 +89,10 @@ class Cron extends MYTController
 
         if (!$this->_attempt_generate_pending_invoices(null, $db, $billing_date)) {
             $db->transRollback();
-            return $this->respond(['status' => 'error', 'message' => $this->errorMessage], 500);
+            return;
         }
 
         $db->transCommit();
-        return $this->respond(['status' => 'success']);
     }
 
     /**
@@ -182,13 +181,20 @@ class Cron extends MYTController
     {
         $billing_date = $billing_date ?: date('Y-m-d');
 
+        $db = \Config\Database::connect();
+
+        // Acquire a MySQL advisory lock so concurrent requests don't both generate
+        $lock = $db->query("SELECT GET_LOCK('supplier_recurring_po_generate', 0) as locked")->getRowArray();
+        if (!$lock || !$lock['locked']) return true;
+
         // Reset is_occupied for templates whose SE was generated in a previous billing month
         $this->supplierRecurringPoModel->reset_previous_period($billing_date);
 
         $templates = $this->supplierRecurringPoModel->get_unoccupied();
-        if (!$templates) return true;
-
-        $db = \Config\Database::connect();
+        if (!$templates) {
+            $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
+            return true;
+        }
         $db->transBegin();
 
         foreach ($templates as $tpl) {
@@ -199,7 +205,9 @@ class Cron extends MYTController
                 'grand_total'           => $tpl['amount'],
                 'balance'               => $tpl['amount'],
                 'remarks'               => 'Auto-generated recurring PO (' . $tpl['type'] . ')',
+                'type'                  => '',
                 'status'                => 'for_approval',
+                'order_status'          => 'pending',
                 'prepared_by'           => 0,
                 'added_by'              => 0,
                 'added_on'              => date('Y-m-d H:i:s'),
@@ -207,6 +215,7 @@ class Cron extends MYTController
 
             if (!$se_id = $this->suppliesExpenseModel->insert($se_values)) {
                 $db->transRollback();
+                $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
                 return false;
             }
 
@@ -217,11 +226,13 @@ class Cron extends MYTController
                 'updated_on'        => date('Y-m-d H:i:s'),
             ])) {
                 $db->transRollback();
+                $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
                 return false;
             }
         }
 
         $db->transCommit();
+        $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
         return true;
     }
 

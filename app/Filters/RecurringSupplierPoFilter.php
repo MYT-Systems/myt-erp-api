@@ -23,21 +23,10 @@ class RecurringSupplierPoFilter implements FilterInterface
 
         if (file_exists($flag_file)) return;
 
-        // Use exclusive lock so concurrent requests can't both pass the check
-        $fp = fopen($flag_file, 'c');
-        if (!flock($fp, LOCK_EX | LOCK_NB)) {
-            fclose($fp);
-            return;
-        }
-
-        fwrite($fp, date('Y-m-d H:i:s'));
-        fflush($fp);
+        file_put_contents($flag_file, date('Y-m-d H:i:s'));
 
         $cron = new \App\Controllers\Cron();
         $cron->generate_recurring_supplier_po($billing_date);
-
-        flock($fp, LOCK_UN);
-        fclose($fp);
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null) {}
