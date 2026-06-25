@@ -749,9 +749,9 @@ SELECT * FROM (
     WHERE bank_transfer.is_deleted = 0
     AND bank_from.is_deleted = 0
 
-    UNION ALL 
+    UNION ALL
 
-    SELECT 
+    SELECT
         'Credit' AS type,
         bank_transfer.id AS  id,
         CONCAT('BANK TRANSFER NO. ', bank_transfer.id) AS reference_no,
@@ -763,6 +763,24 @@ SELECT * FROM (
     LEFT JOIN bank AS bank_to ON bank_to.id = bank_transfer.bank_to_id
     WHERE bank_transfer.is_deleted = 0
     AND bank_to.is_deleted = 0
+
+    UNION ALL
+
+    SELECT
+        CASE WHEN bma.type = 'interest' THEN 'Credit' ELSE 'Debit' END AS type,
+        bma.id AS id,
+        CASE WHEN bma.type = 'interest'
+             THEN CONCAT('BANK INTEREST NO. ', bma.id)
+             ELSE CONCAT('WITHHOLDING TAX NO. ', bma.id)
+        END AS reference_no,
+        bma.txn_date AS date,
+        bma.amount AS paid_amount,
+        bank.name AS bank_name,
+        bma.bank_id AS bank_id
+    FROM bank_monthly_adjustment bma
+    LEFT JOIN bank ON bank.id = bma.bank_id
+    WHERE bma.is_deleted = 0
+    AND bank.is_deleted = 0
 
 ) AS temp
 WHERE 1 = 1
