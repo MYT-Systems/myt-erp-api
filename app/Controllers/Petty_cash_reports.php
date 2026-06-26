@@ -14,8 +14,8 @@ class Petty_cash_reports extends MYTController
     public function __construct()
     {
         // Headers
-        $this->api_key = $_SERVER['HTTP_API_KEY'];
-        $this->user_key = $_SERVER['HTTP_USER_KEY'];
+        $this->api_key = $_SERVER['HTTP_API_KEY'] ?? null;
+        $this->user_key = $_SERVER['HTTP_USER_KEY'] ?? null;
 
         $this->_load_essentials();
     }
@@ -186,7 +186,7 @@ class Petty_cash_reports extends MYTController
             $response = $this->fail($this->errorMessage);
         } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->pettyCashDetailAttachmentModel, ['petty_cash_detail_id' => $petty_cash_detail_id]) AND
             $response === false) {
-            $db->transRollback();
+            $this->db->transRollback();
             $response = $this->respond(['response' => 'petty_cash_detail file upload failed']);
         } else {
             $this->db->transCommit();
@@ -415,7 +415,7 @@ class Petty_cash_reports extends MYTController
             return $response;
         }
 
-        $petty_cash_detail_id = $this->request->getVar('petty_cash_id') ?? null;
+        $petty_cash_detail_id = $this->request->getVar('petty_cash_detail_id') ?? null;
 
         if (!$petty_cash_detail = $this->pettyCashDetailModel->get_details_by_id($petty_cash_detail_id)) {
             $response = $this->failNotFound('Petty cash detail not found');
@@ -495,7 +495,7 @@ class Petty_cash_reports extends MYTController
             'current_petty_cash'   => $this->request->getVar('beginning_petty_cash'),
             'details'              => $this->request->getVar('details'),
             'added_by'             => $this->requested_by,
-            'added_on'             => date('Y-m-d H:i:s'),s
+            'added_on'             => date('Y-m-d H:i:s'),
         ];
 
         if (!$petty_cash_id = $this->pettyCashModel->insert($values)) {
@@ -514,7 +514,7 @@ class Petty_cash_reports extends MYTController
         $type = $this->request->getVar('type');
         // replaced: '?:' returns boolean true for 'out' instead of a status; now 'out'=pending, 'in'=approved
         // $status = ($type == 'out') ? : 'approved';
-        $status = ($type == 'out') ? 'pending' : 'approved';
+        $status = 'approved';
 
         $values = [
             'petty_cash_id' => $petty_cash_id,
@@ -544,7 +544,7 @@ class Petty_cash_reports extends MYTController
             return false;
         }
 
-        // cash in, deduct the amount fron the source bank
+        // cash in, deduct the amount from the source bank
         if ($values['type'] == 'in'
             && !$this->_adjust_bank_balance($values['from'], - (float)$values['amount'])) {
             return false;
@@ -633,7 +633,7 @@ class Petty_cash_reports extends MYTController
             'updated_on'           => date('Y-m-d H:i:s')
         ];
 
-        if (!$this->pettyCashModel->update($petty_cash_id, $values)) {
+        if (!$this->pettyCashModel->update($petty_cash['id'], $values)) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
