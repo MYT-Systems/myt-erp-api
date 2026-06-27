@@ -9,6 +9,7 @@ class Petty_cash_reports extends MYTController
     protected $pettyCashDetailAttachmentModel;
     protected $pettyCashItemModel;
     protected $bankModel;
+    protected $bankReconBalanceModel;
     protected $webappResponseModel;
 
     public function __construct()
@@ -190,6 +191,9 @@ class Petty_cash_reports extends MYTController
             $response = $this->respond(['response' => 'petty_cash_detail file upload failed']);
         } else {
             $this->db->transCommit();
+            if ($this->request->getVar('type') === 'in') {
+                $this->bankReconBalanceModel->rebuild($this->request->getVar('from'));
+            }
             $response = $this->respond([
                 'response'     => 'Petty cash details created successfully.',
                 'status'       => 'success',
@@ -262,6 +266,13 @@ class Petty_cash_reports extends MYTController
             $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
+            $affected = array_unique(array_filter([
+                $petty_cash_detail['type'] === 'in' ? $petty_cash_detail['from'] : null,
+                $this->request->getVar('type') === 'in' ? $this->request->getVar('from') : null,
+            ]));
+            foreach ($affected as $bid) {
+                $this->bankReconBalanceModel->rebuild($bid);
+            }
             $response = $this->respond(['response' => 'Petty cash detail updated successfully.', 'status' => 'success']);
         }
 
@@ -333,6 +344,9 @@ class Petty_cash_reports extends MYTController
             $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
+            if ($petty_cash_detail['type'] === 'in' && !empty($petty_cash_detail['from'])) {
+                $this->bankReconBalanceModel->rebuild($petty_cash_detail['from']);
+            }
             $response = $this->respond(['response' => 'Petty cash deleted successfully.', 'status' => 'success']);
         }
 
@@ -804,8 +818,9 @@ class Petty_cash_reports extends MYTController
         $this->pettyCashDetailModel = model('App\Models\Petty_cash_detail');
         $this->pettyCashDetailAttachmentModel = model('App\Models\Petty_cash_detail_attachment');
         $this->pettyCashItemModel   = model('App\Models\Petty_cash_item');
-        $this->webappResponseModel  = model('App\Models\Webapp_response');
-        $this->bankModel            = model('App\Models\Bank');
+        $this->webappResponseModel   = model('App\Models\Webapp_response');
+        $this->bankModel             = model('App\Models\Bank');
+        $this->bankReconBalanceModel = model('App\Models\Bank_recon_balance');
     }
 
     

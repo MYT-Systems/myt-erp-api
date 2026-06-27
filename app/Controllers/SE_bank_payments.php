@@ -14,6 +14,7 @@ class Se_bank_payments extends MYTController
     protected $bankEntryModel;
     protected $bankSlipModel;
     protected $bankModel;
+    protected $bankReconBalanceModel;
     protected $suppliesExpenseModel;
     protected $bankSlipAttachmentModel;
     protected $seReceiveModel;
@@ -332,6 +333,7 @@ class Se_bank_payments extends MYTController
             $response = $this->fail(['response' => 'Failed to upload attachments. Make sure you have the correct file type, and file does not exceed 5 megabytes.', 'status' => 'error']);
         } else {
             $db->transCommit();
+            $this->bankReconBalanceModel->rebuild($this->request->getVar('bank_from'));
             $response = $this->respond(['response' => 'Successfully created slip.', 'status' => 'success', 'slip_id' => $se_bank_slip_id]);
         }
 
@@ -369,6 +371,7 @@ class Se_bank_payments extends MYTController
             $response = $this->fail(['response' => 'Supplies expense bank entry updated unsuccessfully', 'status' => 'error']);
         }  else {
             $db->transCommit();
+            $this->bankReconBalanceModel->rebuild($this->request->getVar('bank_from'));
             $response = $this->respond(['response' => 'Supplies expense bank entry updated successfully', 'status' => 'success']);
         }
 
@@ -434,9 +437,11 @@ class Se_bank_payments extends MYTController
             $response = $this->fail(['response' => 'Failed to delete Supplies expense bank slip.', 'status' => 'error']);
         } elseif (!$this->bankEntryModel->delete_by_slip_id($se_bank_slip_id, $this->requested_by)){
             $db->transCommit();
+            $this->bankReconBalanceModel->rebuild($se_bank_slip['bank_from']);
             $response = $this->fail(['response' => 'Successfully deleted Supplies expense bank slip.', 'status' => 'success']);
         } else {
             $db->transCommit();
+            $this->bankReconBalanceModel->rebuild($se_bank_slip['bank_from']);
             $response = $this->respond(['response' => 'Successfully deleted Supplies expense bank slip.', 'status' => 'success']);
         }
 
@@ -855,6 +860,7 @@ class Se_bank_payments extends MYTController
         $this->bankEntryModel           = new SE_bank_entry();
         $this->bankSlipModel            = new SE_bank_slip();
         $this->bankModel                = model('App\Models\Bank');
+        $this->bankReconBalanceModel    = model('App\Models\Bank_recon_balance');
         $this->suppliesExpenseModel     = model('App\Models\Supplies_expense');
         $this->bankSlipAttachmentModel  = new SE_bank_slip_attachment();
         $this->seReceiveModel           = new Supplies_receive();

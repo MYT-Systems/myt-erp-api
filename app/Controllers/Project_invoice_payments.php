@@ -5,6 +5,7 @@ namespace App\Controllers;
 class Project_invoice_payments extends MYTController
 {
     protected $bankModel;
+    protected $bankReconBalanceModel;
     protected $projectInvoicePaymentModel;
     protected $projectInvoiceModel;
     protected $projectInvoiceItemModel;
@@ -114,6 +115,7 @@ class Project_invoice_payments extends MYTController
             $response = $this->respond(['response' => 'project_invoice_payment_attachment file upload failed']);
         } else {
             $this->db->transCommit();
+            $this->bankReconBalanceModel->rebuild($this->request->getVar('to_bank_id'));
             $response = $this->respond([
                 'status'                     => 'success',
                 'project_invoice_payment_id' => $project_invoice_payment_id
@@ -153,6 +155,13 @@ class Project_invoice_payments extends MYTController
             $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
+            $affected = array_unique(array_filter([
+                $project_invoice_payment['to_bank_id'],
+                $this->request->getVar('to_bank_id'),
+            ]));
+            foreach ($affected as $bid) {
+                $this->bankReconBalanceModel->rebuild($bid);
+            }
             $response = $this->respond(['response' => 'project_invoice_payment updated successfully.', 'status' => 'success']);
         }
 
@@ -189,6 +198,7 @@ class Project_invoice_payments extends MYTController
             $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
+            $this->bankReconBalanceModel->rebuild($project_invoice_payment['to_bank_id']);
             $response = $this->respond(['response' => 'project_invoice_payment deleted successfully.', 'status' => 'success']);
         }
 
@@ -578,6 +588,7 @@ class Project_invoice_payments extends MYTController
     protected function _load_essentials()
     {
         $this->bankModel                  = model('App\Models\Bank');
+        $this->bankReconBalanceModel      = model('App\Models\Bank_recon_balance');
         $this->projectInvoicePaymentModel = model('App\Models\Project_invoice_payment');
         $this->projectInvoiceModel        = model('App\Models\Project_invoice');
         $this->projectInvoiceItemModel    = model('App\Models\Project_invoice_item');

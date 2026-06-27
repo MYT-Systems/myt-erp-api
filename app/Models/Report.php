@@ -528,133 +528,32 @@ EOT;
     }
 
     /**
-     * Get previous balance of a bank account
+     * Get previous balance of a bank account using bank_recon_balance for O(1) lookup.
      */
     public function get_previous_balance($bank_id = null, $date_from = null)
     {
         $database = \Config\Database::connect();
 
-        /* old opening balance: reverse from current_bal (replaced by forward-from-prior-transactions below)
-        $sql = <<<EOT
-SELECT 
-    bank.id,
-    bank.name,
-    bank.current_bal,
-    CASE 
-        WHEN DATE(?) < DATE(bank.added_on) THEN 0
-    	WHEN DATE(?) = DATE(bank.added_on) THEN bank.beginning_bal
-        ELSE 
-            GREATEST(
-                0,  -- If the result is less than 0, return 0
-                bank.current_bal - (
-                    IFNULL(( 
-                        SELECT SUM(project_invoice_payment.paid_amount)
-                        FROM project_invoice_payment
-                        WHERE project_invoice_payment.to_bank_id = bank.id
-                        AND project_invoice_payment.is_deleted = 0
-                        -- old: filtered by payment_date; changed to deposit_date to match the transaction list date column
-                        AND project_invoice_payment.deposit_date >= ?
-                    ), 0)
-                    + 
-                    IFNULL((
-                        SELECT SUM(bank_transfer.amount)
-                        FROM bank_transfer
-                        WHERE bank_transfer.bank_to_id = bank.id
-                          AND bank_transfer.is_deleted = 0
-                          AND bank_transfer.transaction_date >= ?
-                    ), 0)
-                    -
-                    IFNULL(( 
-                        SELECT SUM(se_bank_slip.amount)
-                        FROM se_bank_slip
-                        LEFT JOIN se_bank_entry ON se_bank_entry.se_bank_slip_id = se_bank_slip.id
-                        WHERE se_bank_slip.bank_from = bank.id
-                        AND se_bank_slip.is_deleted = 0
-                        AND se_bank_entry.is_deleted = 0
-                        AND se_bank_slip.payment_date >= ?
-                    ), 0)
-                    - 
-                    IFNULL((
-                        SELECT SUM(bank_transfer.amount)
-                        FROM bank_transfer
-                        WHERE bank_transfer.bank_from_id = bank.id
-                          AND bank_transfer.is_deleted = 0
-                          AND bank_transfer.transaction_date >= ?
-                    ), 0)
-                    -- added reverse petty cash-ins (money out of the bank), else closing is short by them
-                    -
-                    IFNULL((
-                        SELECT SUM(petty_cash_detail.amount)
-                        FROM petty_cash_detail
-                        LEFT JOIN petty_cash ON petty_cash.id = petty_cash_detail.petty_cash_id
-                        WHERE petty_cash_detail.`from` = bank.id
-                            AND petty_cash_detail.is_deleted = 0
-                            AND petty_cash.is_deleted = 0
-                            AND petty_cash_detail.type = 'in'
-                            AND petty_cash_detail.date >= ?
-                    ), 0)
-                )
-            )
-    END AS previous_balance
-FROM bank
-WHERE bank.is_deleted = 0
-AND bank.id = ?;
-EOT;
-
-        $query = $database->query($sql, [$date_from, $date_from, $date_from, $date_from, $date_from, $date_from, $date_from, $bank_id]);
-        */
-
         $sql = <<<EOT
 SELECT
-    bank.id,
-    bank.name,
-    bank.current_bal,
-    bank.beginning_bal
-    + IFNULL((
-        SELECT SUM(project_invoice_payment.paid_amount)
-        FROM project_invoice_payment
-        WHERE project_invoice_payment.to_bank_id = bank.id
-        AND project_invoice_payment.is_deleted = 0
-        AND project_invoice_payment.deposit_date < ?
-    ), 0)
-    + IFNULL((
-        SELECT SUM(bank_transfer.amount)
-        FROM bank_transfer
-        WHERE bank_transfer.bank_to_id = bank.id
-        AND bank_transfer.is_deleted = 0
-        AND bank_transfer.transaction_date < ?
-    ), 0)
-    - IFNULL((
-        SELECT SUM(se_bank_slip.amount)
-        FROM se_bank_slip
-        WHERE se_bank_slip.bank_from = bank.id
-        AND se_bank_slip.is_deleted = 0
-        AND se_bank_slip.payment_date < ?
-    ), 0)
-    - IFNULL((
-        SELECT SUM(petty_cash_detail.amount)
-        FROM petty_cash_detail
-        LEFT JOIN petty_cash ON petty_cash.id = petty_cash_detail.petty_cash_id
-        WHERE petty_cash_detail.`from` = bank.id
-        AND petty_cash_detail.is_deleted = 0
-        AND petty_cash.is_deleted = 0
-        AND petty_cash_detail.type = 'in'
-        AND petty_cash_detail.date < ?
-    ), 0)
-    - IFNULL((
-        SELECT SUM(bank_transfer.amount)
-        FROM bank_transfer
-        WHERE bank_transfer.bank_from_id = bank.id
-        AND bank_transfer.is_deleted = 0
-        AND bank_transfer.transaction_date < ?
-    ), 0)
-    AS previous_balance
-FROM bank
-WHERE bank.is_deleted = 0
-AND bank.id = ?;
+    b.id,
+    b.name,
+    b.current_bal,
+    COALESCE(
+        (SELECT brb.balance
+         FROM bank_recon_balance brb
+         WHERE brb.bank_id = b.id
+           AND brb.txn_date < ?
+         ORDER BY brb.txn_date DESC, brb.id DESC
+         LIMIT 1),
+        b.beginning_bal
+    ) AS previous_balance
+FROM bank b
+WHERE b.id = ?
+  AND b.is_deleted = 0
 EOT;
 
-        $query = $database->query($sql, [$date_from, $date_from, $date_from, $date_from, $date_from, $bank_id]);
+        $query = $database->query($sql, [$date_from, $bank_id]);
         return $query ? $query->getRowArray() : false;
     }
 

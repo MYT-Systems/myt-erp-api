@@ -4,12 +4,14 @@ namespace App\Controllers;
 
 use App\Models\Bank_monthly_adjustment;
 use App\Models\Bank;
+use App\Models\Bank_recon_balance;
 use App\Models\Webapp_response;
 
 class Bank_monthly_adjustments extends MYTController
 {
     protected $bankMonthlyAdjustmentModel;
     protected $bankModel;
+    protected $bankReconBalanceModel;
     protected $webappResponseModel;
 
     public function __construct()
@@ -82,6 +84,8 @@ class Bank_monthly_adjustments extends MYTController
             'updated_on'  => date('Y-m-d H:i:s'),
         ]);
 
+        $this->bankReconBalanceModel->rebuild($bank_id);
+
         $response = $this->respond(['status' => 'success']);
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
@@ -91,6 +95,7 @@ class Bank_monthly_adjustments extends MYTController
     {
         $this->bankMonthlyAdjustmentModel = new Bank_monthly_adjustment();
         $this->bankModel                  = new Bank();
+        $this->bankReconBalanceModel      = new Bank_recon_balance();
         $this->webappResponseModel        = new Webapp_response();
     }
 }
