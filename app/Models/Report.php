@@ -770,8 +770,8 @@ SELECT * FROM (
         CASE WHEN bma.type = 'interest' THEN 'Credit' ELSE 'Debit' END AS type,
         bma.id AS id,
         CASE WHEN bma.type = 'interest'
-             THEN CONCAT('BANK INTEREST NO. ', bma.id)
-             ELSE CONCAT('WITHHOLDING TAX NO. ', bma.id)
+             THEN CONCAT('Interest - ', MONTHNAME(bma.txn_date))
+             ELSE CONCAT('Withholding Tax - ', MONTHNAME(bma.txn_date))
         END AS reference_no,
         bma.txn_date AS date,
         bma.amount AS paid_amount,

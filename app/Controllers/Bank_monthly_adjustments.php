@@ -3,11 +3,13 @@
 namespace App\Controllers;
 
 use App\Models\Bank_monthly_adjustment;
+use App\Models\Bank;
 use App\Models\Webapp_response;
 
 class Bank_monthly_adjustments extends MYTController
 {
     protected $bankMonthlyAdjustmentModel;
+    protected $bankModel;
     protected $webappResponseModel;
 
     public function __construct()
@@ -69,6 +71,17 @@ class Bank_monthly_adjustments extends MYTController
             return $response;
         }
 
+        $bank       = $this->bankModel->get_details_by_id($bank_id)[0];
+        $new_bal    = $type === 'interest'
+            ? (float) $bank['current_bal'] + (float) $amount
+            : (float) $bank['current_bal'] - (float) $amount;
+
+        $this->bankModel->update($bank_id, [
+            'current_bal' => $new_bal,
+            'updated_by'  => $this->requested_by,
+            'updated_on'  => date('Y-m-d H:i:s'),
+        ]);
+
         $response = $this->respond(['status' => 'success']);
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;
@@ -77,6 +90,7 @@ class Bank_monthly_adjustments extends MYTController
     protected function _load_essentials()
     {
         $this->bankMonthlyAdjustmentModel = new Bank_monthly_adjustment();
+        $this->bankModel                  = new Bank();
         $this->webappResponseModel        = new Webapp_response();
     }
 }
