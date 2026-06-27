@@ -246,12 +246,10 @@ EOT;
         $binds[] = $date_to;
     }
 
-    // Corrected the payment status filter
-    if ($payment_status) {
-        $sql .= " AND CASE 
-                    WHEN supplies_expense.grand_total = supplies_receive.paid_amount THEN 'fully paid'
-                    WHEN supplies_expense.grand_total < supplies_receive.paid_amount THEN 'over paid' 
-                    WHEN supplies_expense.paid_amount > 0 AND supplies_expense.grand_total > supplies_receive.paid_amount THEN 'partially paid' 
+    if ($payment_status && $payment_status !== 'all') {
+        $sql .= " AND CASE
+                    WHEN supplies_expense.balance = 0 THEN 'fully paid'
+                    WHEN supplies_expense.paid_amount > 0 AND supplies_expense.balance > 0 THEN 'partially paid'
                     ELSE 'unpaid' END = ?";
         $binds[] = $payment_status;
     }
