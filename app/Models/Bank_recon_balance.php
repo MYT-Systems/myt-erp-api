@@ -76,6 +76,14 @@ WITH txns AS (
            amount, 'monthly_adjustment', id, 6
     FROM bank_monthly_adjustment
     WHERE is_deleted = 0 AND bank_id = ?
+
+    UNION ALL
+
+    SELECT bank_id, txn_date,
+           IF(type = 'deposit', 'Credit', 'Debit'),
+           amount, 'fund_transaction', id, 7
+    FROM bank_fund_transaction
+    WHERE is_deleted = 0 AND bank_id = ?
 )
 SELECT
     t.bank_id,
@@ -95,6 +103,6 @@ JOIN bank b ON b.id = t.bank_id AND b.is_deleted = 0
 ORDER BY t.bank_id, t.txn_date, t.ord, t.source_id;
 EOT;
 
-        return $db->query($sql, [$bank_id, $bank_id, $bank_id, $bank_id, $bank_id, $bank_id]);
+        return $db->query($sql, [$bank_id, $bank_id, $bank_id, $bank_id, $bank_id, $bank_id, $bank_id]);
     }
 }

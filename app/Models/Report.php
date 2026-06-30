@@ -679,6 +679,24 @@ SELECT * FROM (
     WHERE bma.is_deleted = 0
     AND bank.is_deleted = 0
 
+    UNION ALL
+
+    SELECT
+        CASE WHEN bft.type = 'deposit' THEN 'Credit' ELSE 'Debit' END AS type,
+        bft.id AS id,
+        CASE WHEN bft.type = 'deposit'
+             THEN 'ADD FUNDS'
+             ELSE 'WITHDRAW FUNDS'
+        END AS reference_no,
+        bft.txn_date AS date,
+        bft.amount AS paid_amount,
+        bank.name AS bank_name,
+        bft.bank_id AS bank_id
+    FROM bank_fund_transaction bft
+    LEFT JOIN bank ON bank.id = bft.bank_id
+    WHERE bft.is_deleted = 0
+    AND bank.is_deleted = 0
+
 ) AS temp
 WHERE 1 = 1
 EOT;
