@@ -45,14 +45,15 @@ WITH txns AS (
 
     UNION ALL
 
-    SELECT pcd.`from`, pcd.date, 'Debit', pcd.amount,
+    SELECT CAST(pcd.`from` AS UNSIGNED), pcd.date, 'Debit', pcd.amount,
            'petty_cash', pcd.id, 3
     FROM petty_cash_detail pcd
     JOIN petty_cash pc ON pc.id = pcd.petty_cash_id
     WHERE pcd.is_deleted = 0
       AND pc.is_deleted = 0
       AND pcd.type = 'in'
-      AND pcd.`from` = ?
+      AND pcd.`from` REGEXP '^[0-9]+$'
+      AND CAST(pcd.`from` AS UNSIGNED) = ?
 
     UNION ALL
 
