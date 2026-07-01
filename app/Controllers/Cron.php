@@ -34,6 +34,7 @@ class Cron extends MYTController
 
     protected $suppliesExpenseModel;
     protected $supplierRecurringPoModel;
+    protected $seItemModel;
 
     protected $requested_by = 0;
     protected $orders_payload = null;
@@ -71,6 +72,7 @@ class Cron extends MYTController
 
         $this->suppliesExpenseModel    = model('App\Models\Supplies_expense');
         $this->supplierRecurringPoModel = model('App\Models\Supplier_recurring_po');
+        $this->seItemModel             = model('App\Models\SE_item');
 
         $this->requested_by = 0;
         $this->orders_payload = null;
@@ -175,9 +177,15 @@ class Cron extends MYTController
 
     /**
      * Generate supplies expenses (for_approval) from unoccupied supplier_recurring_po templates.
-     * Called by RecurringInvoiceFilter alongside project invoice generation.
+     * Called by RecurringSupplierPoFilter (monthly, billing-window rollover) and by
+     * DailySupplierPoFilter (daily catch-up for templates added mid-period).
+     *
+     * $reset_period controls whether templates whose SE belongs to a previous billing
+     * month get rolled over (is_occupied reset to 0). Only the monthly filter should pass
+     * true — the daily filter passes false so it never re-triggers what the monthly filter
+     * already generated, it only picks up genuinely new (still unoccupied) templates.
      */
-    public function generate_recurring_supplier_po($billing_date = null)
+    public function generate_recurring_supplier_po($billing_date = null, $reset_period = true)
     {
         $billing_date = $billing_date ?: date('Y-m-d');
 
@@ -187,8 +195,11 @@ class Cron extends MYTController
         $lock = $db->query("SELECT GET_LOCK('supplier_recurring_po_generate', 0) as locked")->getRowArray();
         if (!$lock || !$lock['locked']) return true;
 
-        // Reset is_occupied for templates whose SE was generated in a previous billing month
-        $this->supplierRecurringPoModel->reset_previous_period($billing_date);
+        // Reset is_occupied for templates whose SE was generated in a previous billing month.
+        // Only the monthly filter does this rollover.
+        if ($reset_period) {
+            $this->supplierRecurringPoModel->reset_previous_period($billing_date);
+        }
 
         $templates = $this->supplierRecurringPoModel->get_unoccupied();
         if (!$templates) {
@@ -198,6 +209,16 @@ class Cron extends MYTController
         $db->transBegin();
 
         foreach ($templates as $tpl) {
+            // Atomically claim this template first — only proceed if still unoccupied.
+            // Protects against any overlap between the monthly and daily filters.
+            $db->query(
+                "UPDATE supplier_recurring_po SET is_occupied = 1, updated_by = 0, updated_on = ? WHERE id = ? AND is_occupied = 0",
+                [date('Y-m-d H:i:s'), $tpl['id']]
+            );
+            if ($db->affectedRows() === 0) {
+                continue; // already claimed by another process
+            }
+
             $se_values = [
                 'supplier_id'           => $tpl['supplier_id'],
                 'supplies_expense_date' => $billing_date,
@@ -219,8 +240,24 @@ class Cron extends MYTController
                 return false;
             }
 
+            // Give the SE one line item carrying the full amount as Unit Price, so the
+            // amount is directly editable on the PO form (which computes grand_total
+            // from items, and otherwise shows "No Purchased Item Found!").
+            if (!$this->seItemModel->insert([
+                'se_id'    => $se_id,
+                'name'     => 'Recurring fee (' . $tpl['type'] . ')',
+                'qty'      => 1,
+                'price'    => $tpl['amount'],
+                'total'    => $tpl['amount'],
+                'added_by' => 0,
+                'added_on' => date('Y-m-d H:i:s'),
+            ])) {
+                $db->transRollback();
+                $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
+                return false;
+            }
+
             if (!$this->supplierRecurringPoModel->update($tpl['id'], [
-                'is_occupied'       => 1,
                 'purchase_order_id' => $se_id,
                 'updated_by'        => 0,
                 'updated_on'        => date('Y-m-d H:i:s'),
