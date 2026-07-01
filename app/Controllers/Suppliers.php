@@ -376,36 +376,66 @@ class Suppliers extends MYTController
     }
 
     /**
-     * Delete existing recurring fees for supplier then re-insert from request
+     * Update, insert, or soft delete supplier recurring fees.
+     * Mirrors Projects::_attempt_generate_project_recurring_costs() — existing rows are
+     * matched by id and updated in place (is_occupied / purchase_order_id untouched), so
+     * editing a fee that's already generated a PO this period doesn't trigger a duplicate.
+     * Only rows missing from the request get soft-deleted; rows without an id are inserted.
      */
     private function _attempt_save_recurring_fees($supplier_id)
     {
+        $fee_ids     = $this->request->getVar('fee_ids')     ?? [];
         $fee_types   = $this->request->getVar('fee_types')   ?? [];
         $fee_periods = $this->request->getVar('fee_periods') ?? [];
         $fee_amounts = $this->request->getVar('fee_amounts') ?? [];
         $fee_totals  = $this->request->getVar('fee_totals')  ?? [];
 
-        if (!$this->supplierRecurringPoModel->delete_by_supplier_id($supplier_id, $this->requested_by))
-            return false;
+        $where = ['supplier_id' => $supplier_id, 'is_deleted' => 0];
+        $existingIds = $this->supplierRecurringPoModel->select('id', $where);
 
-        if (empty($fee_types))
-            return true;
+        if ($existingIds) {
+            $existingIds = array_column($existingIds, 'id');
+            $idsToDelete = array_diff($existingIds, array_filter($fee_ids));
 
-        $rows = [];
+            foreach ($idsToDelete as $id) {
+                if (!$this->supplierRecurringPoModel->update($id, [
+                    'is_deleted' => 1,
+                    'updated_by' => $this->requested_by,
+                    'updated_on' => date('Y-m-d H:i:s'),
+                ])) {
+                    return false;
+                }
+            }
+        }
+
         foreach ($fee_types as $i => $type) {
-            $rows[] = [
+            $id = $fee_ids[$i] ?? null;
+
+            $data = [
                 'supplier_id' => $supplier_id,
                 'type'        => $type,
                 'period'      => $fee_periods[$i] ?? null,
                 'amount'      => $fee_amounts[$i] ?? null,
                 'total'       => $fee_totals[$i]  ?? null,
-                'is_occupied' => 0,
-                'added_by'    => $this->requested_by,
-                'added_on'    => date('Y-m-d H:i:s'),
             ];
+
+            if ($id) {
+                $data['updated_by'] = $this->requested_by;
+                $data['updated_on'] = date('Y-m-d H:i:s');
+                if (!$this->supplierRecurringPoModel->update($id, $data)) {
+                    return false;
+                }
+            } else {
+                $data['is_occupied'] = 0;
+                $data['added_by']    = $this->requested_by;
+                $data['added_on']    = date('Y-m-d H:i:s');
+                if (!$this->supplierRecurringPoModel->insert($data)) {
+                    return false;
+                }
+            }
         }
 
-        return $this->supplierRecurringPoModel->insertBatch($rows);
+        return true;
     }
 
     /**
