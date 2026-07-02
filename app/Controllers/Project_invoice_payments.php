@@ -111,7 +111,7 @@ class Project_invoice_payments extends MYTController
             $response = $this->fail($this->errorMessage);
         } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectInvoicePaymentAttachmentModel, ['project_invoice_payment_id' => $project_invoice_payment_id]) AND
             $response === false) {
-            $db->transRollback();
+            $this->db->transRollback();
             $response = $this->respond(['response' => 'project_invoice_payment_attachment file upload failed']);
         } else {
             $this->db->transCommit();
@@ -320,7 +320,7 @@ class Project_invoice_payments extends MYTController
     private function _attempt_create()
     {   
         $to_bank_id = $this->request->getVar('to_bank_id');
-        $paid_amount = $this->request->getVar('paid_amount');     
+        $paid_amount = (float) str_replace(',', '', $this->request->getVar('paid_amount'));
         if ($project_invoice = $this->projectInvoiceModel->get_details_by_id($this->request->getVar('project_invoice_id'))) {
             $project_invoice = $project_invoice[0];
         } else {
