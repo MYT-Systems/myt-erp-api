@@ -87,14 +87,21 @@ class Cron extends MYTController
         $billing_date = $billing_date ?: date('Y-m-d');
 
         $db = \Config\Database::connect();
+
+        // Acquire a MySQL advisory lock so concurrent requests don't both generate
+        $lock = $db->query("SELECT GET_LOCK('recurring_invoice_generate', 0) as locked")->getRowArray();
+        if (!$lock || !$lock['locked']) return;
+
         $db->transBegin();
 
         if (!$this->_attempt_generate_pending_invoices(null, $db, $billing_date)) {
             $db->transRollback();
+            $db->query("SELECT RELEASE_LOCK('recurring_invoice_generate')");
             return;
         }
 
         $db->transCommit();
+        $db->query("SELECT RELEASE_LOCK('recurring_invoice_generate')");
     }
 
     /**
