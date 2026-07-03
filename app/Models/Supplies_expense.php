@@ -209,7 +209,9 @@ SELECT supplies_expense.*,
     expense_type.name AS expense_name,
     vendor.trade_name AS vendor_trade_name,
     CONCAT(requisitioner.first_name, ' ', requisitioner.last_name) AS requisitioner_name,
-    IF(supplies_expense_payment.total_payment >= supplies_expense.grand_total, 1, 0) AS can_be_paid
+    IF(supplies_expense_payment.total_payment >= supplies_expense.grand_total, 1, 0) AS can_be_paid,
+    DATE_ADD(DATE(supplies_expense.added_on), INTERVAL 7 DAY) AS deadline_for_approval,
+    DATEDIFF(DATE_ADD(DATE(supplies_expense.added_on), INTERVAL 7 DAY), CURDATE()) AS days_left
 FROM supplies_expense
     LEFT JOIN user AS preparer ON preparer.id = supplies_expense.prepared_by
     LEFT JOIN user AS approver ON approver.id = supplies_expense.approved_by
