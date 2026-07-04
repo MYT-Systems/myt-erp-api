@@ -384,11 +384,13 @@ class Suppliers extends MYTController
      */
     private function _attempt_save_recurring_fees($supplier_id)
     {
-        $fee_ids     = $this->request->getVar('fee_ids')     ?? [];
-        $fee_types   = $this->request->getVar('fee_types')   ?? [];
-        $fee_periods = $this->request->getVar('fee_periods') ?? [];
-        $fee_amounts = $this->request->getVar('fee_amounts') ?? [];
-        $fee_totals  = $this->request->getVar('fee_totals')  ?? [];
+        $fee_ids               = $this->request->getVar('fee_ids')               ?? [];
+        $fee_descriptions      = $this->request->getVar('fee_descriptions')      ?? [];
+        $fee_expense_type_ids  = $this->request->getVar('fee_expense_type_ids')  ?? [];
+        $fee_payment_types     = $this->request->getVar('fee_payment_types')     ?? [];
+        $fee_payment_option_ids = $this->request->getVar('fee_payment_option_ids') ?? [];
+        $fee_amounts           = $this->request->getVar('fee_amounts')           ?? [];
+        $fee_totals            = $this->request->getVar('fee_totals')            ?? [];
 
         $where = ['supplier_id' => $supplier_id, 'is_deleted' => 0];
         $existingIds = $this->supplierRecurringPoModel->select('id', $where);
@@ -408,15 +410,19 @@ class Suppliers extends MYTController
             }
         }
 
-        foreach ($fee_types as $i => $type) {
+        // Cadence is no longer user-selectable on the recurring fee form — always monthly.
+        foreach ($fee_descriptions as $i => $description) {
             $id = $fee_ids[$i] ?? null;
 
             $data = [
-                'supplier_id' => $supplier_id,
-                'type'        => $type,
-                'period'      => $fee_periods[$i] ?? null,
-                'amount'      => $fee_amounts[$i] ?? null,
-                'total'       => $fee_totals[$i]  ?? null,
+                'supplier_id'       => $supplier_id,
+                'description'       => $description ?: null,
+                'expense_type_id'   => $fee_expense_type_ids[$i]   ?: null,
+                'payment_type'      => $fee_payment_types[$i]      ?: null,
+                'payment_option_id' => $fee_payment_option_ids[$i] ?: null,
+                'type'              => 'monthly',
+                'amount'            => $fee_amounts[$i] ?? null,
+                'total'             => $fee_totals[$i]  ?? null,
             ];
 
             if ($id) {

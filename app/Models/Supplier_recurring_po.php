@@ -8,6 +8,10 @@ class Supplier_recurring_po extends MYTModel
     protected $useAutoIncrement = true;
     protected $allowedFields = [
         'supplier_id',
+        'description',
+        'expense_type_id',
+        'payment_type',
+        'payment_option_id',
         'type',
         'period',
         'amount',
