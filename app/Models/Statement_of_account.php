@@ -51,7 +51,9 @@ EOT;
     }
 
     /**
-     * Get combined ledger: invoice line-items (debit) and payments (credit), ordered by date
+     * Get combined ledger: one row per invoice (debit = invoice grand_total,
+     * inclusive of discount/WHT/service/delivery fee adjustments) and one row
+     * per payment (credit), ordered by date
      */
     public function get_ledger($project_id)
     {
@@ -59,19 +61,33 @@ EOT;
         $sql = <<<EOT
 SELECT * FROM (
     SELECT
-        project_invoice.invoice_date      AS txn_date,
-        project_invoice.invoice_no        AS billing_no,
-        project_invoice_item.item_name    AS description,
-        project_invoice_item.billed_amount AS debit,
-        0                                 AS credit,
-        project_invoice.id                AS invoice_sort_id,
-        project_invoice_item.id           AS item_sort_id,
-        1                                 AS sort_order
-    FROM project_invoice_item
-    JOIN project_invoice ON project_invoice.id = project_invoice_item.project_invoice_id
+        project_invoice.invoice_date  AS txn_date,
+        project_invoice.invoice_no    AS billing_no,
+        COALESCE(
+            NULLIF(project_invoice.soa_description, ''),
+            CASE
+                WHEN item_summary.item_count = 1 THEN item_summary.single_item_name
+                WHEN item_summary.item_count > 1 THEN 'Multiple Items'
+                ELSE 'Invoice'
+            END
+        )                              AS description,
+        project_invoice.grand_total   AS debit,
+        0                             AS credit,
+        project_invoice.id            AS invoice_sort_id,
+        project_invoice.id            AS item_sort_id,
+        1                             AS sort_order
+    FROM project_invoice
+    LEFT JOIN (
+        SELECT
+            project_invoice_id,
+            COUNT(*)        AS item_count,
+            MAX(item_name)  AS single_item_name
+        FROM project_invoice_item
+        WHERE is_deleted = 0
+        GROUP BY project_invoice_id
+    ) AS item_summary ON item_summary.project_invoice_id = project_invoice.id
     WHERE project_invoice.project_id = ?
         AND project_invoice.is_deleted = 0
-        AND project_invoice_item.is_deleted = 0
         AND project_invoice.status != 'cancelled_invoice'
 
     UNION ALL
@@ -79,25 +95,54 @@ SELECT * FROM (
     SELECT
         COALESCE(project_invoice_payment.deposit_date, project_invoice_payment.payment_date) AS txn_date,
         project_invoice.invoice_no AS billing_no,
-        CONCAT('Payment - ', COALESCE(
-            NULLIF(project_invoice_payment.remarks, ''),
-            NULLIF(project_invoice_payment.payment_description, '0'),
-            'N/A'
-        )) AS description,
+        COALESCE(
+            NULLIF(project_invoice_payment.soa_description, ''),
+            CONCAT('Payment - ', COALESCE(
+                NULLIF(project_invoice_payment.remarks, ''),
+                NULLIF(project_invoice_payment.payment_description, '0'),
+                'N/A'
+            ))
+        ) AS description,
         0 AS debit,
         project_invoice_payment.paid_amount AS credit,
         project_invoice_payment.project_invoice_id AS invoice_sort_id,
         project_invoice_payment.id AS item_sort_id,
         2 AS sort_order
     FROM project_invoice_payment
-    LEFT JOIN project_invoice ON project_invoice.id = project_invoice_payment.project_invoice_id
+    JOIN project_invoice ON project_invoice.id = project_invoice_payment.project_invoice_id
     WHERE project_invoice_payment.project_id = ?
         AND project_invoice_payment.is_deleted = 0
+        AND project_invoice.is_deleted = 0
+        AND project_invoice.status != 'cancelled_invoice'
 ) AS ledger
 ORDER BY txn_date ASC, invoice_sort_id ASC, sort_order ASC, item_sort_id ASC
 EOT;
         $query = $database->query($sql, [$project_id, $project_id]);
         return $query ? $query->getResultArray() : [];
+    }
+
+    /**
+     * Save an SOA-only description override for an invoice line, without touching
+     * the invoice's own item_name/remarks
+     */
+    public function update_invoice_description($project_invoice_id, $description)
+    {
+        $database = \Config\Database::connect();
+        return $database->table('project_invoice')
+            ->where('id', $project_invoice_id)
+            ->update(['soa_description' => $description]);
+    }
+
+    /**
+     * Save an SOA-only description override for a payment line, without touching
+     * the payment's own remarks/payment_description
+     */
+    public function update_payment_description($project_invoice_payment_id, $description)
+    {
+        $database = \Config\Database::connect();
+        return $database->table('project_invoice_payment')
+            ->where('id', $project_invoice_payment_id)
+            ->update(['soa_description' => $description]);
     }
 
     /**

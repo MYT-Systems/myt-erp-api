@@ -71,22 +71,26 @@ class Statement_of_account extends MYTController
         $items             = [];
 
         foreach ($ledger as $txn) {
-            $debit  = (float) $txn['debit'];
-            $credit = (float) $txn['credit'];
+            $debit  = (float) str_replace(',', '', $txn['debit']);
+            $credit = (float) str_replace(',', '', $txn['credit']);
             $running_balance += $debit - $credit;
 
+            $txn_date = substr($txn['txn_date'], 0, 10);
+
             // Transactions before the period contribute to beginning balance only
-            if ($date_from && $txn['txn_date'] < $date_from) {
+            if ($date_from && $txn_date < $date_from) {
                 $beginning_balance = $running_balance;
                 continue;
             }
 
             // Transactions after the period are excluded entirely
-            if ($date_to && $txn['txn_date'] > $date_to) {
+            if ($date_to && $txn_date > $date_to) {
                 continue;
             }
 
             $items[] = [
+                'id'          => (int) $txn['item_sort_id'],
+                'type'        => ((int) $txn['sort_order'] === 1) ? 'invoice' : 'payment',
                 'date'        => $txn['txn_date'],
                 'billing_no'  => $txn['billing_no'],
                 'description' => $txn['description'],
@@ -117,6 +121,62 @@ class Statement_of_account extends MYTController
             'status' => 'success',
             'data'   => $data,
         ]);
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Save an SOA-only description override for an invoice line
+     * Params: project_invoice_id, description
+     */
+    public function update_invoice_description()
+    {
+        if (($response = $this->_api_verification('statement_of_account', 'update_invoice_description')) !== true)
+            return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true)
+            return $response;
+
+        $project_invoice_id = $this->request->getVar('project_invoice_id');
+        $description        = $this->request->getVar('description');
+
+        if (!$this->statementOfAccountModel->update_invoice_description($project_invoice_id, $description)) {
+            $response = $this->fail('Failed to update description');
+        } else {
+            $response = $this->respond([
+                'status' => 'success',
+            ]);
+        }
+
+        $this->webappResponseModel->record_response($this->webapp_log_id, $response);
+        return $response;
+    }
+
+    /**
+     * Save an SOA-only description override for a payment line
+     * Params: project_invoice_payment_id, description
+     */
+    public function update_payment_description()
+    {
+        if (($response = $this->_api_verification('statement_of_account', 'update_payment_description')) !== true)
+            return $response;
+
+        $token = $this->request->getVar('token');
+        if (($response = $this->_verify_requester($token)) !== true)
+            return $response;
+
+        $project_invoice_payment_id = $this->request->getVar('project_invoice_payment_id');
+        $description                = $this->request->getVar('description');
+
+        if (!$this->statementOfAccountModel->update_payment_description($project_invoice_payment_id, $description)) {
+            $response = $this->fail('Failed to update description');
+        } else {
+            $response = $this->respond([
+                'status' => 'success',
+            ]);
+        }
 
         $this->webappResponseModel->record_response($this->webapp_log_id, $response);
         return $response;

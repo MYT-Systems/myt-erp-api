@@ -444,7 +444,7 @@ class Project_invoice_payments extends MYTController
             'invoice_no'         => $this->request->getVar('invoice_no'),
             'term_day'           => $this->request->getVar('term_day'),
             'delivery_address'   => $this->request->getVar('delivery_address'),
-            'paid_amount'        => $this->request->getVar('paid_amount'),
+            'paid_amount'        => (float) str_replace(',', '', $this->request->getVar('paid_amount')),
             'grand_total'        => $this->request->getVar('grand_total'),
             'subtotal'           => $this->request->getVar('subtotal'),
             'service_fee'        => $this->request->getVar('service_fee'),

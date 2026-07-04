@@ -30,6 +30,7 @@ class Project_invoice extends MYTModel
         'payment_status',
         'status',
         'discount',
+        'soa_description',
         'fully_paid_on',
         'is_closed',
         'reason',
