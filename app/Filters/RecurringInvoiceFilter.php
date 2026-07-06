@@ -16,20 +16,20 @@ class RecurringInvoiceFilter implements FilterInterface
             $billing_date = date('Y-m-01');
         }
 
-        // Single fixed-name lock file holding the last date it ran, overwritten
-        // each new day (no pile-up of dated files). This only throttles how
-        // often we bother checking, once per calendar day - it's not a
+        // Single fixed-name lock file holding the last hour it ran, overwritten
+        // each new hour (no pile-up of dated files). This only throttles how
+        // often we bother checking, once per hour - it's not a
         // concurrency guard. generate_pending_recurring_invoices() has its own
         // MySQL GET_LOCK for that, and get_projects_to_bill() only ever returns
         // a project once per calendar month regardless of how often we check.
-        $flag_file = WRITEPATH . 'cron_invoice_daily.lock';
-        $today = date('Y-m-d');
+        $flag_file = WRITEPATH . 'cron_invoice_hourly.lock';
+        $this_hour = date('Y-m-d H');
 
-        if (file_exists($flag_file) && trim(file_get_contents($flag_file)) === $today) {
+        if (file_exists($flag_file) && trim(file_get_contents($flag_file)) === $this_hour) {
             return;
         }
 
-        file_put_contents($flag_file, $today);
+        file_put_contents($flag_file, $this_hour);
 
         $cron = new \App\Controllers\Cron();
         $cron->generate_pending_recurring_invoices($billing_date);
