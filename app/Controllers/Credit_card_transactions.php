@@ -3,12 +3,14 @@
 namespace App\Controllers;
 
 use App\Models\Credit_card_transaction;
+use App\Models\Credit_card_transaction_attachment;
 use App\Models\Credit_card;
 use App\Models\Webapp_response;
 
 class Credit_card_transactions extends MYTController
 {
     protected $creditCardTransactionModel;
+    protected $creditCardTransactionAttachmentModel;
     protected $creditCardModel;
     protected $webappResponseModel;
 
@@ -59,9 +61,12 @@ class Credit_card_transactions extends MYTController
         if (!$credit_card = $this->creditCardModel->select('', ['id' => $credit_card_id, 'is_deleted' => 0], 1)) {
             $db->transRollback();
             $response = $this->failNotFound('credit card not found');
-        } elseif (!$this->_attempt_add_transaction($credit_card, $type, $txn_date, $amount, $remarks)) {
+        } elseif (!$credit_card_transaction_id = $this->_attempt_add_transaction($credit_card, $type, $txn_date, $amount, $remarks)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to save transaction.', 'status' => 'error']);
+        } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$this->_attempt_upload_file_base64($this->creditCardTransactionAttachmentModel, ['credit_card_transaction_id' => $credit_card_transaction_id])) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to upload payment receipt.', 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'Transaction recorded successfully.', 'status' => 'success']);
@@ -91,6 +96,10 @@ class Credit_card_transactions extends MYTController
         if (!$transactions) {
             $response = $this->failNotFound('No transactions found');
         } else {
+            foreach ($transactions as $key => $transaction) {
+                $transactions[$key]['attachments'] = $this->creditCardTransactionAttachmentModel->get_details_by_credit_card_transaction_id($transaction['id']) ?: [];
+            }
+
             $response = $this->respond([
                 'data'   => $transactions,
                 'status' => 'success'
@@ -160,7 +169,7 @@ class Credit_card_transactions extends MYTController
             'is_deleted'     => 0,
         ];
 
-        if (!$this->creditCardTransactionModel->insert($values))
+        if (!$credit_card_transaction_id = $this->creditCardTransactionModel->insert($values))
             return false;
 
         $new_bal = $type === 'expense'
@@ -175,7 +184,7 @@ class Credit_card_transactions extends MYTController
             return false;
         }
 
-        return true;
+        return $credit_card_transaction_id;
     }
 
     /**
@@ -190,6 +199,8 @@ class Credit_card_transactions extends MYTController
         ])) {
             return false;
         }
+
+        $this->creditCardTransactionAttachmentModel->delete_attachments_by_credit_card_transaction_id($transaction['id'], $this->requested_by);
 
         $new_bal = $transaction['type'] === 'expense'
             ? (float) $credit_card['current_bal'] - (float) $transaction['amount']
@@ -211,8 +222,9 @@ class Credit_card_transactions extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->creditCardTransactionModel = new Credit_card_transaction();
-        $this->creditCardModel            = new Credit_card();
-        $this->webappResponseModel        = new Webapp_response();
+        $this->creditCardTransactionModel           = new Credit_card_transaction();
+        $this->creditCardTransactionAttachmentModel = new Credit_card_transaction_attachment();
+        $this->creditCardModel                      = new Credit_card();
+        $this->webappResponseModel                  = new Webapp_response();
     }
 }
