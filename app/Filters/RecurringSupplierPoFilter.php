@@ -19,11 +19,20 @@ class RecurringSupplierPoFilter implements FilterInterface
             $billing_date = date('Y-m-01');
         }
 
-        $flag_file = WRITEPATH . 'cron_supplier_po_' . $billing_date . '.lock';
+        // Single fixed-name lock file holding the last hour it ran, overwritten
+        // each new hour (no pile-up of dated files). This only throttles how
+        // often we bother checking, once per hour - it's not a
+        // concurrency guard. generate_recurring_supplier_po() has its own
+        // MySQL GET_LOCK for that, and get_unoccupied() only ever picks up
+        // templates that haven't been generated yet regardless of how often we check.
+        $flag_file = WRITEPATH . 'cron_supplier_po_hourly.lock';
+        $this_hour = date('Y-m-d H');
 
-        if (file_exists($flag_file)) return;
+        if (file_exists($flag_file) && trim(file_get_contents($flag_file)) === $this_hour) {
+            return;
+        }
 
-        file_put_contents($flag_file, date('Y-m-d H:i:s'));
+        file_put_contents($flag_file, $this_hour);
 
         $cron = new \App\Controllers\Cron();
         $cron->generate_recurring_supplier_po($billing_date);

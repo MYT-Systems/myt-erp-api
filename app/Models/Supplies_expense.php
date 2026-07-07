@@ -292,8 +292,21 @@ EOT;
     
         if ($status) {
             if ($status == 'for_approval') {
-                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"';
+                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"
+                    AND NOT EXISTS (
+                        SELECT 1 FROM supplier_recurring_po srp
+                        WHERE srp.purchase_order_id = supplies_expense.id AND srp.is_deleted = 0
+                    )';
                 // $binds[] = 'pending';
+                $binds[] = 'for_approval';
+            } elseif ($status == 'recurring') {
+                // Mirrors the for_approval branch above, but only auto-generated POs —
+                // the "recurring purchases" tab is the for_approval tab for automated POs.
+                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"
+                    AND EXISTS (
+                        SELECT 1 FROM supplier_recurring_po srp
+                        WHERE srp.purchase_order_id = supplies_expense.id AND srp.is_deleted = 0
+                    )';
                 $binds[] = 'for_approval';
             } elseif ($status == 'approved') {
                 $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status IN ("pending", "incomplete")';
