@@ -565,17 +565,31 @@ EOT;
         $database = \Config\Database::connect();
         $sql = <<<EOT
 SELECT * FROM (
-    SELECT 
+    SELECT
         'Credit' AS type,
         project_invoice.id AS id,
         CONCAT('SALES INVOICE NO. ', project_invoice.invoice_no) AS reference_no,
         project_invoice_payment.deposit_date AS date,
         project_invoice_payment.paid_amount,
         bank.name AS bank_name,
-        project_invoice_payment.to_bank_id AS bank_id
+        project_invoice_payment.to_bank_id AS bank_id,
+        NULL AS payee_name,
+        NULL AS particulars,
+        project.name AS project_name,
+        project_invoice_payment.payment_type AS payment_type,
+        project_invoice_payment.cheque_number AS cheque_number,
+        project_invoice_payment.reference_number AS reference_number,
+        project_invoice_payment.remarks AS remarks,
+        NULL AS requested_by_name,
+        NULL AS expense_type_name,
+        NULL AS bank_from_name,
+        NULL AS bank_to_name,
+        0 AS transaction_fee,
+        NULL AS invoice_breakdown_raw
     FROM project_invoice_payment
     LEFT JOIN bank ON bank.id = project_invoice_payment.to_bank_id
     LEFT JOIN project_invoice ON project_invoice.id = project_invoice_payment.project_invoice_id
+    LEFT JOIN project ON project.id = project_invoice_payment.project_id
     WHERE project_invoice_payment.is_deleted = 0
     AND bank.is_deleted = 0
 
@@ -588,22 +602,63 @@ SELECT * FROM (
         se_bank_slip.payment_date AS date,
         se_bank_slip.amount AS paid_amount,
         bank.name AS bank_name,
-        se_bank_slip.bank_from AS bank_id
+        se_bank_slip.bank_from AS bank_id,
+        COALESCE(
+            (SELECT trade_name FROM supplier WHERE id = se_bank_slip.supplier_id),
+            (SELECT trade_name FROM vendor WHERE id = se_bank_slip.vendor_id),
+            se_bank_slip.payee
+        ) AS payee_name,
+        se_bank_slip.particulars AS particulars,
+        NULL AS project_name,
+        NULL AS payment_type,
+        NULL AS cheque_number,
+        se_bank_slip.reference_no AS reference_number,
+        NULL AS remarks,
+        NULL AS requested_by_name,
+        NULL AS expense_type_name,
+        NULL AS bank_from_name,
+        NULL AS bank_to_name,
+        se_bank_slip.transaction_fee AS transaction_fee,
+        (
+            SELECT GROUP_CONCAT(
+                CONCAT(
+                    IF(receive.invoice_no IS NULL, CONCAT('DR No. ', receive.dr_no), CONCAT('Invoice No. ', receive.invoice_no)),
+                    ':::', se_bank_entry.amount
+                ) SEPARATOR ';;;'
+            )
+            FROM se_bank_entry
+            LEFT JOIN receive ON receive.id = se_bank_entry.se_id
+            WHERE se_bank_entry.se_bank_slip_id = se_bank_slip.id
+            AND se_bank_entry.is_deleted = 0
+        ) AS invoice_breakdown_raw
     FROM se_bank_slip
     LEFT JOIN bank ON bank.id = se_bank_slip.bank_from
     WHERE se_bank_slip.is_deleted = 0
     AND bank.is_deleted = 0
 
     UNION ALL
-    
-    SELECT 
+
+    SELECT
         'Debit' AS type,
         petty_cash_detail.id AS id,
         CONCAT('PETTY CASH NO. ', petty_cash_detail.id) AS reference_no,
         petty_cash_detail.date AS date,
         petty_cash_detail.amount AS paid_amount,
-        bank.name AS bank_name,  
-        bank.id AS bank_id
+        bank.name AS bank_name,
+        bank.id AS bank_id,
+        NULL AS payee_name,
+        petty_cash_detail.particulars AS particulars,
+        NULL AS project_name,
+        NULL AS payment_type,
+        NULL AS cheque_number,
+        NULL AS reference_number,
+        petty_cash_detail.remarks AS remarks,
+        (SELECT CONCAT(first_name, ' ', last_name) FROM user WHERE user.id = petty_cash_detail.requested_by) AS requested_by_name,
+        (SELECT name FROM expense_type WHERE expense_type.id = petty_cash_detail.out_type) AS expense_type_name,
+        NULL AS bank_from_name,
+        NULL AS bank_to_name,
+        0 AS transaction_fee,
+        NULL AS invoice_breakdown_raw
     FROM petty_cash_detail
     LEFT JOIN petty_cash ON petty_cash.id = petty_cash_detail.petty_cash_id
     LEFT JOIN bank ON bank.id = petty_cash_detail.from
@@ -631,16 +686,29 @@ SELECT * FROM (
     AND petty_cash_detail.type = 'out'
     */
 
-    UNION ALL 
+    UNION ALL
 
-    SELECT 
+    SELECT
         'Debit' AS type,
         bank_transfer.id AS id,
         CONCAT('BANK TRANSFER NO. ', bank_transfer.id) AS reference_no,
         bank_transfer.transaction_date AS date,
         bank_transfer.amount AS paid_amount,
         bank_from.name AS bank_name,
-        bank_transfer.bank_from_id AS bank_id
+        bank_transfer.bank_from_id AS bank_id,
+        NULL AS payee_name,
+        NULL AS particulars,
+        NULL AS project_name,
+        NULL AS payment_type,
+        NULL AS cheque_number,
+        NULL AS reference_number,
+        bank_transfer.remarks AS remarks,
+        NULL AS requested_by_name,
+        NULL AS expense_type_name,
+        bank_from.name AS bank_from_name,
+        (SELECT name FROM bank WHERE bank.id = bank_transfer.bank_to_id) AS bank_to_name,
+        0 AS transaction_fee,
+        NULL AS invoice_breakdown_raw
     FROM bank_transfer
     LEFT JOIN bank AS bank_from ON bank_from.id = bank_transfer.bank_from_id
     WHERE bank_transfer.is_deleted = 0
@@ -655,7 +723,20 @@ SELECT * FROM (
         bank_transfer.transaction_date AS date,
         bank_transfer.amount AS paid_amount,
         bank_to.name AS bank_name,
-        bank_transfer.bank_to_id AS bank_id
+        bank_transfer.bank_to_id AS bank_id,
+        NULL AS payee_name,
+        NULL AS particulars,
+        NULL AS project_name,
+        NULL AS payment_type,
+        NULL AS cheque_number,
+        NULL AS reference_number,
+        bank_transfer.remarks AS remarks,
+        NULL AS requested_by_name,
+        NULL AS expense_type_name,
+        (SELECT name FROM bank WHERE bank.id = bank_transfer.bank_from_id) AS bank_from_name,
+        bank_to.name AS bank_to_name,
+        0 AS transaction_fee,
+        NULL AS invoice_breakdown_raw
     FROM bank_transfer
     LEFT JOIN bank AS bank_to ON bank_to.id = bank_transfer.bank_to_id
     WHERE bank_transfer.is_deleted = 0
@@ -673,7 +754,20 @@ SELECT * FROM (
         bma.txn_date AS date,
         bma.amount AS paid_amount,
         bank.name AS bank_name,
-        bma.bank_id AS bank_id
+        bma.bank_id AS bank_id,
+        NULL AS payee_name,
+        NULL AS particulars,
+        NULL AS project_name,
+        NULL AS payment_type,
+        NULL AS cheque_number,
+        NULL AS reference_number,
+        bma.remarks AS remarks,
+        NULL AS requested_by_name,
+        NULL AS expense_type_name,
+        NULL AS bank_from_name,
+        NULL AS bank_to_name,
+        0 AS transaction_fee,
+        NULL AS invoice_breakdown_raw
     FROM bank_monthly_adjustment bma
     LEFT JOIN bank ON bank.id = bma.bank_id
     WHERE bma.is_deleted = 0
@@ -691,7 +785,20 @@ SELECT * FROM (
         bft.txn_date AS date,
         bft.amount AS paid_amount,
         bank.name AS bank_name,
-        bft.bank_id AS bank_id
+        bft.bank_id AS bank_id,
+        NULL AS payee_name,
+        NULL AS particulars,
+        NULL AS project_name,
+        NULL AS payment_type,
+        NULL AS cheque_number,
+        NULL AS reference_number,
+        bft.remarks COLLATE utf8mb4_unicode_ci AS remarks,
+        NULL AS requested_by_name,
+        NULL AS expense_type_name,
+        NULL AS bank_from_name,
+        NULL AS bank_to_name,
+        0 AS transaction_fee,
+        NULL AS invoice_breakdown_raw
     FROM bank_fund_transaction bft
     LEFT JOIN bank ON bank.id = bft.bank_id
     WHERE bft.is_deleted = 0

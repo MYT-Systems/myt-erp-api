@@ -162,6 +162,17 @@ class Reports extends MYTController
                 }
     
                 $bank_reconciliation[$key]['balance'] = $current_balance;
+
+                $breakdown_raw = $transaction['invoice_breakdown_raw'] ?? null;
+                $invoice_breakdown = [];
+                if ($breakdown_raw) {
+                    foreach (explode(';;;', $breakdown_raw) as $entry) {
+                        [$label, $entry_amount] = array_pad(explode(':::', $entry, 2), 2, null);
+                        $invoice_breakdown[] = ['label' => $label, 'amount' => (float) $entry_amount];
+                    }
+                }
+                $bank_reconciliation[$key]['invoice_breakdown'] = $invoice_breakdown;
+                unset($bank_reconciliation[$key]['invoice_breakdown_raw']);
             }
         }
 
