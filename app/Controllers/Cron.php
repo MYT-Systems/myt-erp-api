@@ -251,13 +251,15 @@ class Cron extends MYTController
             // amount is directly editable on the PO form (which computes grand_total
             // from items, and otherwise shows "No Purchased Item Found!").
             if (!$this->seItemModel->insert([
-                'se_id'    => $se_id,
-                'name'     => 'Recurring fee (' . $tpl['type'] . ')',
-                'qty'      => 1,
-                'price'    => $tpl['amount'],
-                'total'    => $tpl['amount'],
-                'added_by' => 0,
-                'added_on' => date('Y-m-d H:i:s'),
+                'se_id'        => $se_id,
+                'name'         => 'Recurring fee (' . $tpl['type'] . ')',
+                'qty'          => 1,
+                'unit'         => $tpl['type'] ?: 'pc',
+                'price'        => $tpl['amount'],
+                'total'        => $tpl['amount'],
+                'received_qty' => 0,
+                'added_by'     => 0,
+                'added_on'     => date('Y-m-d H:i:s'),
             ])) {
                 $db->transRollback();
                 $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
