@@ -622,12 +622,30 @@ SELECT * FROM (
         (
             SELECT GROUP_CONCAT(
                 CONCAT(
-                    IF(receive.invoice_no IS NULL, CONCAT('DR No. ', receive.dr_no), CONCAT('Invoice No. ', receive.invoice_no)),
+                    CASE WHEN se_bank_entry.type = 'project_expense' THEN 'PE' ELSE 'PO' END,
+                    ':::',
+                    CASE
+                        WHEN se_bank_entry.type = 'project_expense' THEN
+                            CONCAT(
+                                'PE No. ', se_bank_entry.se_id,
+                                IF(project.name IS NOT NULL, CONCAT(' (', project.name, ')'), '')
+                            )
+                        ELSE
+                            CONCAT(
+                                'PO No. ', se_bank_entry.se_id,
+                                IF(COALESCE(po_supplier.trade_name, po_vendor.trade_name) IS NOT NULL,
+                                    CONCAT(' (', COALESCE(po_supplier.trade_name, po_vendor.trade_name), ')'), '')
+                            )
+                    END,
                     ':::', se_bank_entry.amount
                 ) SEPARATOR ';;;'
             )
             FROM se_bank_entry
-            LEFT JOIN receive ON receive.id = se_bank_entry.se_id
+            LEFT JOIN supplies_expense ON supplies_expense.id = se_bank_entry.se_id AND se_bank_entry.type = 'supplies_expense'
+            LEFT JOIN supplier AS po_supplier ON po_supplier.id = supplies_expense.supplier_id
+            LEFT JOIN vendor AS po_vendor ON po_vendor.id = supplies_expense.vendor_id
+            LEFT JOIN project_expense ON project_expense.id = se_bank_entry.se_id AND se_bank_entry.type = 'project_expense'
+            LEFT JOIN project ON project.id = project_expense.project_id
             WHERE se_bank_entry.se_bank_slip_id = se_bank_slip.id
             AND se_bank_entry.is_deleted = 0
         ) AS invoice_breakdown_raw
