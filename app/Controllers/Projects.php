@@ -550,12 +550,21 @@ class Projects extends MYTController
         // Process each recurring cost in the request
         foreach ($descriptions as $key => $description) {
             $id = $ids[$key] ?? null;
+
+            // Skip blank/incomplete rows (e.g. an "Add Recurring Fee" row left unfilled)
+            if (!$id && trim((string) $description) === '') {
+                continue;
+            }
+
             $type = $types[$key] ?? null;
             $period = $periods[$key] ?? null;
+            $period = ($period === '' || $period === null) ? null : (int) $period;
             $price = $prices[$key] ?? null;
             $amount = $amounts[$key] ?? null;
+            $amount = ($amount === '' || $amount === null) ? 0 : $amount;
             $total = $totals[$key] ?? null;
-    
+            $total = ($total === '' || $total === null) ? 0 : $total;
+
             $data = [
                 'project_id'  => $project_id,
                 'description' => $description,
