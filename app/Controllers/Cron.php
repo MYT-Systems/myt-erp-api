@@ -115,24 +115,29 @@ class Cron extends MYTController
 
         $due = $this->projectModel->get_projects_to_bill($project_id, $billing_date) ?: [];
 
-        $by_project = [];
-        foreach ($due as $row) {
-            if (($row['billing_type'] ?? null) !== 'recurring') {
-                continue;
-            }
-            $by_project[$row['project_id']][] = $row;
-        }
+        $recurring_rows = array_values(array_filter(
+            $due,
+            fn($row) => ($row['billing_type'] ?? null) === 'recurring'
+        ));
 
         $last = $this->projectInvoiceModel->get_last_invoice_no_by_year();
         $last_number = ($last && isset($last['invoice_no']))
             ? (int) substr($last['invoice_no'], 5)
             : 0;
 
-        foreach ($by_project as $pid => $rows) {
-            $project = $this->projectModel->get_details_by_id($pid);
-            $project = $project ? $project[0] : [];
+        $project_cache = [];
 
-            $grand_total = array_sum(array_map(fn($r) => (float) $r['price'], $rows));
+        // One invoice per due recurring item — never bundled, even when multiple
+        // items on the same project are due in the same run.
+        foreach ($recurring_rows as $r) {
+            $pid = $r['project_id'];
+            if (!isset($project_cache[$pid])) {
+                $project = $this->projectModel->get_details_by_id($pid);
+                $project_cache[$pid] = $project ? $project[0] : [];
+            }
+            $project = $project_cache[$pid];
+
+            $price = (float) $r['price'];
 
             $last_number++;
             $invoice_no = date('Y', strtotime($billing_date)) . '-' . str_pad($last_number, 4, '0', STR_PAD_LEFT);
@@ -141,13 +146,13 @@ class Cron extends MYTController
                 'project_id'     => $pid,
                 'invoice_date'   => $billing_date,
                 'invoice_no'     => $invoice_no,
-                'project_date'   => $rows[0]['project_date'] ?? ($project['project_date'] ?? null),
+                'project_date'   => $r['project_date'] ?? ($project['project_date'] ?? null),
                 'due_date'       => date('Y-m-t', strtotime($billing_date)),
                 'company'        => $project['company'] ?? null,
                 'address'        => $project['address'] ?? null,
-                'subtotal'       => $grand_total,
-                'grand_total'    => $grand_total,
-                'balance'        => $grand_total,
+                'subtotal'       => $price,
+                'grand_total'    => $price,
+                'balance'        => $price,
                 'paid_amount'    => 0,
                 'payment_status' => 'pending',
                 'status'         => 'pending',
@@ -160,22 +165,19 @@ class Cron extends MYTController
                 return false;
             }
 
-            foreach ($rows as $r) {
-                $price = (float) $r['price'];
-                $item_values = [
-                    'project_invoice_id' => $invoice_id,
-                    'item_id'            => $r['item_id'],
-                    'item_name'          => $r['description'],
-                    'item_balance'       => $price,
-                    'price'              => $price,
-                    'billed_amount'      => $price,
-                    'added_by'           => $this->requested_by,
-                    'added_on'           => date('Y-m-d H:i:s'),
-                ];
-                if (!$this->projectInvoiceItemModel->insert($item_values)) {
-                    $this->errorMessage = $db->error()['message'];
-                    return false;
-                }
+            $item_values = [
+                'project_invoice_id' => $invoice_id,
+                'item_id'            => $r['item_id'],
+                'item_name'          => $r['description'],
+                'item_balance'       => $price,
+                'price'              => $price,
+                'billed_amount'      => $price,
+                'added_by'           => $this->requested_by,
+                'added_on'           => date('Y-m-d H:i:s'),
+            ];
+            if (!$this->projectInvoiceItemModel->insert($item_values)) {
+                $this->errorMessage = $db->error()['message'];
+                return false;
             }
         }
 

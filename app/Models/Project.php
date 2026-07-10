@@ -78,9 +78,11 @@ SELECT * FROM (
     AND project_recurring_cost.is_occupied = 0
     AND project_recurring_cost.balance > 0
     AND NOT EXISTS (
-        SELECT 1 
-        FROM project_invoice 
-        WHERE project_invoice.project_id = project.id
+        SELECT 1
+        FROM project_invoice_item
+        JOIN project_invoice ON project_invoice.id = project_invoice_item.project_invoice_id
+        WHERE project_invoice_item.item_id = project_recurring_cost.id
+        AND project_invoice_item.is_deleted = 0
         AND DATE_FORMAT(project_invoice.invoice_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')
         AND project_invoice.is_deleted = 0
     )
