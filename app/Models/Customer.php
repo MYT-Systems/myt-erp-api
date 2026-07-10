@@ -96,14 +96,19 @@ WHERE customer.is_deleted = 0
 EOT;
         $binds = [];
 
-        if ($name) {
+        if ($name && $company) {
+            // single search box sends the same term as name & company -> match either
+            $sql     .= " AND (customer.name REGEXP ? OR customer.company REGEXP ?)";
+            $name     = str_replace(' ', '|', $name);
+            $company  = str_replace(' ', '|', $company);
+            $binds[]  = $name;
+            $binds[]  = $company;
+        } elseif ($name) {
             $sql    .= " AND customer.name REGEXP ?";
             $name    = str_replace(' ', '|', $name);
             $binds[] = $name;
-        }
-
-        if ($company) {
-            $sql    .= " AND customer.name REGEXP ?";
+        } elseif ($company) {
+            $sql    .= " AND customer.company REGEXP ?";
             $company    = str_replace(' ', '|', $company);
             $binds[] = $company;
         }
