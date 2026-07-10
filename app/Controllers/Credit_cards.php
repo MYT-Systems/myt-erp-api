@@ -93,6 +93,11 @@ class Credit_cards extends MYTController
         if ($response = $this->_is_existing($this->creditCardModel, ['name' => $name]))
             return $response;
 
+        $card_no = $this->request->getVar('card_no');
+        if (!$card_no || trim($card_no) === '') {
+            return $this->fail(['card_no' => 'Card number is required'], 400);
+        }
+
         $db = \Config\Database::connect();
         $db->transBegin();
 
@@ -124,6 +129,11 @@ class Credit_cards extends MYTController
         $token = $this->request->getVar('token');
         if (($response = $this->_verify_requester($token)) !== true) {
             return $response;
+        }
+
+        $card_no = $this->request->getVar('card_no');
+        if (!$card_no || trim($card_no) === '') {
+            return $this->fail(['card_no' => 'Card number is required'], 400);
         }
 
         $where = [
