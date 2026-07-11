@@ -236,6 +236,8 @@ class Cron extends MYTController
                 'balance'               => $tpl['amount'],
                 'remarks'               => $tpl['description'] ?: ('Auto-generated recurring PO (' . $tpl['type'] . ')'),
                 'type'                  => $tpl['expense_type_id'] ?: '',
+                'payment_method'        => $tpl['payment_type'] === 'credit_card' ? 'Credit Card' : ($tpl['payment_type'] === 'bank' ? 'Bank' : null),
+                'requisitioner'         => $tpl['added_by'] ?: null,
                 'status'                => 'for_approval',
                 'order_status'          => 'pending',
                 'prepared_by'           => 0,

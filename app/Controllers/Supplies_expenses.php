@@ -600,12 +600,12 @@ class Supplies_expenses extends MYTController
         }
 
         $values = [
-            'amount'     => $supplies_expense[0]['grand_total'],
+            'amount'     => $supplies_expense['grand_total'],
             'updated_by' => $this->requested_by,
             'updated_on' => date('Y-m-d H:i:s')
         ];
 
-        return (bool) $this->supplierRecurringPoModel->update($recurring_po[0]['id'], $values);
+        return (bool) $this->supplierRecurringPoModel->update($recurring_po['id'], $values);
     }
 
     /**
