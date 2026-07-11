@@ -29,6 +29,7 @@ class Supplies_expenses extends MYTController
     protected $suppliesExpensePaymentDetailModel;
     protected $projectExpenseModel;
     protected $webappResponseModel;
+    protected $supplierRecurringPoModel;
 
     public function __construct()
     {
@@ -236,6 +237,9 @@ class Supplies_expenses extends MYTController
         } elseif (!$this->_attempt_update_se_item($supplies_expense_id)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to update supplies expense items.', 'status' => 'error']);
+        } elseif (!$this->_attempt_sync_recurring_po_amount($supplies_expense_id)) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Failed to update recurring purchase order amount.', 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'Supplies expense updated successfully', 'status' => 'success']);
@@ -579,6 +583,32 @@ class Supplies_expenses extends MYTController
     }
 
     /**
+     * If this supplies_expense is the currently generated instance of a recurring PO
+     * template, propagate its (possibly just-edited) grand_total to the template's
+     * amount so future auto-generated purchase orders use the new amount.
+     */
+    protected function _attempt_sync_recurring_po_amount($supplies_expense_id)
+    {
+        $recurring_po = $this->supplierRecurringPoModel->select('', ['purchase_order_id' => $supplies_expense_id, 'is_deleted' => 0], 1);
+        if (!$recurring_po) {
+            return true;
+        }
+
+        $supplies_expense = $this->suppliesExpenseModel->select('', ['id' => $supplies_expense_id], 1);
+        if (!$supplies_expense) {
+            return false;
+        }
+
+        $values = [
+            'amount'     => $supplies_expense[0]['grand_total'],
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s')
+        ];
+
+        return (bool) $this->supplierRecurringPoModel->update($recurring_po[0]['id'], $values);
+    }
+
+    /**
      * Attempt delete
      */
     protected function _attempt_delete($supplies_expense_id)
@@ -878,5 +908,6 @@ class Supplies_expenses extends MYTController
         $this->suppliesExpensePaymentDetailModel = model('App\Models\Supplies_expense_payment_detail');
         $this->projectExpenseModel               = model('App\Models\Project_expense');
         $this->webappResponseModel               = model('App\Models\Webapp_response');
+        $this->supplierRecurringPoModel          = model('App\Models\Supplier_recurring_po');
     }
 }

@@ -75,7 +75,9 @@ SELECT supplies_expense.*,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_trade_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requisitioner_name,
     (SELECT supplier.email FROM supplier WHERE supplier.id = supplies_expense.supplier_id) AS supplier_email,
-    (SELECT vendor.email FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_email
+    (SELECT vendor.email FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_email,
+    (SELECT srp.payment_type FROM supplier_recurring_po srp WHERE srp.purchase_order_id = supplies_expense.id AND srp.is_deleted = 0) AS recurring_payment_type,
+    (SELECT srp.payment_option_id FROM supplier_recurring_po srp WHERE srp.purchase_order_id = supplies_expense.id AND srp.is_deleted = 0) AS recurring_payment_option_id
 FROM supplies_expense
 WHERE supplies_expense.id = ?
 AND supplies_expense.is_deleted = 0
