@@ -417,9 +417,9 @@ class Suppliers extends MYTController
             $data = [
                 'supplier_id'       => $supplier_id,
                 'description'       => $description ?: null,
-                'expense_type_id'   => $fee_expense_type_ids[$i]   ?: null,
-                'payment_type'      => $fee_payment_types[$i]      ?: null,
-                'payment_option_id' => $fee_payment_option_ids[$i] ?: null,
+                'expense_type_id'   => empty($fee_expense_type_ids[$i])   ? null : $fee_expense_type_ids[$i],
+                'payment_type'      => empty($fee_payment_types[$i])      ? null : $fee_payment_types[$i],
+                'payment_option_id' => empty($fee_payment_option_ids[$i]) ? null : $fee_payment_option_ids[$i],
                 'type'              => 'monthly',
                 'amount'            => $fee_amounts[$i] ?? null,
                 'total'             => $fee_totals[$i]  ?? null,
