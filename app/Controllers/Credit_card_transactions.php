@@ -71,6 +71,9 @@ class Credit_card_transactions extends MYTController
         if (!$credit_card = $this->creditCardModel->select('', ['id' => $credit_card_id, 'is_deleted' => 0], 1)) {
             $db->transRollback();
             $response = $this->failNotFound('credit card not found');
+        } elseif ($type === 'expense' && (float) $credit_card['credit_limit'] > 0 && ((float) $credit_card['current_bal'] + (float) $amount) > (float) $credit_card['credit_limit']) {
+            $db->transRollback();
+            $response = $this->fail(['response' => 'Credit limit exceeded.', 'status' => 'error']);
         } elseif (!$credit_card_transaction_id = $this->_attempt_add_transaction($credit_card, $type, $txn_date, $amount, $remarks)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to save transaction.', 'status' => 'error']);
@@ -120,10 +123,9 @@ class Credit_card_transactions extends MYTController
 
     /**
      * Pay off one or more supplies/project expenses using a credit card.
-     * Creates a credit_card_slip plus one credit_card_entry per se_id, and marks
-     * each supplies/project expense as paid down. Does NOT touch the credit
-     * card's current_bal - that is recorded separately via add() as its own
-     * ledger transaction.
+     * Creates a credit_card_slip plus one credit_card_entry per se_id, marks
+     * each supplies/project expense as paid down, and charges the total to
+     * the credit card's current_bal (rejected if it would exceed credit_limit).
      */
     public function create()
     {
@@ -153,7 +155,7 @@ class Credit_card_transactions extends MYTController
         } elseif (!$credit_card_slip_id = $this->_attempt_create_slip()) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Failed to create slip.', 'status' => 'error']);
-        } elseif (($error_message = $this->_attempt_generate_entry($credit_card_slip_id)) !== true) {
+        } elseif (($error_message = $this->_attempt_generate_entry($credit_card_slip_id, $credit_card)) !== true) {
             $db->transRollback();
             $response = $this->respond([
                 'response' => $error_message,
@@ -196,9 +198,9 @@ class Credit_card_transactions extends MYTController
         } elseif (!$this->_attempt_update_slip($credit_card_slip_id)) {
             $db->transRollback();
             $response = $this->fail(['response' => 'Credit card payment slip updated unsuccessfully', 'status' => 'error']);
-        } elseif (!$this->_attempt_update_entry($credit_card_slip_id)) {
+        } elseif (($error_message = $this->_attempt_update_entry($credit_card_slip_id, $credit_card_slip)) !== true) {
             $db->transRollback();
-            $response = $this->fail(['response' => 'Credit card payment entries updated unsuccessfully', 'status' => 'error']);
+            $response = $this->respond(['response' => $error_message, 'status' => 'error']);
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'Credit card payment updated successfully', 'status' => 'success']);
@@ -381,11 +383,11 @@ class Credit_card_transactions extends MYTController
     }
 
     /**
-     * Generate credit_card_entry rows for each se_id/amount/type and mark the
-     * corresponding supplies/project expense as paid down. Does not touch the
-     * credit card's current_bal - see class-level note on create().
+     * Generate credit_card_entry rows for each se_id/amount/type, mark the
+     * corresponding supplies/project expense as paid down, and charge the
+     * total to the credit card's current_bal (checked against credit_limit).
      */
-    protected function _attempt_generate_entry($credit_card_slip_id)
+    protected function _attempt_generate_entry($credit_card_slip_id, $credit_card)
     {
         $se_ids  = $this->request->getVar('se_ids');
         $amounts = $this->request->getVar('amounts');
@@ -396,6 +398,11 @@ class Credit_card_transactions extends MYTController
         }
 
         $total = array_sum($amounts);
+
+        $new_bal = (float) $credit_card['current_bal'] + (float) $total;
+        if ((float) $credit_card['credit_limit'] > 0 && $new_bal > (float) $credit_card['credit_limit']) {
+            return "Credit limit exceeded.";
+        }
 
         foreach ($se_ids as $key => $se_id) {
             $amount = $amounts[$key];
@@ -461,6 +468,14 @@ class Credit_card_transactions extends MYTController
             'updated_on' => date('Y-m-d H:i:s'),
         ])) {
             return "Failed to update credit card slip amount.";
+        }
+
+        if (!$this->creditCardModel->update($credit_card['id'], [
+            'current_bal' => $new_bal,
+            'updated_by'  => $this->requested_by,
+            'updated_on'  => date('Y-m-d H:i:s'),
+        ])) {
+            return "Failed to update credit card balance.";
         }
 
         return true;
@@ -554,21 +569,38 @@ class Credit_card_transactions extends MYTController
     }
 
     /**
-     * Delete and regenerate entries for an update() call.
+     * Delete and regenerate entries for an update() call. Reverses the old
+     * slip amount off its original card first, so the credit_limit check in
+     * _attempt_generate_entry() runs against the pre-slip balance.
      */
-    protected function _attempt_update_entry($credit_card_slip_id)
+    protected function _attempt_update_entry($credit_card_slip_id, $old_slip)
     {
         $this->creditCardEntryModel->delete_by_credit_card_slip_id($credit_card_slip_id, $this->requested_by);
 
-        if (($error = $this->_attempt_generate_entry($credit_card_slip_id)) !== true) {
-            return false;
+        if (!$old_credit_card = $this->creditCardModel->select('', ['id' => $old_slip['credit_card_id'], 'is_deleted' => 0], 1)) {
+            return "Original credit card not found.";
         }
 
-        return true;
+        if (!$this->creditCardModel->update($old_credit_card['id'], [
+            'current_bal' => (float) $old_credit_card['current_bal'] - (float) $old_slip['amount'],
+            'updated_by'  => $this->requested_by,
+            'updated_on'  => date('Y-m-d H:i:s'),
+        ])) {
+            return "Failed to reverse previous credit card balance.";
+        }
+
+        $new_credit_card_id = $this->request->getVar('credit_card_id') ?: $old_slip['credit_card_id'];
+
+        if (!$credit_card = $this->creditCardModel->select('', ['id' => $new_credit_card_id, 'is_deleted' => 0], 1)) {
+            return "Credit card not found.";
+        }
+
+        return $this->_attempt_generate_entry($credit_card_slip_id, $credit_card);
     }
 
     /**
-     * Soft-delete a credit card payment slip.
+     * Soft-delete a credit card payment slip and reverse its effect on the
+     * credit card's current_bal.
      */
     protected function _attempt_delete_slip($credit_card_slip)
     {
@@ -579,6 +611,18 @@ class Credit_card_transactions extends MYTController
         ];
 
         if (!$this->creditCardSlipModel->update($credit_card_slip['id'], $values)) {
+            return false;
+        }
+
+        if (!$credit_card = $this->creditCardModel->select('', ['id' => $credit_card_slip['credit_card_id'], 'is_deleted' => 0], 1)) {
+            return false;
+        }
+
+        if (!$this->creditCardModel->update($credit_card['id'], [
+            'current_bal' => (float) $credit_card['current_bal'] - (float) $credit_card_slip['amount'],
+            'updated_by'  => $this->requested_by,
+            'updated_on'  => date('Y-m-d H:i:s'),
+        ])) {
             return false;
         }
 
