@@ -10,6 +10,7 @@ class RecurringSupplierPoFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
+        /*
         // Same billing window as RecurringInvoiceFilter:
         // day 1-24  → bill current month (e.g. June 1-24  → billing_date = 2026-06-01)
         // day 25-31 → bill next month    (e.g. June 25-30 → billing_date = 2026-07-01)
@@ -36,6 +37,7 @@ class RecurringSupplierPoFilter implements FilterInterface
 
         $cron = new \App\Controllers\Cron();
         $cron->generate_recurring_supplier_po($billing_date);
+        */
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null) {}

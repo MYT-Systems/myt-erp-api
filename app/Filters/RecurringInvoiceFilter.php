@@ -10,6 +10,7 @@ class RecurringInvoiceFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
+        /*
         if ((int) date('d') >= 25) {
             $billing_date = date('Y-m-01', strtotime('first day of next month'));
         } else {
@@ -33,6 +34,7 @@ class RecurringInvoiceFilter implements FilterInterface
 
         $cron = new \App\Controllers\Cron();
         $cron->generate_pending_recurring_invoices($billing_date);
+        */
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null) {}
