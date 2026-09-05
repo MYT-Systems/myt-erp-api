@@ -287,10 +287,12 @@ class Customers extends MYTController
             'email'                     => $this->request->getVar('email'),
             'tin_no'                    => $this->request->getVar('tin_no'),
             'lead'                      => $this->request->getVar('lead'),
-            'credit_limit'              => $this->request->getVar('credit_limit'),
-            'terms'                     => $this->request->getVar('terms'),
+            'credit_limit'              => (float)$this->request->getVar('credit_limit'),
+            'terms'                     => (int)$this->request->getVar('terms'),
+            'remarks'                   => $this->request->getVar('remarks'),
             'added_by'                  => $this->requested_by,
             'added_on'                  => date('Y-m-d H:i:s'),
+            'is_deleted'                => 0,
         ];
 
         if (!$customer_id = $this->customerModel->insert($values)) {
@@ -318,6 +320,7 @@ class Customers extends MYTController
             'credit_limit'              => $this->request->getVar('credit_limit'),
             'terms'                     => $this->request->getVar('terms'),
             'lead'                      => $this->request->getVar('lead'),
+            'remarks'                   => $this->request->getVar('remarks'),
             'updated_by'                => $this->requested_by,
             'updated_on'                => date('Y-m-d H:i:s')
         ];

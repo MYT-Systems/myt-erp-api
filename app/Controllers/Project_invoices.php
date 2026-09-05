@@ -499,26 +499,27 @@ class Project_invoices extends MYTController
             'address'               => $this->request->getVar('address'),
             'company'               => $this->request->getVar('company'),
             'remarks'               => $this->request->getVar('remarks'),
-            'subtotal'              => $this->request->getVar('subtotal'),
-            'vat_twelve'            => $this->request->getVar('vat_twelve'),
-            'vat_net'               => $this->request->getVar('vat_net'),
-            'wht'                   => $this->request->getVar('wht'),
-            'is_wht'                => $this->request->getVar('is_wht'),
+            'subtotal'              => (float) str_replace(',', '', $this->request->getVar('subtotal')),
+            'vat_twelve'            => (float) str_replace(',', '', $this->request->getVar('vat_twelve')),
+            'vat_net'               => (float) str_replace(',', '', $this->request->getVar('vat_net')),
+            'wht'                   => (float) str_replace(',', '', $this->request->getVar('wht')),
+            'is_wht'                => (int)$this->request->getVar('is_wht'),
             'wht_percent'           => $this->request->getVar('wht_percent'),
-            'service_fee'           => $this->request->getVar('service_fee'),
-            'delivery_fee'          => $this->request->getVar('delivery_fee'),
-            'grand_total'           => $this->request->getVar('grand_total'),
+            'service_fee'           => (float) str_replace(',', '', $this->request->getVar('service_fee')),
+            'delivery_fee'          => (float) str_replace(',', '', $this->request->getVar('delivery_fee')),
+            'grand_total'           => (float) str_replace(',', '', $this->request->getVar('grand_total')),
             'vat_type'              => $this->request->getVar('vat_type'),
             'balance'               => 0,
             'paid_amount'           => 0,
             'payment_status'        => 'pending',
-            'discount'              => $this->request->getVar('discount'),
+            'status'                => 'pending',
+            'discount'              => (float) str_replace(',', '', $this->request->getVar('discount')),
             'added_by'              => $this->requested_by,
             'added_on'              => date('Y-m-d H:i:s'),
         ];
 
         if (!$project_invoice_id = $this->projectInvoiceModel->insert($values))
-           return false;
+            return false;
 
         return $project_invoice_id;
     }
@@ -535,7 +536,7 @@ class Project_invoices extends MYTController
         // $units      = $this->request->getVar('units') ?? [];
         // $subtotal   = $this->request->getVar('subtotal') ?? 0;
         // $quantities = $this->request->getVar('quantities') ?? [];
-        $grand_total = $this->request->getVar('grand_total') ?? 0;
+        $grand_total = (float) str_replace(',', '', $this->request->getVar('grand_total') ?? 0);
         $project_id = $this->request->getVar('project_id')??null;
         $billed_amounts = $this->request->getVar('billed_amounts') ?? [];
         $values = [
@@ -578,8 +579,8 @@ class Project_invoices extends MYTController
             $values['item_id']    = $item_id;
             $values['item_name']    = $item_name;
             $values['item_balance']    = $item_balance;
-            $values['price']        = $prices[$key];
-            $values['billed_amount'] = $billed_amounts[$key];
+            $values['price']        = (float) str_replace(',', '', $prices[$key]);
+            $values['billed_amount'] = (float) str_replace(',', '', $billed_amounts[$key]);
             // $values['unit']         = $units[$key];
             // $values['qty']          = $quantities[$key];
             // $values['subtotal']     = $subtotal;
@@ -632,16 +633,16 @@ class Project_invoices extends MYTController
             'address'               => $this->request->getVar('address'),
             'company'               => $this->request->getVar('company'),
             'remarks'               => $this->request->getVar('remarks'),
-            'subtotal'              => $this->request->getVar('subtotal'),
-            'service_fee'           => $this->request->getVar('service_fee'),
-            'delivery_fee'          => $this->request->getVar('delivery_fee'),
-            'vat_twelve'            => $this->request->getVar('vat_twelve'),
-            'vat_net'               => $this->request->getVar('vat_net'),
-            'wht'                   => $this->request->getVar('wht'),
+            'subtotal'              => (float) str_replace(',', '', $this->request->getVar('subtotal')),
+            'service_fee'           => (float) str_replace(',', '', $this->request->getVar('service_fee')),
+            'delivery_fee'          => (float) str_replace(',', '', $this->request->getVar('delivery_fee')),
+            'vat_twelve'            => (float) str_replace(',', '', $this->request->getVar('vat_twelve')),
+            'vat_net'               => (float) str_replace(',', '', $this->request->getVar('vat_net')),
+            'wht'                   => (float) str_replace(',', '', $this->request->getVar('wht')),
             'is_wht'                => $this->request->getVar('is_wht'),
             'wht_percent'           => $this->request->getVar('wht_percent'),
-            'grand_total'           => $this->request->getVar('grand_total'),
-            'discount'              => $this->request->getVar('discount'),
+            'grand_total'           => (float) str_replace(',', '', $this->request->getVar('grand_total')),
+            'discount'              => (float) str_replace(',', '', $this->request->getVar('discount')),
             'vat_type'              => $this->request->getVar('vat_type'),
             'updated_by'            => $this->requested_by,
             'updated_on'            => date('Y-m-d H:i:s')
@@ -649,7 +650,7 @@ class Project_invoices extends MYTController
 
         if (!$this->projectInvoiceModel->update($project_invoice_id, $values)) {
             var_dump("JKJK");
-            return false;            
+            return false;
         }
 
 
@@ -871,12 +872,12 @@ class Project_invoices extends MYTController
             'term_day'           => $this->request->getVar('term_day'),
             'delivery_address'   => $this->request->getVar('delivery_address'),
             'delivery_date'      => $this->request->getVar('delivery_date'),
-            'paid_amount'        => $this->request->getVar('paid_amount'),
-            'grand_total'        => $this->request->getVar('grand_total'),
-            'subtotal'           => $this->request->getVar('subtotal'),
-            'service_fee'        => $this->request->getVar('payment_service_fee'),
-            'delivery_fee'       => $this->request->getVar('payment_delivery_fee'),
-            'withholding_tax'    => $this->request->getVar('withholding_tax'),
+            'paid_amount'        => (float) str_replace(',', '', $this->request->getVar('paid_amount')),
+            'grand_total'        => (float) str_replace(',', '', $this->request->getVar('grand_total')),
+            'subtotal'           => (float) str_replace(',', '', $this->request->getVar('subtotal')),
+            'service_fee'        => (float) str_replace(',', '', $this->request->getVar('payment_service_fee')),
+            'delivery_fee'       => (float) str_replace(',', '', $this->request->getVar('payment_delivery_fee')),
+            'withholding_tax'    => (float) str_replace(',', '', $this->request->getVar('withholding_tax')),
             'added_by'           => $this->requested_by,
             'added_on'           => date('Y-m-d H:i:s'),
         ];
@@ -1019,6 +1020,14 @@ class Project_invoices extends MYTController
             case 'open_bill':
                 $values['status'] = 'open_bill';
                 $values['payment_status'] = 'open_bill';
+
+                if (empty($project_invoice['invoice_no'])) {
+                    $last = $this->projectInvoiceModel->get_last_invoice_no_by_year();
+                    $last_number = ($last && isset($last['invoice_no']))
+                        ? (int) substr($last['invoice_no'], 5)
+                        : 0;
+                    $values['invoice_no'] = date('Y') . '-' . str_pad($last_number + 1, 4, '0', STR_PAD_LEFT);
+                }
                 break;
             default:
                 return false;

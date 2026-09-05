@@ -28,6 +28,14 @@ class Cron extends MYTController
     protected $expenseItemModel;
     protected $expenseAttachmentModel;
 
+    protected $projectModel;
+    protected $projectInvoiceModel;
+    protected $projectInvoiceItemModel;
+
+    protected $suppliesExpenseModel;
+    protected $supplierRecurringPoModel;
+    protected $seItemModel;
+
     protected $requested_by = 0;
     protected $orders_payload = null;
     protected $db = null;
@@ -58,9 +66,224 @@ class Cron extends MYTController
         $this->expenseItemModel        = model('App\Models\Expense_item');
         $this->expenseAttachmentModel  = model('App\Models\Expense_attachment');
 
+        $this->projectModel            = model('App\Models\Project');
+        $this->projectInvoiceModel     = model('App\Models\Project_invoice');
+        $this->projectInvoiceItemModel = model('App\Models\Project_invoice_item');
+
+        $this->suppliesExpenseModel    = model('App\Models\Supplies_expense');
+        $this->supplierRecurringPoModel = model('App\Models\Supplier_recurring_po');
+        $this->seItemModel             = model('App\Models\SE_item');
+
         $this->requested_by = 0;
         $this->orders_payload = null;
         $this->db = null;
+    }
+
+    /**
+     * Cron endpoint: generate pending invoices for all recurring bills due in the billing month
+     */
+    public function generate_pending_recurring_invoices($billing_date = null)
+    {
+        $billing_date = $billing_date ?: date('Y-m-d');
+
+        $db = \Config\Database::connect();
+
+        // Acquire a MySQL advisory lock so concurrent requests don't both generate
+        $lock = $db->query("SELECT GET_LOCK('recurring_invoice_generate', 0) as locked")->getRowArray();
+        if (!$lock || !$lock['locked']) return;
+
+        $db->transBegin();
+
+        if (!$this->_attempt_generate_pending_invoices(null, $db, $billing_date)) {
+            $db->transRollback();
+            $db->query("SELECT RELEASE_LOCK('recurring_invoice_generate')");
+            return;
+        }
+
+        $db->transCommit();
+        $db->query("SELECT RELEASE_LOCK('recurring_invoice_generate')");
+    }
+
+    /**
+     * Generate PENDING project invoices for recurring bills that are due.
+     * Reuses Project::get_projects_to_bill() for schedule/window/cap/dedup logic.
+     */
+    protected function _attempt_generate_pending_invoices($project_id = null, $db = null, $billing_date = null)
+    {
+        $db           = $db ?: \Config\Database::connect();
+        $billing_date = $billing_date ?: date('Y-m-d');
+
+        $due = $this->projectModel->get_projects_to_bill($project_id, $billing_date) ?: [];
+
+        $recurring_rows = array_values(array_filter(
+            $due,
+            fn($row) => ($row['billing_type'] ?? null) === 'recurring'
+        ));
+
+        $last = $this->projectInvoiceModel->get_last_invoice_no_by_year();
+        $last_number = ($last && isset($last['invoice_no']))
+            ? (int) substr($last['invoice_no'], 5)
+            : 0;
+
+        $project_cache = [];
+
+        // One invoice per due recurring item — never bundled, even when multiple
+        // items on the same project are due in the same run.
+        foreach ($recurring_rows as $r) {
+            $pid = $r['project_id'];
+            if (!isset($project_cache[$pid])) {
+                $project = $this->projectModel->get_details_by_id($pid);
+                $project_cache[$pid] = $project ? $project[0] : [];
+            }
+            $project = $project_cache[$pid];
+
+            $price = (float) $r['price'];
+
+            $last_number++;
+            $invoice_no = date('Y', strtotime($billing_date)) . '-' . str_pad($last_number, 4, '0', STR_PAD_LEFT);
+
+            $invoice_values = [
+                'project_id'     => $pid,
+                'invoice_date'   => $billing_date,
+                'invoice_no'     => $invoice_no,
+                'project_date'   => $r['project_date'] ?? ($project['project_date'] ?? null),
+                'due_date'       => date('Y-m-t', strtotime($billing_date)),
+                'company'        => $project['company'] ?? null,
+                'address'        => $project['address'] ?? null,
+                'subtotal'       => $price,
+                'grand_total'    => $price,
+                'balance'        => $price,
+                'paid_amount'    => 0,
+                'payment_status' => 'pending',
+                'status'         => 'pending',
+                'added_by'       => $this->requested_by,
+                'added_on'       => date('Y-m-d H:i:s'),
+            ];
+
+            if (!$invoice_id = $this->projectInvoiceModel->insert($invoice_values)) {
+                $this->errorMessage = $db->error()['message'];
+                return false;
+            }
+
+            $item_values = [
+                'project_invoice_id' => $invoice_id,
+                'item_id'            => $r['item_id'],
+                'item_name'          => $r['description'],
+                'item_balance'       => $price,
+                'price'              => $price,
+                'billed_amount'      => $price,
+                'added_by'           => $this->requested_by,
+                'added_on'           => date('Y-m-d H:i:s'),
+            ];
+            if (!$this->projectInvoiceItemModel->insert($item_values)) {
+                $this->errorMessage = $db->error()['message'];
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Generate supplies expenses (for_approval) from unoccupied supplier_recurring_po templates.
+     * Called by RecurringSupplierPoFilter (monthly, billing-window rollover) and by
+     * DailySupplierPoFilter (daily catch-up for templates added mid-period).
+     *
+     * $reset_period controls whether templates whose SE belongs to a previous billing
+     * month get rolled over (is_occupied reset to 0). Only the monthly filter should pass
+     * true — the daily filter passes false so it never re-triggers what the monthly filter
+     * already generated, it only picks up genuinely new (still unoccupied) templates.
+     */
+    public function generate_recurring_supplier_po($billing_date = null, $reset_period = true)
+    {
+        $billing_date = $billing_date ?: date('Y-m-d');
+
+        $db = \Config\Database::connect();
+
+        // Acquire a MySQL advisory lock so concurrent requests don't both generate
+        $lock = $db->query("SELECT GET_LOCK('supplier_recurring_po_generate', 0) as locked")->getRowArray();
+        if (!$lock || !$lock['locked']) return true;
+
+        // Reset is_occupied for templates whose SE was generated in a previous billing month.
+        // Only the monthly filter does this rollover.
+        if ($reset_period) {
+            $this->supplierRecurringPoModel->reset_previous_period($billing_date);
+        }
+
+        $templates = $this->supplierRecurringPoModel->get_unoccupied();
+        if (!$templates) {
+            $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
+            return true;
+        }
+        $db->transBegin();
+
+        foreach ($templates as $tpl) {
+            // Atomically claim this template first — only proceed if still unoccupied.
+            // Protects against any overlap between the monthly and daily filters.
+            $db->query(
+                "UPDATE supplier_recurring_po SET is_occupied = 1, updated_by = 0, updated_on = ? WHERE id = ? AND is_occupied = 0",
+                [date('Y-m-d H:i:s'), $tpl['id']]
+            );
+            if ($db->affectedRows() === 0) {
+                continue; // already claimed by another process
+            }
+
+            $se_values = [
+                'supplier_id'           => $tpl['supplier_id'],
+                'supplies_expense_date' => $billing_date,
+                'due_date'              => date('Y-m-t', strtotime($billing_date)),
+                'grand_total'           => $tpl['amount'],
+                'balance'               => $tpl['amount'],
+                'remarks'               => $tpl['description'] ?: ('Auto-generated recurring PO (' . $tpl['type'] . ')'),
+                'type'                  => $tpl['expense_type_id'] ?: '',
+                'payment_method'        => $tpl['payment_type'] === 'credit_card' ? 'Credit Card' : ($tpl['payment_type'] === 'bank' ? 'Bank' : null),
+                'requisitioner'         => $tpl['added_by'] ?: null,
+                'status'                => 'for_approval',
+                'order_status'          => 'pending',
+                'prepared_by'           => 0,
+                'added_by'              => 0,
+                'added_on'              => date('Y-m-d H:i:s'),
+            ];
+
+            if (!$se_id = $this->suppliesExpenseModel->insert($se_values)) {
+                $db->transRollback();
+                $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
+                return false;
+            }
+
+            // Give the SE one line item carrying the full amount as Unit Price, so the
+            // amount is directly editable on the PO form (which computes grand_total
+            // from items, and otherwise shows "No Purchased Item Found!").
+            if (!$this->seItemModel->insert([
+                'se_id'        => $se_id,
+                'name'         => 'Recurring fee (' . $tpl['type'] . ')',
+                'qty'          => 1,
+                'unit'         => $tpl['type'] ?: 'pc',
+                'price'        => $tpl['amount'],
+                'total'        => $tpl['amount'],
+                'received_qty' => 0,
+                'added_by'     => 0,
+                'added_on'     => date('Y-m-d H:i:s'),
+            ])) {
+                $db->transRollback();
+                $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
+                return false;
+            }
+
+            if (!$this->supplierRecurringPoModel->update($tpl['id'], [
+                'purchase_order_id' => $se_id,
+                'updated_by'        => 0,
+                'updated_on'        => date('Y-m-d H:i:s'),
+            ])) {
+                $db->transRollback();
+                $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
+                return false;
+            }
+        }
+
+        $db->transCommit();
+        $db->query("SELECT RELEASE_LOCK('supplier_recurring_po_generate')");
+        return true;
     }
 
     /**
@@ -112,7 +335,7 @@ class Cron extends MYTController
         $time_in = new \DateTime($time_in);
         $time_out = new \DateTime($time_out);
         $diff = $time_in->diff($time_out);
-        
+
         return $diff->h * 60 + $diff->i;
     }
 
@@ -156,7 +379,7 @@ class Cron extends MYTController
                 default:
                     $response = null;
                     break;
-                    
+
             }
         }
     }
@@ -174,7 +397,7 @@ class Cron extends MYTController
         $unsaved_expenses = [];
 
         $this->db = \Config\Database::connect();
-        
+
         foreach ($expenses['expenses'] as $expense) {
             $expense = json_decode($expense);
             $expense = (array) $expense;
@@ -195,13 +418,13 @@ class Cron extends MYTController
 
         if ($unsaved_expenses) {
             $write_response = $this->_write_json('expenses', $unsaved_expenses);
-            
+
             $old_file_path = FCPATH . 'public/expenses/' . $filename;
             unlink($old_file_path);
-        
+
             return false;
         }
-        
+
         $old_file_path = FCPATH . 'public/expenses/' . $filename;
         unlink($old_file_path);
 
@@ -281,7 +504,7 @@ class Cron extends MYTController
                 $this->errorMessage = $this->db->error()['message'];
                 return false;
             }
-        
+
         }
 
         $values = [
@@ -310,7 +533,7 @@ class Cron extends MYTController
 
         foreach ($orders as $order) {
             if (!is_object($order)) {
-                $order = json_decode($order);    
+                $order = json_decode($order);
             }
             $this->orders_payload = (array) $order;
 
@@ -339,13 +562,13 @@ class Cron extends MYTController
 
         if ($unsaved_orders) {
             $write_response = $this->_write_json('bulk_order', $unsaved_orders);
-            
+
             $old_file_path = FCPATH . 'public/bulk_order/' . $filename;
             unlink($old_file_path);
-        
+
             return false;
         }
-        
+
         $old_file_path = FCPATH . 'public/bulk_order/' . $filename;
         unlink($old_file_path);
 
@@ -380,7 +603,7 @@ class Cron extends MYTController
             'gift_cert_code'   => $this->_get_orders_payload_value('gift_cert_code'),
             'transaction_type' => $transaction_type['name'],
             'added_by'         => $this->requested_by,
-            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ?
                                     $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
         ];
 
@@ -419,7 +642,7 @@ class Cron extends MYTController
                 'qty'        => $quantity,
                 'subtotal'   => (float)$price * (float)$quantity,
                 'remarks'    => $remarks ? $remarks[$key] : null,
-                'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+                'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ?
                                     $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
                 'added_by'   => $this->requested_by,
             ];
@@ -454,7 +677,7 @@ class Cron extends MYTController
             $this->errorMessage = $this->db->error()['message'] . '<br>' . $this->db->getLastQuery();
             return false;
         }
-        
+
         $addon_requirements = [];
 
         foreach ($product_ingredients as $ingredient) {
@@ -554,7 +777,7 @@ class Cron extends MYTController
             'item_id' => $item_id,
             'qty' => $qty,
             'unit' => $unit,
-            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ?
                                     $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
             'added_by' => $this->requested_by
         ];
@@ -579,9 +802,9 @@ class Cron extends MYTController
 
         $price_level_type_id = $this->_get_orders_payload_value('price_level_type_id');
         $price_level_id      = $this->_get_orders_payload_value('price_level_id');
-        
+
         foreach ($addon_ids as $key => $addon_id) {
-            if (!$addon_id) continue; // Skip if addon_id is empty
+            if (!$addon_id) continue;
             $price = $this->priceLevelModel->get_price($addon_id, $price_level_type_id, $price_level_id);
             $price = $price ? $price[0]['price'] : 0;
             $quantity = $addon_qtys[$key] ?? 0;
@@ -592,7 +815,7 @@ class Cron extends MYTController
                 'price'           => $price,
                 'qty'             => $quantity,
                 'subtotal'        => (float)$price * (float)$quantity,
-                'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+                'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ?
                                     $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
                 'added_by'        => $this->requested_by,
             ];
@@ -602,7 +825,7 @@ class Cron extends MYTController
                 return false;
             } elseif (!$this->_subtract_inventory($order_detail_id, $addon_id, $quantity, $branch_id)) {
                 return false;
-            } 
+            }
         }
 
         return true;
@@ -620,7 +843,7 @@ class Cron extends MYTController
         $subtotal = (float)$this->_get_orders_payload_value('subtotal', 0);
         $paid_amount = (float)$this->_get_orders_payload_value('paid_amount');
         $transaction_type = $this->_get_orders_payload_value('transaction_type');
-        
+
         $commission = $this->priceLevelModel->get_commission($price_level_type_id, $this->db);
         $commission = $commission ? $commission[0]['commission_rate'] : 0;
 
@@ -632,7 +855,7 @@ class Cron extends MYTController
             if ($discount = $this->discountModel->search($branch_id, null, null, null, 'valid', null, null, true)) {
                 $discount = $discount ? $discount[0] : null;
                 $merchant_discount_id = $discount ? $discount['id'] : null;
-    
+
                 if ($discount['type'] == 'percentage') {
                     $total_discount = $grand_total * $discount['mm_discount_share'];
                     $merchant_discount_share = $grand_total * $discount['delivery_discount_share'];
@@ -640,7 +863,7 @@ class Cron extends MYTController
                     $total_discount = $discount['mm_discount_share'];
                     $merchant_discount_share = $discount['delivery_discount_share'];
                 }
-                
+
                 $subtotal = $grand_total;
                 $grand_total -= ($total_discount + $merchant_discount_share);
                 $paid_amount = $grand_total;
@@ -671,7 +894,7 @@ class Cron extends MYTController
             'proof'               => $this->_get_orders_payload_value('proof'),
             'or_no'               => $this->_get_orders_payload_value('or_no'),
             'added_by'            => $this->requested_by,
-            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ? 
+            'added_on'   => ($this->orders_payload AND array_key_exists('ordered_on', $this->orders_payload)) ?
                                     $this->orders_payload['ordered_on'] : date('Y-m-d H:i:s'),
         ];
 
@@ -680,7 +903,7 @@ class Cron extends MYTController
         if (!$payment_id = $this->paymentModel->insert($values)) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
-        } elseif ($this->request->getFile('file') AND 
+        } elseif ($this->request->getFile('file') AND
                 !$this->_attempt_upload_file_base64($this->paymentAttachmentModel, ['payment_id' => $payment_id, 'type' => $is_gift_cert ? 'gift_cert' : 'payment'])) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
@@ -725,11 +948,11 @@ class Cron extends MYTController
                     $product = "";
 
                     if ($discount_index < count($discount_ids) AND $discount_ids[$discount_index] != "") {
-    
+
                         $where = ['id' => $product_id, 'is_deleted' => 0];
                         $product_details = $this->productModel->select('', $where, 1);
                         $discount_price = $quantities[$index] <= 1 ? $discount_prices[$index] : round($discount_prices[$index] / $quantities[$index], 2);
-            
+
                         $values = [
                             'payment_id' => $payment_id,
                             'discount_id' => $discount_ids[$discount_index],
@@ -744,7 +967,7 @@ class Cron extends MYTController
                             'added_by' => $this->requested_by,
                             'added_on' => date("Y-m-d H:i:s")
                         ];
-            
+
                         if (!$this->discountPaymentModel->insert($values)) {
                             $this->errorMessage = $this->db->error()['message'];
                             return false;
@@ -756,7 +979,7 @@ class Cron extends MYTController
             }
 
         }
-        
+
         return true;
     }
 
@@ -767,7 +990,7 @@ class Cron extends MYTController
             $final_value = array_key_exists($parameter, $this->orders_payload) ? $this->orders_payload[$parameter] : $default_value;
         else
             $final_value = $this->request->getVar($parameter) ? : $default_value;
-        
+
         return $final_value;
     }
 
@@ -778,7 +1001,7 @@ class Cron extends MYTController
             $final_value = array_key_exists($parameter, $data) ? $data[$parameter] : $default_value;
         else
             $final_value = $this->request->getVar($parameter) ? : $default_value;
-        
+
         return $final_value;
     }
 }

@@ -75,7 +75,9 @@ SELECT supplies_expense.*,
     (SELECT vendor.trade_name FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_trade_name,
     (SELECT CONCAT(user.first_name, ' ', user.last_name) FROM user WHERE user.id = supplies_expense.requisitioner) AS requisitioner_name,
     (SELECT supplier.email FROM supplier WHERE supplier.id = supplies_expense.supplier_id) AS supplier_email,
-    (SELECT vendor.email FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_email
+    (SELECT vendor.email FROM vendor WHERE vendor.id = supplies_expense.vendor_id) AS vendor_email,
+    (SELECT srp.payment_type FROM supplier_recurring_po srp WHERE srp.purchase_order_id = supplies_expense.id AND srp.is_deleted = 0) AS recurring_payment_type,
+    (SELECT srp.payment_option_id FROM supplier_recurring_po srp WHERE srp.purchase_order_id = supplies_expense.id AND srp.is_deleted = 0) AS recurring_payment_option_id
 FROM supplies_expense
 WHERE supplies_expense.id = ?
 AND supplies_expense.is_deleted = 0
@@ -209,7 +211,9 @@ SELECT supplies_expense.*,
     expense_type.name AS expense_name,
     vendor.trade_name AS vendor_trade_name,
     CONCAT(requisitioner.first_name, ' ', requisitioner.last_name) AS requisitioner_name,
-    IF(supplies_expense_payment.total_payment >= supplies_expense.grand_total, 1, 0) AS can_be_paid
+    IF(supplies_expense_payment.total_payment >= supplies_expense.grand_total, 1, 0) AS can_be_paid,
+    DATE_ADD(DATE(supplies_expense.added_on), INTERVAL 7 DAY) AS deadline_for_approval,
+    DATEDIFF(DATE_ADD(DATE(supplies_expense.added_on), INTERVAL 7 DAY), CURDATE()) AS days_left
 FROM supplies_expense
     LEFT JOIN user AS preparer ON preparer.id = supplies_expense.prepared_by
     LEFT JOIN user AS approver ON approver.id = supplies_expense.approved_by
@@ -290,8 +294,21 @@ EOT;
     
         if ($status) {
             if ($status == 'for_approval') {
-                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"';
+                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"
+                    AND NOT EXISTS (
+                        SELECT 1 FROM supplier_recurring_po srp
+                        WHERE srp.purchase_order_id = supplies_expense.id AND srp.is_deleted = 0
+                    )';
                 // $binds[] = 'pending';
+                $binds[] = 'for_approval';
+            } elseif ($status == 'recurring') {
+                // Mirrors the for_approval branch above, but only auto-generated POs —
+                // the "recurring purchases" tab is the for_approval tab for automated POs.
+                $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status = "pending"
+                    AND EXISTS (
+                        SELECT 1 FROM supplier_recurring_po srp
+                        WHERE srp.purchase_order_id = supplies_expense.id AND srp.is_deleted = 0
+                    )';
                 $binds[] = 'for_approval';
             } elseif ($status == 'approved') {
                 $sql .= ' AND supplies_expense.status = ? AND supplies_expense.order_status IN ("pending", "incomplete")';

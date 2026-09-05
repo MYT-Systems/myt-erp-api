@@ -10,6 +10,7 @@ class Bank_transfers extends MYTController {
     protected $bankTransferModel;
     protected $webappResponseModel;
     protected $bankModel;
+    protected $bankReconBalanceModel;
 
     public function __construct()
     {
@@ -97,6 +98,8 @@ class Bank_transfers extends MYTController {
             $response = $this->fail(['response' => 'Failed to create bank transfer.', 'status' => 'error']);
         } else {
             $this->db->transCommit();
+            $this->bankReconBalanceModel->rebuild($this->request->getVar('bank_from_id'));
+            $this->bankReconBalanceModel->rebuild($this->request->getVar('bank_to_id'));
             $response = $this->respond([
                 'response'    => 'Bank transfer created successfully.',
                 'status'      => 'success',
@@ -169,6 +172,8 @@ class Bank_transfers extends MYTController {
             $response = $this->fail(['response' => $this->errorMessage ?: 'Fail to delete bank transfer.', 'status' => 'error']);
         } else {
             $db->transCommit();
+            $this->bankReconBalanceModel->rebuild($bank_transfer['bank_from_id']);
+            $this->bankReconBalanceModel->rebuild($bank_transfer['bank_to_id']);
             $response = $this->respond(['response' => 'Bank Transfer deleted successfully.', 'status' => 'success']);
         }
 
@@ -204,6 +209,15 @@ class Bank_transfers extends MYTController {
             $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
+            $affected = array_unique(array_filter([
+                $bank_transfer['bank_from_id'],
+                $bank_transfer['bank_to_id'],
+                $this->request->getVar('bank_from_id'),
+                $this->request->getVar('bank_to_id'),
+            ]));
+            foreach ($affected as $bid) {
+                $this->bankReconBalanceModel->rebuild($bid);
+            }
             $response = $this->respond(['response' => 'Bank transfer updated successfully.', 'status' => 'success']);
         }
 
@@ -378,9 +392,10 @@ class Bank_transfers extends MYTController {
      */
     protected function _load_essentials()
     {
-        $this->bankTransferModel = new Bank_transfer();
-        $this->webappResponseModel = new Webapp_response();
-        $this->bankModel = new Bank();
+        $this->bankTransferModel     = new Bank_transfer();
+        $this->webappResponseModel   = new Webapp_response();
+        $this->bankModel             = new Bank();
+        $this->bankReconBalanceModel = model('App\Models\Bank_recon_balance');
     }
 
 }

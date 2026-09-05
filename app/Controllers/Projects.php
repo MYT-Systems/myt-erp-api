@@ -550,12 +550,21 @@ class Projects extends MYTController
         // Process each recurring cost in the request
         foreach ($descriptions as $key => $description) {
             $id = $ids[$key] ?? null;
+
+            // Skip blank/incomplete rows (e.g. an "Add Recurring Fee" row left unfilled)
+            if (!$id && trim((string) $description) === '') {
+                continue;
+            }
+
             $type = $types[$key] ?? null;
             $period = $periods[$key] ?? null;
+            $period = ($period === '' || $period === null) ? null : (int) $period;
             $price = $prices[$key] ?? null;
             $amount = $amounts[$key] ?? null;
+            $amount = ($amount === '' || $amount === null) ? 0 : $amount;
             $total = $totals[$key] ?? null;
-    
+            $total = ($total === '' || $total === null) ? 0 : $total;
+
             $data = [
                 'project_id'  => $project_id,
                 'description' => $description,
@@ -565,10 +574,8 @@ class Projects extends MYTController
                 'amount'      => $amount,
                 'balance'     => $total,
                 'total'       => $total,
-                'added_by'    => $this->requested_by,
-                'added_on'    => date('Y-m-d H:i:s'),
             ];
-    
+
             if ($id) {
                 // Update existing record
                 $data['updated_on'] = date('Y-m-d H:i:s');
@@ -579,6 +586,8 @@ class Projects extends MYTController
                 }
             } else {
                 // Insert new record
+                $data['added_by'] = $this->requested_by;
+                $data['added_on'] = date('Y-m-d H:i:s');
                 if (!$this->projectRecurringCostModel->insert($data)) {
                     $this->errorMessage = $this->db->error()['message'];
                     return false;

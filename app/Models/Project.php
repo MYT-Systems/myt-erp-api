@@ -63,6 +63,7 @@ SELECT * FROM (
         project_recurring_cost.period,
         project_recurring_cost.price,
         project_recurring_cost.balance,
+        project_recurring_cost.added_on AS recurring_cost_added_on,
         customer.name AS customer_name,
         project.name AS project_name,
         project.project_date,
@@ -77,22 +78,34 @@ SELECT * FROM (
     AND project_recurring_cost.is_occupied = 0
     AND project_recurring_cost.balance > 0
     AND NOT EXISTS (
-        SELECT 1 
-        FROM project_invoice 
-        WHERE project_invoice.project_id = project.id
+        SELECT 1
+        FROM project_invoice_item
+        JOIN project_invoice ON project_invoice.id = project_invoice_item.project_invoice_id
+        WHERE project_invoice_item.item_id = project_recurring_cost.id
+        AND project_invoice_item.is_deleted = 0
         AND DATE_FORMAT(project_invoice.invoice_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')
         AND project_invoice.is_deleted = 0
     )
-    AND (
-        CASE 
-            WHEN project_recurring_cost.type = 'yearly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period YEAR)
-            WHEN project_recurring_cost.type = 'monthly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period MONTH)
-            WHEN project_recurring_cost.type = 'weekly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period WEEK)
-            WHEN project_recurring_cost.type = 'daily' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period DAY)
-        END
-    ) <= DATE_ADD(?, INTERVAL 15 DAY)
     GROUP BY project_recurring_cost.id
     HAVING times_billed < project_recurring_cost.period
+    AND (
+        CASE
+            WHEN recurring_cost_added_on >= ? THEN
+                CASE project_recurring_cost.type
+                    WHEN 'yearly' THEN DATE_ADD(recurring_cost_added_on, INTERVAL times_billed YEAR)
+                    WHEN 'monthly' THEN DATE_ADD(recurring_cost_added_on, INTERVAL times_billed MONTH)
+                    WHEN 'weekly' THEN DATE_ADD(recurring_cost_added_on, INTERVAL times_billed WEEK)
+                    WHEN 'daily' THEN DATE_ADD(recurring_cost_added_on, INTERVAL times_billed DAY)
+                END
+            ELSE
+                CASE project_recurring_cost.type
+                    WHEN 'yearly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period YEAR)
+                    WHEN 'monthly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period MONTH)
+                    WHEN 'weekly' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period WEEK)
+                    WHEN 'daily' THEN DATE_ADD(project.project_date, INTERVAL project_recurring_cost.period DAY)
+                END
+        END
+    ) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND LAST_DAY(?)
 
     UNION ALL
 
@@ -105,6 +118,7 @@ SELECT * FROM (
         NULL AS period,
         project_one_time_fee.amount AS price,
         project_one_time_fee.balance,
+        NULL AS recurring_cost_added_on,
         customer.name AS customer_name,
         project.name AS project_name,
         project.project_date,
@@ -136,6 +150,7 @@ SELECT * FROM (
         NULL AS period,
         project_change_request_item.amount AS price,
         project_change_request_item.balance,
+        NULL AS recurring_cost_added_on,
         customer.name AS customer_name,
         project.name AS project_name,
         project_change_request.request_date AS project_date,
@@ -159,7 +174,14 @@ SELECT * FROM (
 ) AS combined
 EOT;
 
-        $binds = [$billing_date, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date];
+        // Recurring costs added on/after this date use a rolling schedule
+        // (next due = added_on + times_billed periods, first bill due the same
+        // month it's added). Rows added before it keep the legacy one-shot
+        // schedule anchored to project.project_date, so existing templates
+        // aren't suddenly re-evaluated and don't get re-billed.
+        $rolling_cutoff = '2026-07-02';
+
+        $binds = [$billing_date, $rolling_cutoff, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date, $billing_date];
 
         if ($project_id) {
             $sql .= " WHERE project_id = ? ";

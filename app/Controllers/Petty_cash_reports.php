@@ -8,13 +8,15 @@ class Petty_cash_reports extends MYTController
     protected $pettyCashDetailModel;
     protected $pettyCashDetailAttachmentModel;
     protected $pettyCashItemModel;
+    protected $bankModel;
+    protected $bankReconBalanceModel;
     protected $webappResponseModel;
 
     public function __construct()
     {
         // Headers
-        $this->api_key = $_SERVER['HTTP_API_KEY'];
-        $this->user_key = $_SERVER['HTTP_USER_KEY'];
+        $this->api_key = $_SERVER['HTTP_API_KEY'] ?? null;
+        $this->user_key = $_SERVER['HTTP_USER_KEY'] ?? null;
 
         $this->_load_essentials();
     }
@@ -185,10 +187,13 @@ class Petty_cash_reports extends MYTController
             $response = $this->fail($this->errorMessage);
         } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->pettyCashDetailAttachmentModel, ['petty_cash_detail_id' => $petty_cash_detail_id]) AND
             $response === false) {
-            $db->transRollback();
+            $this->db->transRollback();
             $response = $this->respond(['response' => 'petty_cash_detail file upload failed']);
         } else {
             $this->db->transCommit();
+            if ($this->request->getVar('type') === 'in') {
+                $this->bankReconBalanceModel->rebuild($this->request->getVar('from'));
+            }
             $response = $this->respond([
                 'response'     => 'Petty cash details created successfully.',
                 'status'       => 'success',
@@ -261,6 +266,13 @@ class Petty_cash_reports extends MYTController
             $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
+            $affected = array_unique(array_filter([
+                $petty_cash_detail['type'] === 'in' ? $petty_cash_detail['from'] : null,
+                $this->request->getVar('type') === 'in' ? $this->request->getVar('from') : null,
+            ]));
+            foreach ($affected as $bid) {
+                $this->bankReconBalanceModel->rebuild($bid);
+            }
             $response = $this->respond(['response' => 'Petty cash detail updated successfully.', 'status' => 'success']);
         }
 
@@ -332,6 +344,9 @@ class Petty_cash_reports extends MYTController
             $response = $this->fail($this->errorMessage);
         } else {
             $this->db->transCommit();
+            if ($petty_cash_detail['type'] === 'in' && !empty($petty_cash_detail['from'])) {
+                $this->bankReconBalanceModel->rebuild($petty_cash_detail['from']);
+            }
             $response = $this->respond(['response' => 'Petty cash deleted successfully.', 'status' => 'success']);
         }
 
@@ -414,7 +429,7 @@ class Petty_cash_reports extends MYTController
             return $response;
         }
 
-        $petty_cash_detail_id = $this->request->getVar('petty_cash_id') ?? null;
+        $petty_cash_detail_id = $this->request->getVar('petty_cash_detail_id') ?? null;
 
         if (!$petty_cash_detail = $this->pettyCashDetailModel->get_details_by_id($petty_cash_detail_id)) {
             $response = $this->failNotFound('Petty cash detail not found');
@@ -494,7 +509,7 @@ class Petty_cash_reports extends MYTController
             'current_petty_cash'   => $this->request->getVar('beginning_petty_cash'),
             'details'              => $this->request->getVar('details'),
             'added_by'             => $this->requested_by,
-            'added_on'             => date('Y-m-d H:i:s'),s
+            'added_on'             => date('Y-m-d H:i:s'),
         ];
 
         if (!$petty_cash_id = $this->pettyCashModel->insert($values)) {
@@ -511,11 +526,15 @@ class Petty_cash_reports extends MYTController
     private function _attempt_create_petty_cash_detail($petty_cash_id)
     {
         $type = $this->request->getVar('type');
-        $status = ($type == 'out') ? : 'approved';
+        // replaced: '?:' returns boolean true for 'out' instead of a status; now 'out'=pending, 'in'=approved
+        // $status = ($type == 'out') ? : 'approved';
+        $status = 'approved';
 
         $values = [
             'petty_cash_id' => $petty_cash_id,
-            'approved'      => $status,
+            // replaced: 'approved' is not a petty_cash_detail column, so it was dropped and status stayed null
+            // 'approved'      => $status,
+            'status'        => $status,
             'out_type'      => $this->request->getVar('out_type'),
             'type'          => $this->request->getVar('type'),
             'from'          => $this->request->getVar('from'),
@@ -534,9 +553,14 @@ class Petty_cash_reports extends MYTController
             return false;
         }
 
-        // Update the current petty cash in the petty cash table
         if (!$this->_update_current_petty_cash($petty_cash_id, $values['amount'], $values['type'])) {
             $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+
+        // cash in, deduct the amount from the source bank
+        if ($values['type'] == 'in'
+            && !$this->_adjust_bank_balance($values['from'], - (float)$values['amount'])) {
             return false;
         }
 
@@ -623,7 +647,7 @@ class Petty_cash_reports extends MYTController
             'updated_on'           => date('Y-m-d H:i:s')
         ];
 
-        if (!$this->pettyCashModel->update($petty_cash_id, $values)) {
+        if (!$this->pettyCashModel->update($petty_cash['id'], $values)) {
             $this->errorMessage = $this->db->error()['message'];
             return false;
         }
@@ -743,12 +767,45 @@ class Petty_cash_reports extends MYTController
             return false;
         }
 
-        // Update the current petty cash in the petty cash table 
+        // Update the current petty cash in the petty cash table
         // Reversing the amount to restore the current petty cashitem_remarks[]
         if ($petty_cash_detail['status'] == 'approved' AND !$this->_update_current_petty_cash($petty_cash_detail['petty_cash_id'], (float)$petty_cash_detail['amount'] * -1, $petty_cash_detail['type'])) {
             return false;
         }
-        
+
+        // Restore bank balance for cash-in (money was taken from bank on create, so add it back on delete)
+        if ($petty_cash_detail['type'] == 'in'
+            && !$this->_adjust_bank_balance($petty_cash_detail['from'], (float)$petty_cash_detail['amount'])) {
+            return false;
+        }
+
+        return true;
+    }
+    
+    // helper function, adjust bank balance
+    private function _adjust_bank_balance($bank_id, $delta){
+        if(empty($bank_id)){
+            return true;
+        }
+
+        if(!$bank=$this->bankModel->get_details_by_id($bank_id)){
+            $this->errorMessage = 'Invalid bank selected for petty cash transaction';
+            return false;
+        }
+
+        $bank = $bank[0];
+
+        $new_values = [
+            'current_bal' => (float)$bank['current_bal'] + (float)$delta,
+            'updated_by' => $this->requested_by,
+            'updated_on' => date('Y-m-d H:i:s'),
+        ];
+
+        if(!$this->bankModel->update($bank_id, $new_values)){
+            $this->errorMessage = $this->db->error()['message'];
+            return false;
+        }
+
         return true;
     }
 
@@ -761,7 +818,9 @@ class Petty_cash_reports extends MYTController
         $this->pettyCashDetailModel = model('App\Models\Petty_cash_detail');
         $this->pettyCashDetailAttachmentModel = model('App\Models\Petty_cash_detail_attachment');
         $this->pettyCashItemModel   = model('App\Models\Petty_cash_item');
-        $this->webappResponseModel  = model('App\Models\Webapp_response');
+        $this->webappResponseModel   = model('App\Models\Webapp_response');
+        $this->bankModel             = model('App\Models\Bank');
+        $this->bankReconBalanceModel = model('App\Models\Bank_recon_balance');
     }
 
     

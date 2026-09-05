@@ -9,6 +9,7 @@ class Suppliers extends MYTController
 {
     protected $supplierAttachmentModel;
     protected $supplierModel;
+    protected $supplierRecurringPoModel;
     protected $webappResponseModel;
 
     public function __construct()
@@ -97,9 +98,12 @@ class Suppliers extends MYTController
             $db->transRollback();
             $response = $this->failServerError('Failed to create supplier: ' . ($this->errorMessage ?? 'Unknown error'));
         } else {
-            if (($this->request->getFile('file') || $this->request->getFileMultiple('file'))
+            if (!$this->_attempt_save_recurring_fees($supplier_id)) {
+                $db->transRollback();
+                $response = $this->failServerError('Failed to save recurring fees');
+            } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file'))
                 && !$this->_attempt_upload_file_base64($this->supplierAttachmentModel, ['supplier_id' => $supplier_id])) {
-                
+
                 $db->transRollback();
                 $response = $this->respond(['response' => 'Supplier file upload failed']);
             } else {
@@ -166,6 +170,9 @@ class Suppliers extends MYTController
         elseif (!$this->_attempt_update($supplier_id)) {
             $db->transRollback();
             $response = $this->fail('Server error');
+        } elseif (!$this->_attempt_save_recurring_fees($supplier_id)) {
+            $db->transRollback();
+            $response = $this->fail('Failed to save recurring fees');
         } else {
             $db->transCommit();
             $response = $this->respond(['response' => 'supplier updated successfully']);
@@ -242,7 +249,8 @@ class Suppliers extends MYTController
             $response = $this->failNotFound('No supplier found');
         } else {
             foreach ($suppliers as $key => $supplier) {
-                $suppliers[$key]['attachments'] = $this->supplierAttachmentModel->get_details_by_supplier_id($supplier['id']);
+                $suppliers[$key]['attachments']     = $this->supplierAttachmentModel->get_details_by_supplier_id($supplier['id']);
+                $suppliers[$key]['recurring_fees']  = $this->supplierRecurringPoModel->get_details_by_supplier_id($supplier['id']) ?: [];
             }
             $response = $this->respond([
                 'response' => 'suppliers found',
@@ -271,7 +279,7 @@ class Suppliers extends MYTController
             'bir_number'             => $this->request->getVar('bir_number'),
             'bir_address'            => $this->request->getVar('bir_address'),
             'tin'                    => $this->request->getVar('tin'),
-            'terms'                  => $this->request->getVar('terms'),
+            'terms'                  => $this->request->getVar('terms') !== '' ? (int)$this->request->getVar('terms') : null,
             'requirements'           => $this->request->getVar('requirements'),
             'phone_no'               => $this->request->getVar('phone_no'),
             'email'                  => $this->request->getVar('email'),
@@ -324,7 +332,7 @@ class Suppliers extends MYTController
             'bir_number'             => $this->request->getVar('bir_number'),
             'bir_address'            => $this->request->getVar('bir_address'),
             'tin'                    => $this->request->getVar('tin'),
-            'terms'                  => $this->request->getVar('terms'),
+            'terms'                  => $this->request->getVar('terms') !== '' ? (int)$this->request->getVar('terms') : null,
             'requirements'           => $this->request->getVar('requirements'),
             'phone_no'               => $this->request->getVar('phone_no'),
             'email'                  => $this->request->getVar('email'),
@@ -368,6 +376,75 @@ class Suppliers extends MYTController
     }
 
     /**
+     * Update, insert, or soft delete supplier recurring fees.
+     * Mirrors Projects::_attempt_generate_project_recurring_costs() — existing rows are
+     * matched by id and updated in place (is_occupied / purchase_order_id untouched), so
+     * editing a fee that's already generated a PO this period doesn't trigger a duplicate.
+     * Only rows missing from the request get soft-deleted; rows without an id are inserted.
+     */
+    private function _attempt_save_recurring_fees($supplier_id)
+    {
+        $fee_ids               = $this->request->getVar('fee_ids')               ?? [];
+        $fee_descriptions      = $this->request->getVar('fee_descriptions')      ?? [];
+        $fee_expense_type_ids  = $this->request->getVar('fee_expense_type_ids')  ?? [];
+        $fee_payment_types     = $this->request->getVar('fee_payment_types')     ?? [];
+        $fee_payment_option_ids = $this->request->getVar('fee_payment_option_ids') ?? [];
+        $fee_amounts           = $this->request->getVar('fee_amounts')           ?? [];
+        $fee_totals            = $this->request->getVar('fee_totals')            ?? [];
+
+        $where = ['supplier_id' => $supplier_id, 'is_deleted' => 0];
+        $existingIds = $this->supplierRecurringPoModel->select('id', $where);
+
+        if ($existingIds) {
+            $existingIds = array_column($existingIds, 'id');
+            $idsToDelete = array_diff($existingIds, array_filter($fee_ids));
+
+            foreach ($idsToDelete as $id) {
+                if (!$this->supplierRecurringPoModel->update($id, [
+                    'is_deleted' => 1,
+                    'updated_by' => $this->requested_by,
+                    'updated_on' => date('Y-m-d H:i:s'),
+                ])) {
+                    return false;
+                }
+            }
+        }
+
+        // Cadence is no longer user-selectable on the recurring fee form — always monthly.
+        foreach ($fee_descriptions as $i => $description) {
+            $id = $fee_ids[$i] ?? null;
+
+            $data = [
+                'supplier_id'       => $supplier_id,
+                'description'       => $description ?: null,
+                'expense_type_id'   => empty($fee_expense_type_ids[$i])   ? null : $fee_expense_type_ids[$i],
+                'payment_type'      => empty($fee_payment_types[$i])      ? null : $fee_payment_types[$i],
+                'payment_option_id' => empty($fee_payment_option_ids[$i]) ? null : $fee_payment_option_ids[$i],
+                'type'              => 'monthly',
+                'amount'            => $fee_amounts[$i] ?? null,
+                'total'             => $fee_totals[$i]  ?? null,
+            ];
+
+            if ($id) {
+                $data['updated_by'] = $this->requested_by;
+                $data['updated_on'] = date('Y-m-d H:i:s');
+                if (!$this->supplierRecurringPoModel->update($id, $data)) {
+                    return false;
+                }
+            } else {
+                $data['is_occupied'] = 0;
+                $data['added_by']    = $this->requested_by;
+                $data['added_on']    = date('Y-m-d H:i:s');
+                if (!$this->supplierRecurringPoModel->insert($data)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Attempt delete
      */
     protected function _attempt_delete($supplier_id)
@@ -399,8 +476,9 @@ class Suppliers extends MYTController
      */
     protected function _load_essentials()
     {
-        $this->supplierAttachmentModel = model('App\Models\Supplier_attachment');
-        $this->supplierModel       = new Supplier();
-        $this->webappResponseModel = new Webapp_response();
+        $this->supplierAttachmentModel  = model('App\Models\Supplier_attachment');
+        $this->supplierRecurringPoModel = model('App\Models\Supplier_recurring_po');
+        $this->supplierModel            = new Supplier();
+        $this->webappResponseModel      = new Webapp_response();
     }
 }

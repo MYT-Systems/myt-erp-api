@@ -30,6 +30,7 @@ class Project_invoice_payment extends MYTModel
         'service_fee',
         'delivery_fee',
         'withholding_tax',
+        'soa_description',
         'is_done',
         'deposit_date',
         'added_by',

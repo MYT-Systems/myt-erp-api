@@ -30,8 +30,8 @@ class Project_expenses extends MYTController
     public function __construct()
     {
         // Headers
-        $this->api_key = $_SERVER['HTTP_API_KEY'];
-        $this->user_key = $_SERVER['HTTP_USER_KEY'];
+        $this->api_key = $_SERVER['HTTP_API_KEY'] ?? null;
+        $this->user_key = $_SERVER['HTTP_USER_KEY'] ?? null;
 
         $this->_load_essentials();
     }
@@ -411,10 +411,29 @@ class Project_expenses extends MYTController
      */
     protected function _attempt_update($project_expense_id)
     {
+        $partner_name = $this->request->getVar('partner_name');
+        $partner_id   = $this->request->getVar('partner_id');
+
+        if ($partner_name) {
+            $where   = ['name' => $partner_name, 'is_deleted' => 0];
+            $partner = $this->partnerModel->select('', $where, 1);
+            if (!$partner) {
+                $partner_values = [
+                    'name'     => $partner_name,
+                    'added_by' => $this->requested_by,
+                    'added_on' => date('Y-m-d H:i:s'),
+                ];
+                if (!$partner_id = $this->partnerModel->insert($partner_values)) {
+                    return false;
+                }
+            } else {
+                $partner_id = $partner['id'];
+            }
+        }
+
         $values = [
             'project_id' => $this->request->getVar('project_id'),
             'expense_type_id' => $this->request->getVar('expense_type_id'),
-            'partner_id' => $this->request->getVar('partner_id'),
             'supplier_id' => $this->request->getVar('supplier_id'),
             'requester_name_id' => $this->request->getVar('requester_name_id'),
             'remarks' => $this->request->getVar('remarks'),
@@ -425,6 +444,10 @@ class Project_expenses extends MYTController
             'updated_by' => $this->requested_by,
             'updated_on' => date('Y-m-d H:i:s')
         ];
+
+        if ($partner_id !== null) {
+            $values['partner_id'] = $partner_id;
+        }
 
         if (!$this->projectExpenseModel->update($project_expense_id, $values))
             return false;
@@ -437,10 +460,7 @@ class Project_expenses extends MYTController
 
         if (!$this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense_id, $this->requested_by)) {
             return false;
-        } elseif ($this->request->getFile('file') AND $this->projectExpenseAttachmentModel->delete_attachments_by_project_expense_id($project_expense_id, $this->requested_by)) {
-            return false;
-            // $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['expense_id' => $expense_id]);
-        } elseif(($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
+        } elseif (($this->request->getFile('file') || $this->request->getFileMultiple('file')) AND !$response = $this->_attempt_upload_file_base64($this->projectExpenseAttachmentModel, ['project_expense_id' => $project_expense_id]) AND
                    $response === false) {
             return false;
         }

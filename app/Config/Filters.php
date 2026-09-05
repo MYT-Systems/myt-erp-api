@@ -16,9 +16,11 @@ class Filters extends BaseConfig
      * @var array
      */
     public $aliases = [
-        'csrf'     => CSRF::class,
-        'toolbar'  => DebugToolbar::class,
-        'honeypot' => Honeypot::class,
+        'csrf'                => CSRF::class,
+        'toolbar'             => DebugToolbar::class,
+        'honeypot'            => Honeypot::class,
+        'recurringInvoice'    => \App\Filters\RecurringInvoiceFilter::class,
+        'recurringSupplierPo' => \App\Filters\RecurringSupplierPoFilter::class,
     ];
 
     /**
@@ -29,12 +31,11 @@ class Filters extends BaseConfig
      */
     public $globals = [
         'before' => [
-            // 'honeypot',
-            // 'csrf',
+            'recurringInvoice',
+            'recurringSupplierPo',
         ],
         'after' => [
             'toolbar',
-            // 'honeypot',
         ],
     ];
 
